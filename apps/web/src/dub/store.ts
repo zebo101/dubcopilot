@@ -8,7 +8,11 @@ const DEFAULT_SETTINGS: DubSettings = {
 	originalAudio: "mute",
 	backgroundVolume: 0.12,
 	subtitles: true,
+	subtitleMode: "soft",
+	speedAdaptive: true,
+	nativeMaxSpeed: 1.35,
 	maxSpeedup: 2.3,
+	overlapGuardMs: 80,
 	maintainPitch: true,
 };
 

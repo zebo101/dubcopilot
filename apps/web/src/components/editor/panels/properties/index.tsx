@@ -14,6 +14,8 @@ import { usePropertiesStore } from "./stores/properties-store";
 import { getPropertiesConfig } from "./registry";
 import { cn } from "@/utils/ui";
 import { EmptyView } from "./empty-view";
+import { useDubStore } from "@/dub/store";
+import { DubSegmentInspector } from "@/dub/components/segment-inspector";
 
 export function PropertiesPanel() {
 	const editor = useEditor();
@@ -21,6 +23,20 @@ export function PropertiesPanel() {
 	useEditor((e) => e.media.getAssets());
 	const { selectedElements } = useElementSelection();
 	const { activeTabPerType, setActiveTab } = usePropertiesStore();
+	const dubSegId = useDubStore((s) => s.selectedSegId);
+	const dubReviewing = useDubStore((s) => s.phase === "review");
+
+	// While dubbing, selecting a line in the 逐句编辑台 shows its inspector here
+	// (voice / speed / fit-meter / timing) instead of the empty state.
+	if (selectedElements.length === 0 && dubReviewing && dubSegId) {
+		return (
+			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-sm border">
+				<ScrollArea className="flex-1 scrollbar-hidden">
+					<DubSegmentInspector />
+				</ScrollArea>
+			</div>
+		);
+	}
 
 	if (selectedElements.length === 0) {
 		return (

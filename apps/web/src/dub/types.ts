@@ -6,6 +6,7 @@ export type DubPhase = "setup" | "processing" | "review";
 export type SegmentStatus = "ready" | "edited";
 export type SpeedMode = "auto" | "manual";
 export type OriginalAudioMode = "mute" | "background";
+export type SubtitleMode = "soft" | "burn";
 
 export interface SegmentTiming {
 	/** raw spoken length of the (Chinese) line, seconds */
@@ -47,8 +48,15 @@ export interface DubSettings {
 	originalAudio: OriginalAudioMode;
 	backgroundVolume: number;
 	subtitles: boolean;
+	subtitleMode: SubtitleMode;
+	/** auto speed-fit overlong lines to their slot */
+	speedAdaptive: boolean;
+	/** zh-dub --tts-native-max-speed-ratio */
+	nativeMaxSpeed: number;
 	/** matches zh-dub --max-tts-speedup */
 	maxSpeedup: number;
+	/** zh-dub --overlap-guard-ms */
+	overlapGuardMs: number;
 	/** all dubbing audio keeps pitch when sped up */
 	maintainPitch: boolean;
 }

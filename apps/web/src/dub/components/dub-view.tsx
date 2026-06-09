@@ -9,6 +9,7 @@ import {
 	PlayIcon,
 	Loading03Icon,
 	Cancel01Icon,
+	DashboardSpeed02Icon,
 } from "@hugeicons/core-free-icons";
 import { useEditor } from "@/editor/use-editor";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/wasm";
@@ -189,6 +190,7 @@ function SetupView() {
 	const translateConfigured = useDubCredentials(
 		(c) => c.deepseekApiKey.trim().length > 0,
 	);
+	const [advOpen, setAdvOpen] = useState(false);
 
 	const onGenerate = async () => {
 		setPhase("processing");
@@ -326,19 +328,152 @@ function SetupView() {
 							</button>
 						))}
 					</div>
+					{settings.originalAudio === "background" ? (
+						<div className="pt-1">
+							<div className="text-muted-foreground mb-1 flex justify-between text-[11px]">
+								<span>背景音量</span>
+								<span>{Math.round(settings.backgroundVolume * 100)}%</span>
+							</div>
+							<input
+								type="range"
+								min={0}
+								max={0.5}
+								step={0.01}
+								value={settings.backgroundVolume}
+								onChange={(e) =>
+									setSetting({
+										key: "backgroundVolume",
+										value: Number(e.target.value),
+									})
+								}
+								className="w-full"
+							/>
+						</div>
+					) : null}
 				</div>
 
 				{/* subtitles */}
-				<label className="flex cursor-pointer items-center justify-between">
-					<span className="text-sm">同时生成中文字幕</span>
-					<input
-						type="checkbox"
-						checked={settings.subtitles}
-						onChange={(e) =>
-							setSetting({ key: "subtitles", value: e.target.checked })
-						}
-					/>
-				</label>
+				<div className="space-y-2">
+					<label className="flex cursor-pointer items-center justify-between">
+						<span className="text-sm">同时生成中文字幕</span>
+						<input
+							type="checkbox"
+							checked={settings.subtitles}
+							onChange={(e) =>
+								setSetting({ key: "subtitles", value: e.target.checked })
+							}
+						/>
+					</label>
+					{settings.subtitles ? (
+						<div className="bg-muted inline-flex rounded-md p-0.5">
+							{(["soft", "burn"] as const).map((mode) => (
+								<button
+									type="button"
+									key={mode}
+									onClick={() =>
+										setSetting({ key: "subtitleMode", value: mode })
+									}
+									className={cn(
+										"rounded px-3 py-1 text-xs transition-colors",
+										settings.subtitleMode === mode
+											? "bg-background shadow-sm"
+											: "text-muted-foreground",
+									)}
+								>
+									{mode === "soft" ? "软字幕（可关）" : "烧录到画面"}
+								</button>
+							))}
+						</div>
+					) : null}
+				</div>
+
+				{/* advanced — speed & alignment */}
+				<div className="rounded-md border">
+					<button
+						type="button"
+						onClick={() => setAdvOpen(!advOpen)}
+						className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs"
+					>
+						<HugeiconsIcon
+							icon={DashboardSpeed02Icon}
+							className="text-muted-foreground size-4"
+						/>
+						<span className="font-medium">高级 · 语速与对齐</span>
+						<HugeiconsIcon
+							icon={ArrowRight01Icon}
+							className={cn(
+								"text-muted-foreground ml-auto size-4 transition-transform",
+								advOpen && "rotate-90",
+							)}
+						/>
+					</button>
+					{advOpen ? (
+						<div className="space-y-3 border-t p-3">
+							<label className="flex cursor-pointer items-start justify-between gap-2">
+								<span className="flex flex-col">
+									<span className="text-xs">语速自适应</span>
+									<span className="text-muted-foreground text-[10px]">
+										译文偏长时自动加速，贴合原时长
+									</span>
+								</span>
+								<input
+									type="checkbox"
+									checked={settings.speedAdaptive}
+									onChange={(e) =>
+										setSetting({
+											key: "speedAdaptive",
+											value: e.target.checked,
+										})
+									}
+								/>
+							</label>
+							<div>
+								<div className="text-muted-foreground mb-1 flex justify-between text-[11px]">
+									<span>原生最大语速</span>
+									<span>×{settings.nativeMaxSpeed.toFixed(2)}</span>
+								</div>
+								<input
+									type="range"
+									min={1}
+									max={1.6}
+									step={0.05}
+									value={settings.nativeMaxSpeed}
+									onChange={(e) =>
+										setSetting({
+											key: "nativeMaxSpeed",
+											value: Number(e.target.value),
+										})
+									}
+									className="w-full"
+								/>
+							</div>
+							<div>
+								<div className="text-muted-foreground mb-1 flex justify-between text-[11px]">
+									<span>最大变速</span>
+									<span>×{settings.maxSpeedup.toFixed(1)}</span>
+								</div>
+								<input
+									type="range"
+									min={1.5}
+									max={3}
+									step={0.1}
+									value={settings.maxSpeedup}
+									onChange={(e) =>
+										setSetting({
+											key: "maxSpeedup",
+											value: Number(e.target.value),
+										})
+									}
+									className="w-full"
+								/>
+							</div>
+							<div className="text-muted-foreground flex justify-between text-[11px]">
+								<span>重叠保护</span>
+								<span>{settings.overlapGuardMs} ms</span>
+							</div>
+						</div>
+					) : null}
+				</div>
 
 				{/* TTS / translation credentials (filled by the user, not hardcoded) */}
 				<CredentialsSection />
@@ -509,9 +644,21 @@ function ReviewView() {
 	const backToSetup = useDubStore((s) => s.backToSetup);
 	const applyTranslations = useDubStore((s) => s.applyTranslations);
 	const spedCount = segments.filter((s) => isSped({ timing: s.timing })).length;
+	const editedCount = segments.filter((s) => s.status === "edited").length;
+	const dubDuration = segments.length
+		? Math.max(...segments.map((s) => s.end))
+		: 0;
 	const [applying, setApplying] = useState(false);
 	const [applyStep, setApplyStep] = useState("");
 	const [translating, setTranslating] = useState(false);
+	const [query, setQuery] = useState("");
+	const filtered = query.trim()
+		? segments.filter((s) =>
+				(s.translated + s.source)
+					.toLowerCase()
+					.includes(query.trim().toLowerCase()),
+			)
+		: segments;
 
 	const onTranslate = async () => {
 		const creds = useDubCredentials.getState();
@@ -569,27 +716,41 @@ function ReviewView() {
 				<span>
 					<b>{segments.length}</b> 句
 				</span>
+				<span>
+					<b>{fmtShort({ seconds: dubDuration })}</b> 配音时长
+				</span>
 				<span className={cn(spedCount > 0 && "text-amber-500")}>
 					<b>{spedCount}</b> 已加速
 				</span>
+				<span>
+					<b>{editedCount}</b> 已编辑
+				</span>
 				<button
 					type="button"
-					className="text-primary hover:text-primary/80 ml-auto disabled:opacity-50"
-					onClick={() => onTranslate()}
-					disabled={translating}
-				>
-					{translating ? "翻译中…" : "DeepSeek 翻译"}
-				</button>
-				<button
-					type="button"
-					className="text-muted-foreground hover:text-foreground"
+					className="text-muted-foreground hover:text-foreground ml-auto"
 					onClick={() => backToSetup()}
 				>
 					重新设置
 				</button>
 			</div>
+			<div className="flex items-center gap-2 border-b px-3 py-2">
+				<input
+					value={query}
+					onChange={(e) => setQuery(e.target.value)}
+					placeholder="搜索译文 / 原文…"
+					className="border-border bg-background w-full rounded border px-2 py-1 text-xs"
+				/>
+				<button
+					type="button"
+					className="text-primary hover:text-primary/80 shrink-0 text-xs disabled:opacity-50"
+					onClick={() => onTranslate()}
+					disabled={translating}
+				>
+					{translating ? "翻译中…" : "DeepSeek 翻译"}
+				</button>
+			</div>
 			<div className="flex-1 space-y-0.5 overflow-y-auto p-2">
-				{segments.map((seg) => (
+				{filtered.map((seg) => (
 					<SegmentRow key={seg.id} seg={seg} active={activeId === seg.id} />
 				))}
 			</div>
