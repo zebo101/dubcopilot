@@ -110,7 +110,11 @@ function LessonRow({
 				<div className="text-muted-foreground truncate text-[10px]">
 					{lesson.chapter}
 					{lesson.segCount ? ` · ${lesson.segCount} 句` : ""}
-					{lesson.hasSubtitle ? " · 含字幕" : " · 需转写"}
+					{lesson.subtitleLang === "zh"
+						? " · 中文字幕·直配"
+						: lesson.subtitleLang === "en"
+							? " · 英文字幕·翻译"
+							: " · 需转写"}
 				</div>
 			</button>
 			<div className="text-muted-foreground flex items-center gap-1">

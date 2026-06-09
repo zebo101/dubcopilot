@@ -93,6 +93,7 @@ function buildCourseFromScan({
 			stem: l.stem,
 			videoPath: l.videoPath,
 			hasSubtitle: !!l.subtitleHandle,
+			subtitleLang: l.subtitleLang,
 			status: willSkip ? "failed" : "queued",
 			progress: 0,
 			failReason: willSkip ? "缺少字幕，已按策略跳过" : null,

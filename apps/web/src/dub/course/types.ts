@@ -22,8 +22,10 @@ export interface CourseLesson {
 	stem: string;
 	/** path of the video relative to the course root (for display + writeback). */
 	videoPath: string;
-	/** whether a sibling *_en.srt / .vtt was found (→ skip ASR). */
+	/** whether a sibling subtitle (.srt/.vtt) was found (→ skip ASR). */
 	hasSubtitle: boolean;
+	/** language of the paired subtitle: "en" → translate; "zh" → use directly. */
+	subtitleLang?: "en" | "zh" | null;
 	durationSec?: number;
 	status: LessonStatus;
 	/** 0..100 within the current stage / overall lesson. */

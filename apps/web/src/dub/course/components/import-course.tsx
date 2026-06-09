@@ -144,6 +144,12 @@ function ScanStep() {
 				</div>
 			</div>
 
+			{scan.chinese > 0 && (
+				<div className="rounded bg-emerald-500/10 px-2 py-1.5 text-[11px] text-emerald-600 dark:text-emerald-500">
+					其中 {scan.chinese} 节是中文字幕（`_zh`），将<b>直接配音、跳过翻译</b>；其余英文字幕会自动翻成中文。
+				</div>
+			)}
+
 			<div className="space-y-2">
 				<div className="text-muted-foreground text-xs">缺字幕的课时怎么办</div>
 				<Segmented
@@ -183,7 +189,13 @@ function ScanStep() {
 								l.subtitleHandle ? "text-emerald-500" : "text-amber-500",
 							)}
 						>
-							{l.subtitleHandle ? "✓ 字幕" : missingPolicy === "asr" ? "将转写" : "将跳过"}
+							{l.subtitleLang === "zh"
+								? "✓ 中文 · 直配"
+								: l.subtitleLang === "en"
+									? "✓ 英文 · 翻译"
+									: missingPolicy === "asr"
+										? "将转写"
+										: "将跳过"}
 						</span>
 					</div>
 				))}

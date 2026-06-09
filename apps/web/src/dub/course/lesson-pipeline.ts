@@ -33,6 +33,7 @@ export async function processLesson({
 	title,
 	videoFile,
 	subtitleText,
+	subtitleLang,
 	transcribeModel,
 	settings,
 	creds,
@@ -42,6 +43,8 @@ export async function processLesson({
 	title: string;
 	videoFile: File;
 	subtitleText: string | null;
+	/** "zh" → cues are a ready translation (skip DeepSeek); else translate. */
+	subtitleLang?: "en" | "zh" | null;
 	transcribeModel: DubSettings["transcribeModel"];
 	settings: DubSettings;
 	creds: DubCredentials;
@@ -85,6 +88,16 @@ export async function processLesson({
 		segments = segmentsFromCues({
 			cues: parseSubtitles({ content: subtitleText }),
 		});
+		// Chinese subtitle = a ready translation → use it directly (fit timing),
+		// no DeepSeek call. (source==translated here is fine for display.)
+		if (subtitleLang === "zh") {
+			const map = new Map(segments.map((s) => [s.id, s.source]));
+			segments = applyTranslationMap({
+				segments,
+				map,
+				maxSpeedup: settings.maxSpeedup,
+			});
+		}
 	} else {
 		segments = await generateDubSegments({
 			editor,
@@ -99,8 +112,10 @@ export async function processLesson({
 		throw new Error("无字幕且未识别到语音，跳过");
 	}
 
-	// 3. Translate (batched + retry + degeneration guard) and fit timing.
-	if (creds.deepseekApiKey.trim()) {
+	// 3. Translate any still-untranslated lines (English subtitle / ASR path).
+	//    Chinese subtitles are already filled above, so this is skipped for them.
+	const needsTranslation = segments.some((s) => !s.translated.trim());
+	if (needsTranslation && creds.deepseekApiKey.trim()) {
 		step("翻译…", 60);
 		const map = await translateSegments({ segments, creds });
 		segments = applyTranslationMap({

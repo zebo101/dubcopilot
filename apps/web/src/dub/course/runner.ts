@@ -66,6 +66,7 @@ export async function runCourseBatch({
 					title: lesson.title,
 					videoFile,
 					subtitleText,
+					subtitleLang: lesson.subtitleLang,
 					transcribeModel: settings.transcribeModel,
 					settings,
 					creds,
