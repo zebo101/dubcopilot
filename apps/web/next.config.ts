@@ -1,8 +1,14 @@
+import { resolve } from "node:path";
 import type { NextConfig } from "next";
 import { withBotId } from "botid/next/config";
 import { withContentCollections } from "@content-collections/next";
 
 const nextConfig: NextConfig = {
+	turbopack: {
+		// Monorepo root (one level above apps/) — `next` is hoisted there, and a
+		// stray ~/pnpm-lock.yaml otherwise makes Next infer the user-home as root.
+		root: resolve(import.meta.dirname, "../.."),
+	},
 	compiler: {
 		removeConsole: process.env.NODE_ENV === "production",
 	},

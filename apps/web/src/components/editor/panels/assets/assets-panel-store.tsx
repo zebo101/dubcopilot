@@ -2,6 +2,7 @@ import type { ElementType } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
+	AiVoiceIcon,
 	ArrowRightDoubleIcon,
 	ClosedCaptionIcon,
 	Folder03Icon,
@@ -17,6 +18,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 export const TAB_KEYS = [
 	"media",
+	"dub",
 	"sounds",
 	"text",
 	"stickers",
@@ -39,6 +41,10 @@ export const tabs = {
 	media: {
 		icon: createHugeiconsIcon({ icon: Folder03Icon }),
 		label: "Media",
+	},
+	dub: {
+		icon: createHugeiconsIcon({ icon: AiVoiceIcon }),
+		label: "AI 配音",
 	},
 	sounds: {
 		icon: createHugeiconsIcon({ icon: HeadphonesIcon }),

@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { type Tab, useAssetsPanelStore } from "@/components/editor/panels/assets/assets-panel-store";
 import { TabBar } from "./tabbar";
 import { Captions } from "@/subtitles/components/assets-view";
+import { DubView } from "@/dub/components/dub-view";
 import { MediaView } from "./views/assets";
 import { SettingsView } from "./views/settings";
 import { SoundsView } from "@/sounds/components/assets-view";
@@ -16,6 +17,7 @@ export function AssetsPanel() {
 
 	const viewMap: Record<Tab, React.ReactNode> = {
 		media: <MediaView />,
+		dub: <DubView />,
 		sounds: <SoundsView />,
 		text: <TextView />,
 		stickers: <StickersView />,
