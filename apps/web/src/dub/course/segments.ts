@@ -1,0 +1,67 @@
+import type { Segment } from "@/dub/types";
+import { autoFitSpeed, estimateDuration } from "@/dub/timing";
+import type { SubtitleCue } from "@/dub/course/subtitles";
+
+/**
+ * Build editable dub segments straight from subtitle cues — the fast path that
+ * skips ASR entirely when a course ships *_en.srt / .vtt sidecars. Shape matches
+ * generateDubSegments() so the rest of the pipeline is identical.
+ */
+export function segmentsFromCues({ cues }: { cues: SubtitleCue[] }): Segment[] {
+	return cues.map((c, i) => {
+		const target = Math.max(0, c.end - c.start);
+		return {
+			id: `seg_${String(i).padStart(3, "0")}`,
+			index: i,
+			start: c.start,
+			end: c.end,
+			source: c.text.trim(),
+			translated: "",
+			status: "ready",
+			speedMode: "auto",
+			timing: {
+				originalDuration: 0,
+				targetDuration: target,
+				fittedDuration: target,
+				appliedSpeedup: 1,
+			},
+		};
+	});
+}
+
+/**
+ * Apply a translation map (segment id → Chinese) to segments, recomputing the
+ * speed-fit timing exactly like the single-lesson store's applyTranslations.
+ * Pure, so it works in the headless batch runner (no Zustand needed).
+ */
+export function applyTranslationMap({
+	segments,
+	map,
+	maxSpeedup,
+}: {
+	segments: Segment[];
+	map: Map<string, string>;
+	maxSpeedup: number;
+}): Segment[] {
+	return segments.map((seg) => {
+		const zh = map.get(seg.id);
+		if (!zh || zh === seg.translated) return seg;
+		const orig = estimateDuration({ text: zh });
+		const rate = autoFitSpeed({
+			originalDuration: orig,
+			targetDuration: seg.timing.targetDuration,
+			maxSpeedup,
+		});
+		return {
+			...seg,
+			translated: zh,
+			status: "ready",
+			timing: {
+				...seg.timing,
+				originalDuration: Number(orig.toFixed(2)),
+				fittedDuration: Number((rate > 0 ? orig / rate : orig).toFixed(2)),
+				appliedSpeedup: Number(rate.toFixed(2)),
+			},
+		};
+	});
+}

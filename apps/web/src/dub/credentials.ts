@@ -15,6 +15,10 @@ export interface DubCredentials {
 	ttsResourceId: string;
 	ttsUrl: string;
 	ttsCluster: string;
+	// Cloud transcription — Groq Whisper (OpenAI-compatible audio API)
+	groqApiKey: string;
+	groqBaseUrl: string;
+	groqModel: string;
 }
 
 export const DUB_CREDENTIALS_DEFAULTS: DubCredentials = {
@@ -25,6 +29,9 @@ export const DUB_CREDENTIALS_DEFAULTS: DubCredentials = {
 	ttsResourceId: "3282640873",
 	ttsUrl: "https://openspeech.bytedance.com/api/v1/tts",
 	ttsCluster: "volcano_tts",
+	groqApiKey: "",
+	groqBaseUrl: "https://api.groq.com/openai/v1",
+	groqModel: "whisper-large-v3-turbo",
 };
 
 interface DubCredentialsStore extends DubCredentials {
@@ -55,4 +62,9 @@ export function hasTtsKey(c: DubCredentials): boolean {
 /** Minimum credential for real translation. */
 export function hasTranslateKey(c: DubCredentials): boolean {
 	return c.deepseekApiKey.trim().length > 0;
+}
+
+/** Minimum credential for cloud (Groq) transcription. */
+export function hasGroqKey(c: DubCredentials): boolean {
+	return c.groqApiKey.trim().length > 0;
 }

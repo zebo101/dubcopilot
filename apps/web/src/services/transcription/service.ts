@@ -31,6 +31,16 @@ class TranscriptionService {
 	}): Promise<TranscriptionResult> {
 		await this.ensureWorker({ modelId, onProgress });
 
+		// The worker does not emit per-chunk progress during inference, so signal
+		// the transition out of "loading-model" here — otherwise the UI would sit
+		// frozen on the last download message for the whole (possibly multi-minute)
+		// transcription and look hung.
+		onProgress?.({
+			status: "transcribing",
+			progress: 0,
+			message: "Transcribing audio...",
+		});
+
 		return new Promise((resolve, reject) => {
 			if (!this.worker) {
 				reject(new Error("Worker not initialized"));

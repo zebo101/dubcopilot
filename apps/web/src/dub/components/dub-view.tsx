@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -24,6 +24,9 @@ import { previewLine } from "@/dub/preview";
 import { VOICES } from "@/dub/data";
 import { isOverflow, isSped } from "@/dub/timing";
 import type { Segment } from "@/dub/types";
+import { TRANSCRIPTION_MODELS } from "@/transcription/models";
+import type { TranscriptionModelId } from "@/transcription/types";
+import { useCourseStore } from "@/dub/course/store";
 
 function fmtShort({ seconds }: { seconds: number }): string {
 	const m = Math.floor(seconds / 60);
@@ -146,6 +149,26 @@ function CredentialsSection() {
 							}
 						/>
 					</div>
+					<div className="space-y-2">
+						<div className="text-[11px] font-medium">Groq 云端转写</div>
+						<CredField
+							label="API Key（云端转写用）"
+							type="password"
+							placeholder="gsk_..."
+							value={cred.groqApiKey}
+							onChange={(v) => cred.setField({ key: "groqApiKey", value: v })}
+						/>
+						<CredField
+							label="Base URL"
+							value={cred.groqBaseUrl}
+							onChange={(v) => cred.setField({ key: "groqBaseUrl", value: v })}
+						/>
+						<CredField
+							label="模型"
+							value={cred.groqModel}
+							onChange={(v) => cred.setField({ key: "groqModel", value: v })}
+						/>
+					</div>
 					<div className="flex items-center gap-2 pt-1">
 						<Button
 							size="sm"
@@ -194,11 +217,22 @@ function SetupView() {
 	const [advOpen, setAdvOpen] = useState(false);
 
 	const onGenerate = async () => {
+		const creds = useDubCredentials.getState();
+		if (settings.transcribeProvider === "cloud" && !creds.groqApiKey.trim()) {
+			toast.error(
+				"云端转写需要 Groq API Key —— 请在「语音 / 翻译 凭据」填写，或切到本地转写",
+			);
+			return;
+		}
 		setPhase("processing");
 		setProc({ step: "准备中…", pct: 0 });
 		try {
 			const segs = await generateDubSegments({
 				editor,
+				provider: settings.transcribeProvider,
+				modelId: settings.transcribeModel,
+				language: "en",
+				creds,
 				onStep: (a) => setProc(a),
 			});
 			if (segs.length === 0) {
@@ -209,7 +243,6 @@ function SetupView() {
 			setSegments(segs);
 
 			// Real translation via DeepSeek (if configured).
-			const creds = useDubCredentials.getState();
 			if (creds.deepseekApiKey.trim()) {
 				setProc({ step: "DeepSeek 翻译中…", pct: 0 });
 				try {
@@ -256,6 +289,59 @@ function SetupView() {
 							中文（简体）
 						</span>
 					</div>
+				</div>
+
+				{/* transcription backend — speed vs privacy */}
+				<div className="space-y-2">
+					<div className="text-muted-foreground text-xs font-medium">
+						转写方式
+					</div>
+					<div className="bg-muted inline-flex rounded-md p-0.5">
+						{(["cloud", "local"] as const).map((mode) => (
+							<button
+								type="button"
+								key={mode}
+								onClick={() =>
+									setSetting({ key: "transcribeProvider", value: mode })
+								}
+								className={cn(
+									"rounded px-3 py-1 text-xs transition-colors",
+									settings.transcribeProvider === mode
+										? "bg-background shadow-sm"
+										: "text-muted-foreground",
+								)}
+							>
+								{mode === "cloud" ? "云端 Groq（快）" : "本地（免费/慢）"}
+							</button>
+						))}
+					</div>
+					{settings.transcribeProvider === "cloud" ? (
+						<p className="text-muted-foreground text-[10px] leading-relaxed">
+							用你的 Groq Key 在云端跑 whisper-large-v3-turbo，7 分钟视频几秒出结果（音频会上传到 Groq）。在下方「语音 / 翻译 凭据」填 Groq Key。
+						</p>
+					) : (
+						<div className="space-y-2">
+							<select
+								value={settings.transcribeModel}
+								onChange={(e) =>
+									setSetting({
+										key: "transcribeModel",
+										value: e.target.value as TranscriptionModelId,
+									})
+								}
+								className="border-border bg-background w-full rounded-md border px-2.5 py-1.5 text-sm"
+							>
+								{TRANSCRIPTION_MODELS.map((m) => (
+									<option key={m.id} value={m.id}>
+										{m.name} — {m.description}
+									</option>
+								))}
+							</select>
+							<p className="text-muted-foreground text-[10px] leading-relaxed">
+								浏览器本地识别、不上传：有 WebGPU 时约 1–2 分钟，否则走 CPU 会很慢。先用 Tiny 跑通。
+							</p>
+						</div>
+					)}
 				</div>
 
 				{/* voice gallery */}
@@ -502,6 +588,17 @@ function ProcessingView() {
 	const procStep = useDubStore((s) => s.procStep);
 	const procPct = useDubStore((s) => s.procPct);
 	const setPhase = useDubStore((s) => s.setPhase);
+	const [elapsed, setElapsed] = useState(0);
+
+	// Browser Whisper reports no per-chunk progress, so the bar can sit at 95%
+	// for minutes during inference. A live elapsed clock proves it's still alive.
+	useEffect(() => {
+		const started = performance.now();
+		const id = setInterval(() => {
+			setElapsed(Math.floor((performance.now() - started) / 1000));
+		}, 1000);
+		return () => clearInterval(id);
+	}, []);
 
 	return (
 		<div className="flex h-full flex-col p-4">
@@ -520,7 +617,9 @@ function ProcessingView() {
 			</div>
 			<div className="text-muted-foreground mt-2 flex justify-between text-xs">
 				<span>{procStep || "处理中…"}</span>
-				<span>{Math.round(procPct)}%</span>
+				<span>
+					{Math.round(procPct)}% · {fmtShort({ seconds: elapsed })}
+				</span>
 			</div>
 			<p className="text-muted-foreground mt-4 text-[11px] leading-relaxed">
 				正在用浏览器内的语音识别转写当前时间轴音频（首次会下载模型，可能需要一会儿）。识别完成后进入逐句编辑台。
@@ -673,6 +772,9 @@ function ReviewView() {
 	const applyTranslations = useDubStore((s) => s.applyTranslations);
 	const spedCount = segments.filter((s) => isSped({ timing: s.timing })).length;
 	const editedCount = segments.filter((s) => s.status === "edited").length;
+	const untranslatedCount = segments.filter(
+		(s) => !s.translated.trim(),
+	).length;
 	const dubDuration = segments.length
 		? Math.max(...segments.map((s) => s.end))
 		: 0;
@@ -696,9 +798,18 @@ function ReviewView() {
 		}
 		setTranslating(true);
 		try {
-			const map = await translateSegments({ segments, creds });
+			// If some lines are still untranslated, fill only those (gap-fill);
+			// otherwise re-translate everything (a deliberate redo).
+			const missing = segments.filter((s) => !s.translated.trim());
+			const targets = missing.length > 0 ? missing : segments;
+			const map = await translateSegments({ segments: targets, creds });
 			applyTranslations({ map });
-			toast.success("DeepSeek 翻译完成");
+			const stillMissing = targets.filter((s) => !map.has(s.id)).length;
+			toast.success(
+				stillMissing > 0
+					? `翻译完成，仍有 ${stillMissing} 句未译（可再点一次补全）`
+					: "DeepSeek 翻译完成",
+			);
 		} catch (error) {
 			console.error("translate failed", error);
 			toast.error(error instanceof Error ? error.message : "翻译失败");
@@ -753,6 +864,11 @@ function ReviewView() {
 				<span>
 					<b>{editedCount}</b> 已编辑
 				</span>
+				{untranslatedCount > 0 ? (
+					<span className="text-red-500">
+						<b>{untranslatedCount}</b> 未译（会留空白，点「DeepSeek 翻译」补全）
+					</span>
+				) : null}
 				<button
 					type="button"
 					className="text-muted-foreground hover:text-foreground ml-auto"
@@ -803,6 +919,9 @@ function ReviewView() {
 
 export function DubView() {
 	const phase = useDubStore((s) => s.phase);
+	const courseExists = useCourseStore((s) => !!s.course);
+	const openImport = useCourseStore((s) => s.openImport);
+	const openCenter = useCourseStore((s) => s.openCenter);
 
 	return (
 		<div className="flex h-full flex-col">
@@ -812,6 +931,13 @@ export function DubView() {
 				<span className="bg-primary/15 text-primary rounded px-1.5 text-[10px]">
 					BETA
 				</span>
+				<button
+					type="button"
+					onClick={() => (courseExists ? openCenter() : openImport())}
+					className="border-border hover:bg-muted ml-auto rounded-md border px-2 py-0.5 text-[11px]"
+				>
+					{courseExists ? "批量中心" : "批量整门课 →"}
+				</button>
 			</div>
 			<div className="min-h-0 flex-1">
 				{phase === "processing" ? (

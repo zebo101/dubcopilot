@@ -13,6 +13,7 @@ import { PreviewPanel } from "@/preview/components";
 import { EditorHeader } from "@/components/editor/editor-header";
 import { EditorProvider } from "@/components/providers/editor-provider";
 import { Onboarding } from "@/components/editor/onboarding";
+import { CourseOverlay } from "@/dub/course/components/course-overlay";
 import { MigrationDialog } from "@/project/components/migration-dialog";
 import { usePanelStore } from "@/editor/panel-store";
 import { usePasteMedia } from "@/media/use-paste-media";
@@ -49,6 +50,7 @@ export default function Editor() {
 						<EditorLayout />
 					</div>
 					<Onboarding />
+					<CourseOverlay />
 					<MigrationDialog />
 					<ChangelogNotification />
 				</div>

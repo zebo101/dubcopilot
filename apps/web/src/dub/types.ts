@@ -2,6 +2,8 @@
 // Draft state only; results are written to the real editor timeline via the
 // adapter (see dub/adapter.ts in later phases).
 
+import type { TranscriptionModelId } from "@/transcription/types";
+
 export type DubPhase = "setup" | "processing" | "review";
 export type SegmentStatus = "ready" | "edited";
 export type SpeedMode = "auto" | "manual";
@@ -59,4 +61,10 @@ export interface DubSettings {
 	overlapGuardMs: number;
 	/** all dubbing audio keeps pitch when sped up */
 	maintainPitch: boolean;
+	/** browser Whisper model used to transcribe the source audio (local mode).
+	 * Smaller = much faster (download + inference) at some accuracy cost. */
+	transcribeModel: TranscriptionModelId;
+	/** where transcription runs: local browser Whisper (free/private/slow) or
+	 * cloud Groq Whisper (fast, needs a key, uploads audio). */
+	transcribeProvider: "local" | "cloud";
 }
