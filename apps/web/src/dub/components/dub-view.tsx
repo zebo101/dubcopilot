@@ -8,7 +8,6 @@ import {
 	ArrowRight01Icon,
 	PlayIcon,
 	Loading03Icon,
-	Tick02Icon,
 	Cancel01Icon,
 } from "@hugeicons/core-free-icons";
 import { useEditor } from "@/editor/use-editor";
@@ -16,8 +15,11 @@ import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/wasm";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { useDubStore } from "@/dub/store";
+import { useDubCredentials, hasTtsKey } from "@/dub/credentials";
 import { applyDubToTimeline } from "@/dub/adapter";
-import { VOICES, voiceById, PIPELINE_STAGES } from "@/dub/data";
+import { generateDubSegments } from "@/dub/generate";
+import { translateSegments } from "@/dub/translate";
+import { VOICES } from "@/dub/data";
 import { isOverflow, isSped } from "@/dub/timing";
 import type { Segment } from "@/dub/types";
 
@@ -27,11 +29,209 @@ function fmtShort({ seconds }: { seconds: number }): string {
 	return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function CredField({
+	label,
+	value,
+	onChange,
+	type = "text",
+	placeholder,
+}: {
+	label: string;
+	value: string;
+	onChange: (value: string) => void;
+	type?: "text" | "password";
+	placeholder?: string;
+}) {
+	return (
+		<label className="block space-y-1">
+			<span className="text-muted-foreground text-[11px]">{label}</span>
+			<input
+				type={type}
+				value={value}
+				placeholder={placeholder}
+				spellCheck={false}
+				autoComplete="off"
+				onChange={(e) => onChange(e.target.value)}
+				className="border-border bg-background w-full rounded border px-2 py-1 text-xs"
+			/>
+		</label>
+	);
+}
+
+function CredentialsSection() {
+	const cred = useDubCredentials();
+	const [open, setOpen] = useState(false);
+	const configured = hasTtsKey(cred);
+
+	return (
+		<div className="rounded-md border">
+			<button
+				type="button"
+				onClick={() => setOpen(!open)}
+				className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs"
+			>
+				<span className="font-medium">语音 / 翻译 凭据</span>
+				<span
+					className={cn(
+						"rounded px-1.5 text-[10px]",
+						configured
+							? "bg-emerald-500/15 text-emerald-500"
+							: "bg-amber-500/15 text-amber-500",
+					)}
+				>
+					{configured ? "已配置" : "未配置"}
+				</span>
+				<HugeiconsIcon
+					icon={ArrowRight01Icon}
+					className={cn(
+						"text-muted-foreground ml-auto size-4 transition-transform",
+						open && "rotate-90",
+					)}
+				/>
+			</button>
+			{open ? (
+				<div className="space-y-3 border-t p-3">
+					<div className="space-y-2">
+						<div className="text-[11px] font-medium">豆包语音 TTS</div>
+						<CredField
+							label="API Key（必填）"
+							type="password"
+							placeholder="VOLCENGINE_TTS_API_KEY"
+							value={cred.ttsApiKey}
+							onChange={(v) => cred.setField({ key: "ttsApiKey", value: v })}
+						/>
+						<CredField
+							label="Resource ID"
+							value={cred.ttsResourceId}
+							onChange={(v) =>
+								cred.setField({ key: "ttsResourceId", value: v })
+							}
+						/>
+						<CredField
+							label="TTS URL"
+							value={cred.ttsUrl}
+							onChange={(v) => cred.setField({ key: "ttsUrl", value: v })}
+						/>
+						<CredField
+							label="Cluster"
+							value={cred.ttsCluster}
+							onChange={(v) => cred.setField({ key: "ttsCluster", value: v })}
+						/>
+					</div>
+					<div className="space-y-2">
+						<div className="text-[11px] font-medium">DeepSeek 翻译</div>
+						<CredField
+							label="API Key（必填）"
+							type="password"
+							placeholder="sk-..."
+							value={cred.deepseekApiKey}
+							onChange={(v) =>
+								cred.setField({ key: "deepseekApiKey", value: v })
+							}
+						/>
+						<CredField
+							label="Base URL"
+							value={cred.deepseekBaseUrl}
+							onChange={(v) =>
+								cred.setField({ key: "deepseekBaseUrl", value: v })
+							}
+						/>
+						<CredField
+							label="模型（V4 默认 deepseek-chat）"
+							value={cred.deepseekModel}
+							onChange={(v) =>
+								cred.setField({ key: "deepseekModel", value: v })
+							}
+						/>
+					</div>
+					<div className="flex items-center gap-2 pt-1">
+						<Button
+							size="sm"
+							className="h-7 text-xs"
+							onClick={() =>
+								toast.success("凭据已保存到本地浏览器，刷新不会丢失")
+							}
+						>
+							保存
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-7 text-xs"
+							onClick={() => {
+								cred.reset();
+								toast("已清除凭据");
+							}}
+						>
+							清除
+						</Button>
+						<span className="text-muted-foreground text-[10px]">
+							输入即自动保存
+						</span>
+					</div>
+					<p className="text-muted-foreground text-[10px] leading-relaxed">
+						凭据仅存本地浏览器（localStorage），不上传服务器、刷新不丢；仅用于经薄代理调用你自己的 DeepSeek / 豆包接口。
+					</p>
+				</div>
+			) : null}
+		</div>
+	);
+}
+
 function SetupView() {
+	const editor = useEditor();
 	const settings = useDubStore((s) => s.settings);
 	const setSetting = useDubStore((s) => s.setSetting);
-	const startGenerate = useDubStore((s) => s.startGenerate);
-	const segCount = useDubStore((s) => s.segments.length);
+	const setPhase = useDubStore((s) => s.setPhase);
+	const setProc = useDubStore((s) => s.setProc);
+	const setSegments = useDubStore((s) => s.setSegments);
+	const applyTranslations = useDubStore((s) => s.applyTranslations);
+	const translateConfigured = useDubCredentials(
+		(c) => c.deepseekApiKey.trim().length > 0,
+	);
+
+	const onGenerate = async () => {
+		setPhase("processing");
+		setProc({ step: "准备中…", pct: 0 });
+		try {
+			const segs = await generateDubSegments({
+				editor,
+				onStep: (a) => setProc(a),
+			});
+			if (segs.length === 0) {
+				toast.error("时间轴没有可转写的音频，请先导入带声音的视频");
+				setPhase("setup");
+				return;
+			}
+			setSegments(segs);
+
+			// Real translation via DeepSeek (if configured).
+			const creds = useDubCredentials.getState();
+			if (creds.deepseekApiKey.trim()) {
+				setProc({ step: "DeepSeek 翻译中…", pct: 0 });
+				try {
+					const map = await translateSegments({
+						segments: segs,
+						creds,
+						onStep: (a) => setProc(a),
+					});
+					applyTranslations({ map });
+				} catch (error) {
+					console.error("translate failed", error);
+					toast.error(
+						error instanceof Error
+							? error.message
+							: "翻译失败，可在逐句台手动编辑或重试",
+					);
+				}
+			}
+			setPhase("review");
+		} catch (error) {
+			console.error("dub transcription failed", error);
+			toast.error(error instanceof Error ? error.message : "转写失败");
+			setPhase("setup");
+		}
+	};
 
 	return (
 		<div className="flex h-full flex-col">
@@ -139,15 +339,23 @@ function SetupView() {
 						}
 					/>
 				</label>
+
+				{/* TTS / translation credentials (filled by the user, not hardcoded) */}
+				<CredentialsSection />
 			</div>
 
 			<div className="border-t p-3">
-				<Button className="w-full" onClick={() => startGenerate()}>
+				{!translateConfigured ? (
+					<div className="mb-2 rounded bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-600 dark:text-amber-500">
+						未配置 DeepSeek Key —— 将只转写原文、不自动翻译（可在逐句台手动编辑）。展开上方「语音 / 翻译 凭据」填写。
+					</div>
+				) : null}
+				<Button className="w-full" onClick={() => onGenerate()}>
 					<HugeiconsIcon icon={AiVoiceIcon} className="size-4" />
 					生成配音
 				</Button>
 				<div className="text-muted-foreground mt-2 text-center text-xs">
-					{segCount} 句 · 预计 1–2 分钟
+					转写当前时间轴音频 → 逐句翻译配音
 				</div>
 			</div>
 		</div>
@@ -155,61 +363,39 @@ function SetupView() {
 }
 
 function ProcessingView() {
-	const procStage = useDubStore((s) => s.procStage);
+	const procStep = useDubStore((s) => s.procStep);
 	const procPct = useDubStore((s) => s.procPct);
-	const cancelGenerate = useDubStore((s) => s.cancelGenerate);
+	const setPhase = useDubStore((s) => s.setPhase);
 
 	return (
 		<div className="flex h-full flex-col p-4">
-			<div className="text-sm font-medium">正在生成配音…</div>
+			<div className="flex items-center gap-2 text-sm font-medium">
+				<HugeiconsIcon
+					icon={Loading03Icon}
+					className="text-primary size-4 animate-spin"
+				/>
+				正在生成配音…
+			</div>
 			<div className="bg-muted mt-3 h-1.5 overflow-hidden rounded-full">
 				<div
 					className="bg-primary h-full transition-[width]"
 					style={{ width: `${procPct}%` }}
 				/>
 			</div>
-			<div className="mt-4 space-y-2">
-				{PIPELINE_STAGES.map((stage, i) => {
-					const done = i < procStage;
-					const active = i === procStage;
-					return (
-						<div key={stage.id} className="flex items-center gap-2">
-							<span
-								className={cn(
-									"flex size-5 items-center justify-center rounded-full text-[10px]",
-									done && "bg-primary/20 text-primary",
-									active && "bg-primary text-primary-foreground",
-									!done && !active && "bg-muted text-muted-foreground",
-								)}
-							>
-								{done ? (
-									<HugeiconsIcon icon={Tick02Icon} className="size-3" />
-								) : active ? (
-									<HugeiconsIcon
-										icon={Loading03Icon}
-										className="size-3 animate-spin"
-									/>
-								) : (
-									i + 1
-								)}
-							</span>
-							<div className="flex flex-col">
-								<span className="text-xs">{stage.label}</span>
-								<span className="text-muted-foreground text-[10px]">
-									{stage.detail}
-								</span>
-							</div>
-						</div>
-					);
-				})}
+			<div className="text-muted-foreground mt-2 flex justify-between text-xs">
+				<span>{procStep || "处理中…"}</span>
+				<span>{Math.round(procPct)}%</span>
 			</div>
+			<p className="text-muted-foreground mt-4 text-[11px] leading-relaxed">
+				正在用浏览器内的语音识别转写当前时间轴音频（首次会下载模型，可能需要一会儿）。识别完成后进入逐句编辑台。
+			</p>
 			<Button
 				variant="outline"
 				className="mt-auto"
-				onClick={() => cancelGenerate()}
+				onClick={() => setPhase("setup")}
 			>
 				<HugeiconsIcon icon={Cancel01Icon} className="size-4" />
-				取消
+				返回
 			</Button>
 		</div>
 	);
@@ -291,7 +477,11 @@ function SegmentRow({ seg, active }: { seg: Segment; active: boolean }) {
 							setEditing(true);
 						}}
 					>
-						{seg.translated}
+						{seg.translated || (
+							<span className="text-muted-foreground italic">
+								（待翻译，双击编辑）
+							</span>
+						)}
 					</div>
 				)}
 			</div>
@@ -317,8 +507,30 @@ function ReviewView() {
 	const segments = useDubStore((s) => s.segments);
 	const settings = useDubStore((s) => s.settings);
 	const backToSetup = useDubStore((s) => s.backToSetup);
+	const applyTranslations = useDubStore((s) => s.applyTranslations);
 	const spedCount = segments.filter((s) => isSped({ timing: s.timing })).length;
 	const [applying, setApplying] = useState(false);
+	const [applyStep, setApplyStep] = useState("");
+	const [translating, setTranslating] = useState(false);
+
+	const onTranslate = async () => {
+		const creds = useDubCredentials.getState();
+		if (!creds.deepseekApiKey.trim()) {
+			toast.error("请先在 setup 的「语音 / 翻译 凭据」填写 DeepSeek Key");
+			return;
+		}
+		setTranslating(true);
+		try {
+			const map = await translateSegments({ segments, creds });
+			applyTranslations({ map });
+			toast.success("DeepSeek 翻译完成");
+		} catch (error) {
+			console.error("translate failed", error);
+			toast.error(error instanceof Error ? error.message : "翻译失败");
+		} finally {
+			setTranslating(false);
+		}
+	};
 
 	// Follow the playhead — highlight whichever line is currently playing.
 	const currentSeconds = useEditor((e) =>
@@ -330,15 +542,24 @@ function ReviewView() {
 		)?.id ?? null;
 
 	const onApply = async () => {
+		const creds = useDubCredentials.getState();
 		setApplying(true);
+		setApplyStep("");
 		try {
-			await applyDubToTimeline({ editor, segments, settings });
+			await applyDubToTimeline({
+				editor,
+				segments,
+				settings,
+				creds,
+				onStep: ({ step }) => setApplyStep(step),
+			});
 			toast.success("已应用配音到时间轴");
 		} catch (error) {
 			console.error("applyDubToTimeline failed", error);
-			toast.error("应用配音失败，请查看控制台");
+			toast.error(error instanceof Error ? error.message : "应用配音失败");
 		} finally {
 			setApplying(false);
+			setApplyStep("");
 		}
 	};
 
@@ -353,7 +574,15 @@ function ReviewView() {
 				</span>
 				<button
 					type="button"
-					className="text-muted-foreground hover:text-foreground ml-auto"
+					className="text-primary hover:text-primary/80 ml-auto disabled:opacity-50"
+					onClick={() => onTranslate()}
+					disabled={translating}
+				>
+					{translating ? "翻译中…" : "DeepSeek 翻译"}
+				</button>
+				<button
+					type="button"
+					className="text-muted-foreground hover:text-foreground"
 					onClick={() => backToSetup()}
 				>
 					重新设置
@@ -371,8 +600,13 @@ function ReviewView() {
 					onClick={() => onApply()}
 				>
 					<HugeiconsIcon icon={PlayIcon} className="size-4" />
-					{applying ? "正在应用…" : "应用到时间轴"}
+					{applying ? "正在生成配音…" : "生成配音并应用到时间轴"}
 				</Button>
+				{applying && applyStep ? (
+					<div className="text-muted-foreground mt-2 text-center text-xs">
+						{applyStep}
+					</div>
+				) : null}
 			</div>
 		</div>
 	);

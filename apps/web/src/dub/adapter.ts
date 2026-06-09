@@ -12,49 +12,15 @@ import type {
 	UploadAudioElement,
 	VideoTrack,
 } from "@/timeline";
+import type { DubCredentials } from "@/dub/credentials";
+import { hasTtsKey } from "@/dub/credentials";
+import { synthesizeSegment } from "@/dub/tts";
+import { autoFitSpeed } from "@/dub/timing";
 import type { DubSettings, Segment } from "@/dub/types";
 
 // Tracks we own — matched by name so re-apply REPLACES instead of stacking.
 const DUB_AUDIO_TRACK_NAME = "配音 · 中文";
 const DUB_SUBTITLE_TRACK_NAME = "字幕 · 中文";
-
-const WAV_SAMPLE_RATE = 44100;
-
-/**
- * A silent mono PCM16 WAV File whose length is `seconds`. The dubbing audio is
- * a placeholder until real TTS (v3); its source length MUST equal the line's
- * estimated original (TTS) duration so that retime rate = original/slot is
- * real — otherwise variable-speed and overflow never trigger.
- */
-function makeSilentWavFile({
-	seconds,
-	name,
-}: {
-	seconds: number;
-	name: string;
-}): File {
-	const numSamples = Math.max(1, Math.floor(seconds * WAV_SAMPLE_RATE));
-	const dataSize = numSamples * 2;
-	const buffer = new ArrayBuffer(44 + dataSize);
-	const view = new DataView(buffer);
-	const writeStr = (off: number, s: string) => {
-		for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
-	};
-	writeStr(0, "RIFF");
-	view.setUint32(4, 36 + dataSize, true);
-	writeStr(8, "WAVE");
-	writeStr(12, "fmt ");
-	view.setUint32(16, 16, true);
-	view.setUint16(20, 1, true);
-	view.setUint16(22, 1, true);
-	view.setUint32(24, WAV_SAMPLE_RATE, true);
-	view.setUint32(28, WAV_SAMPLE_RATE * 2, true);
-	view.setUint16(32, 2, true);
-	view.setUint16(34, 16, true);
-	writeStr(36, "data");
-	view.setUint32(40, dataSize, true);
-	return new File([buffer], name, { type: "audio/wav" });
-}
 
 /** Map the原声处理 setting onto the source video track (both mute + background). */
 function applyOriginalAudio({
@@ -78,18 +44,38 @@ function applyOriginalAudio({
 	} as VideoTrack;
 }
 
+interface BuiltDubAudio {
+	segId: string;
+	element: UploadAudioElement;
+}
+
+/**
+ * Apply the dubbing result to the real timeline:
+ * - real豆包 TTS audio per line (no mock), placed at its scheduled start (no
+ *   ripple); element duration = realDuration / rate so overflow overlaps;
+ * - retime rate from the REAL synthesized audio vs its slot (maintainPitch);
+ * - 中文字幕 track; original audio muted or ducked;
+ * - one undoable snapshot; idempotent (named tracks replaced, not stacked).
+ */
 export async function applyDubToTimeline({
 	editor,
 	segments,
 	settings,
+	creds,
+	onStep,
 }: {
 	editor: EditorCore;
 	segments: Segment[];
 	settings: DubSettings;
+	creds: DubCredentials;
+	onStep?: (args: { step: string; pct: number }) => void;
 }): Promise<void> {
 	const project = editor.project.getActive();
 	const scene = editor.scenes.getActiveSceneOrNull();
 	if (!project || !scene) return;
+	if (!hasTtsKey(creds)) {
+		throw new Error("请先在「语音 / 翻译 凭据」填写豆包 TTS API Key");
+	}
 	const projectId = project.metadata.id;
 	const canvasSize = project.settings.canvasSize ?? { width: 1920, height: 1080 };
 
@@ -97,44 +83,89 @@ export async function applyDubToTimeline({
 		getBuiltInElementParams({ type: "audio" }),
 	);
 
-	// 1. Register a placeholder (silent, original-duration) audio asset per line
-	//    and build the dub AudioElements. startTime = scheduled start (no ripple);
-	//    duration = fittedDuration so overflow naturally overlaps the next line.
-	const dubElements: UploadAudioElement[] = [];
-	for (const seg of segments) {
-		const file = makeSilentWavFile({
-			seconds: seg.timing.originalDuration,
-			name: `dub-${seg.id}.wav`,
+	const voiceType = settings.voiceId;
+	const dubbable = segments.filter((s) => s.translated.trim().length > 0);
+	if (dubbable.length === 0) {
+		throw new Error("没有可配音的句子（请先翻译或填写译文）");
+	}
+
+	// Decode TTS mp3 → real duration (drives retime). Reused across segments.
+	const audioCtx = new (window.AudioContext ||
+		(window as unknown as { webkitAudioContext: typeof AudioContext })
+			.webkitAudioContext)();
+
+	// 1. Synthesize real audio per line, register as a media asset, build element.
+	const built: BuiltDubAudio[] = [];
+	for (let i = 0; i < dubbable.length; i++) {
+		const seg = dubbable[i];
+		onStep?.({
+			step: `合成配音 ${i + 1}/${dubbable.length}`,
+			pct: Math.round((i / dubbable.length) * 100),
 		});
+
+		const bytes = await synthesizeSegment({
+			text: seg.translated,
+			voiceType,
+			creds,
+		});
+		const file = new File([bytes.slice(0)], `dub-${seg.id}.mp3`, {
+			type: "audio/mpeg",
+		});
+
+		let realDuration = seg.timing.targetDuration;
+		try {
+			const decoded = await audioCtx.decodeAudioData(bytes.slice(0));
+			if (decoded.duration > 0) realDuration = decoded.duration;
+		} catch {
+			// keep the slot length as a fallback if decode fails
+		}
+
+		const target = seg.timing.targetDuration;
+		const rate =
+			seg.speedMode === "manual"
+				? seg.timing.appliedSpeedup
+				: autoFitSpeed({
+						originalDuration: realDuration,
+						targetDuration: target,
+						maxSpeedup: settings.maxSpeedup,
+					});
+		const fitted = rate > 0 ? realDuration / rate : realDuration;
+
 		const asset = await editor.media.addMediaAsset({
 			projectId,
 			asset: {
 				file,
 				name: `配音 ${seg.index + 1}`,
 				type: "audio",
-				duration: seg.timing.originalDuration,
+				duration: realDuration,
 				hasAudio: true,
 				ephemeral: true,
 			},
 		});
 		if (!asset) continue;
-		dubElements.push({
-			id: generateUUID(),
-			type: "audio",
-			sourceType: "upload",
-			mediaId: asset.id,
-			name: `配音 ${seg.index + 1}`,
-			startTime: mediaTimeFromSeconds({ seconds: seg.start }),
-			duration: mediaTimeFromSeconds({ seconds: seg.timing.fittedDuration }),
-			trimStart: mediaTimeFromSeconds({ seconds: 0 }),
-			trimEnd: mediaTimeFromSeconds({ seconds: 0 }),
-			params: { ...audioParams },
-			retime: {
-				rate: seg.timing.appliedSpeedup,
-				maintainPitch: settings.maintainPitch,
+
+		built.push({
+			segId: seg.id,
+			element: {
+				id: generateUUID(),
+				type: "audio",
+				sourceType: "upload",
+				mediaId: asset.id,
+				name: `配音 ${seg.index + 1}`,
+				startTime: mediaTimeFromSeconds({ seconds: seg.start }),
+				duration: mediaTimeFromSeconds({ seconds: fitted }),
+				trimStart: mediaTimeFromSeconds({ seconds: 0 }),
+				trimEnd: mediaTimeFromSeconds({ seconds: 0 }),
+				params: { ...audioParams },
+				retime: {
+					rate: Number(rate.toFixed(3)),
+					maintainPitch: settings.maintainPitch,
+				},
 			},
 		});
 	}
+	void audioCtx.close();
+	onStep?.({ step: "写入时间轴…", pct: 100 });
 
 	// 2. Build the `after` snapshot. Idempotent: drop any prior dub-owned tracks
 	//    first, then add fresh ones — clicking apply twice never duplicates.
@@ -145,7 +176,7 @@ export async function applyDubToTimeline({
 		name: DUB_AUDIO_TRACK_NAME,
 		type: "audio",
 		muted: false,
-		elements: dubElements,
+		elements: built.map((b) => b.element),
 	};
 
 	const existingAudio = before.audio
@@ -157,7 +188,7 @@ export async function applyDubToTimeline({
 		(t) => !(t.type === "text" && t.name === DUB_SUBTITLE_TRACK_NAME),
 	);
 	if (settings.subtitles) {
-		const subtitleElements: TextElement[] = segments.map((seg, i) => ({
+		const subtitleElements: TextElement[] = dubbable.map((seg, i) => ({
 			...buildSubtitleTextElement({
 				index: i,
 				caption: {
@@ -185,7 +216,7 @@ export async function applyDubToTimeline({
 		audio: nextAudio,
 	};
 
-	// 3. One undoable operation — a single snapshot command (not 18 inserts).
+	// 3. One undoable operation — a single snapshot command (not N inserts).
 	editor.command.execute({
 		command: new TracksSnapshotCommand({ before, after }),
 	});

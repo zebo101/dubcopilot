@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { buildSeedSegments, PIPELINE_STAGES } from "@/dub/data";
 import { autoFitSpeed, estimateDuration } from "@/dub/timing";
 import type { DubPhase, DubSettings, Segment } from "@/dub/types";
 
@@ -16,17 +15,21 @@ const DEFAULT_SETTINGS: DubSettings = {
 interface DubStore {
 	phase: DubPhase;
 	settings: DubSettings;
+	/** Real segments from transcription — empty until the user generates. */
 	segments: Segment[];
 	selectedSegId: string | null;
-	procStage: number;
+	/** Human-readable current step + 0..100 progress during processing. */
+	procStep: string;
 	procPct: number;
 
 	setSetting: <K extends keyof DubSettings>(args: {
 		key: K;
 		value: DubSettings[K];
 	}) => void;
-	startGenerate: () => void;
-	cancelGenerate: () => void;
+	setPhase: (phase: DubPhase) => void;
+	setProc: (args: { step: string; pct: number }) => void;
+	setSegments: (segments: Segment[]) => void;
+	applyTranslations: (args: { map: Map<string, string> }) => void;
 	backToSetup: () => void;
 	selectSegment: (args: { id: string | null }) => void;
 	editSegment: (args: { id: string; text: string }) => void;
@@ -34,49 +37,45 @@ interface DubStore {
 	resetSegmentSpeed: (args: { id: string }) => void;
 }
 
-let procTimer: ReturnType<typeof setInterval> | null = null;
-
-export const useDubStore = create<DubStore>((set, get) => ({
+export const useDubStore = create<DubStore>((set) => ({
 	phase: "setup",
 	settings: { ...DEFAULT_SETTINGS },
-	segments: buildSeedSegments(),
+	segments: [],
 	selectedSegId: null,
-	procStage: 0,
+	procStep: "",
 	procPct: 0,
 
 	setSetting: ({ key, value }) =>
 		set((s) => ({ settings: { ...s.settings, [key]: value } })),
 
-	startGenerate: () => {
-		set({ phase: "processing", procStage: 0, procPct: 0 });
-		if (procTimer) clearInterval(procTimer);
-		procTimer = setInterval(() => {
-			const next = get().procPct + 2.5;
-			if (next >= 100) {
-				if (procTimer) clearInterval(procTimer);
-				procTimer = null;
-				set({ procPct: 100 });
-				setTimeout(
-					() => set({ phase: "review", selectedSegId: null }),
-					200,
-				);
-				return;
-			}
-			set({
-				procPct: next,
-				procStage: Math.min(
-					PIPELINE_STAGES.length - 1,
-					Math.floor(next / (100 / PIPELINE_STAGES.length)),
-				),
-			});
-		}, 90);
-	},
+	setPhase: (phase) => set({ phase }),
+	setProc: ({ step, pct }) => set({ procStep: step, procPct: pct }),
+	setSegments: (segments) => set({ segments }),
 
-	cancelGenerate: () => {
-		if (procTimer) clearInterval(procTimer);
-		procTimer = null;
-		set({ phase: "setup" });
-	},
+	applyTranslations: ({ map }) =>
+		set((s) => ({
+			segments: s.segments.map((seg) => {
+				const zh = map.get(seg.id);
+				if (!zh || zh === seg.translated) return seg;
+				const orig = estimateDuration({ text: zh });
+				const rate = autoFitSpeed({
+					originalDuration: orig,
+					targetDuration: seg.timing.targetDuration,
+					maxSpeedup: s.settings.maxSpeedup,
+				});
+				return {
+					...seg,
+					translated: zh,
+					status: "ready",
+					timing: {
+						...seg.timing,
+						originalDuration: Number(orig.toFixed(2)),
+						fittedDuration: Number((orig / rate).toFixed(2)),
+						appliedSpeedup: Number(rate.toFixed(2)),
+					},
+				};
+			}),
+		})),
 
 	backToSetup: () => set({ phase: "setup", selectedSegId: null }),
 
@@ -85,8 +84,8 @@ export const useDubStore = create<DubStore>((set, get) => ({
 	editSegment: ({ id, text }) =>
 		set((s) => ({
 			segments: s.segments.map((seg) => {
-				if (seg.id !== id || !text || text === seg.translated) return seg;
-				const orig = estimateDuration({ text });
+				if (seg.id !== id || text === seg.translated) return seg;
+				const orig = text ? estimateDuration({ text }) : 0;
 				const rate =
 					seg.speedMode === "manual"
 						? seg.timing.appliedSpeedup
@@ -102,7 +101,9 @@ export const useDubStore = create<DubStore>((set, get) => ({
 					timing: {
 						...seg.timing,
 						originalDuration: Number(orig.toFixed(2)),
-						fittedDuration: Number((orig / rate).toFixed(2)),
+						fittedDuration: Number(
+							(rate > 0 ? orig / rate : orig).toFixed(2),
+						),
 						appliedSpeedup: Number(rate.toFixed(2)),
 					},
 				};
