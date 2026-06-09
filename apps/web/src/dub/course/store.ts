@@ -53,6 +53,7 @@ interface CourseStore {
 	toggleSelect: (args: { id: string }) => void;
 	selectMany: (args: { ids: string[] }) => void;
 	clearSelection: () => void;
+	removeLessons: (args: { ids: string[] }) => void;
 	updateLesson: (args: { id: string; patch: Partial<CourseLesson> }) => void;
 	setBatchRunning: (args: { running: boolean }) => void;
 	setExport: (args: {
@@ -171,6 +172,27 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 		})),
 	selectMany: ({ ids }) => set({ selection: ids }),
 	clearSelection: () => set({ selection: [] }),
+
+	removeLessons: ({ ids }) => {
+		set((s) => {
+			if (!s.course) return s;
+			const idset = new Set(ids);
+			const lessons = s.course.lessons.filter((l) => !idset.has(l.id));
+			const videoHandles = { ...s.videoHandles };
+			const subtitleHandles = { ...s.subtitleHandles };
+			for (const id of ids) {
+				delete videoHandles[id];
+				delete subtitleHandles[id];
+			}
+			return {
+				course: { ...s.course, lessons, total: lessons.length },
+				videoHandles,
+				subtitleHandles,
+				selection: s.selection.filter((x) => !idset.has(x)),
+			};
+		});
+		void get().persist();
+	},
 
 	updateLesson: ({ id, patch }) => {
 		set((s) => {

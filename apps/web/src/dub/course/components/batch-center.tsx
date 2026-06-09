@@ -8,6 +8,7 @@ import {
 	AiVoiceIcon,
 	ArrowRight01Icon,
 	Cancel01Icon,
+	Delete02Icon,
 	InformationCircleIcon,
 	Loading03Icon,
 	PlayIcon,
@@ -308,6 +309,21 @@ export function BatchCenter() {
 						<HugeiconsIcon icon={UploadIcon} className="size-4" /> 导入课程
 					</Button>
 					<Button
+						variant="outline"
+						size="sm"
+						disabled={batchRunning || exporting}
+						onClick={async () => {
+							if (
+								!window.confirm("清空当前课程并重新导入？（不会删除你磁盘上的文件）")
+							)
+								return;
+							await useCourseStore.getState().reset();
+							useCourseStore.getState().openImport();
+						}}
+					>
+						<HugeiconsIcon icon={Delete02Icon} className="size-4" /> 清空重导
+					</Button>
+					<Button
 						size="sm"
 						disabled={batchRunning || counts.queued === 0}
 						onClick={() => void runCourseBatch({ editor })}
@@ -505,6 +521,19 @@ export function BatchCenter() {
 						onClick={() => void runExport("zip", selection)}
 					>
 						<HugeiconsIcon icon={UploadIcon} className="size-3" /> 导出所选 ZIP
+					</Button>
+					<Button
+						size="sm"
+						variant="outline"
+						className="h-7 text-xs text-red-500"
+						disabled={batchRunning}
+						onClick={() => {
+							if (!window.confirm(`从列表移除 ${selection.length} 节？（不会删除磁盘文件）`))
+								return;
+							useCourseStore.getState().removeLessons({ ids: selection });
+						}}
+					>
+						<HugeiconsIcon icon={Delete02Icon} className="size-3" /> 移除所选
 					</Button>
 					<Button
 						size="sm"
