@@ -20,6 +20,7 @@ import { useDubCredentials, hasTtsKey } from "@/dub/credentials";
 import { applyDubToTimeline } from "@/dub/adapter";
 import { generateDubSegments } from "@/dub/generate";
 import { translateSegments } from "@/dub/translate";
+import { previewLine } from "@/dub/preview";
 import { VOICES } from "@/dub/data";
 import { isOverflow, isSped } from "@/dub/timing";
 import type { Segment } from "@/dub/types";
@@ -541,10 +542,25 @@ function SegmentRow({ seg, active }: { seg: Segment; active: boolean }) {
 	const selectedSegId = useDubStore((s) => s.selectedSegId);
 	const selectSegment = useDubStore((s) => s.selectSegment);
 	const editSegment = useDubStore((s) => s.editSegment);
+	const voiceId = useDubStore((s) => s.settings.voiceId);
 	const selected = selectedSegId === seg.id;
 	const overflow = isOverflow({ timing: seg.timing });
 	const sped = isSped({ timing: seg.timing });
 	const [editing, setEditing] = useState(false);
+	const [previewing, setPreviewing] = useState(false);
+
+	const onPreview = async (e: { stopPropagation: () => void }) => {
+		e.stopPropagation();
+		if (previewing || !seg.translated.trim()) return;
+		setPreviewing(true);
+		try {
+			await previewLine({ text: seg.translated, voiceType: voiceId });
+		} catch (err) {
+			console.error("preview failed", err);
+		} finally {
+			setPreviewing(false);
+		}
+	};
 
 	const selectAndSeek = () => {
 		selectSegment({ id: seg.id });
@@ -620,7 +636,7 @@ function SegmentRow({ seg, active }: { seg: Segment; active: boolean }) {
 					</div>
 				)}
 			</div>
-			<div className="shrink-0 pt-0.5">
+			<div className="flex shrink-0 items-start gap-1 pt-0.5">
 				{overflow ? (
 					<span className="rounded bg-red-500/15 px-1 text-[10px] text-red-500">
 						! ×{seg.timing.appliedSpeedup.toFixed(2)}
@@ -632,6 +648,18 @@ function SegmentRow({ seg, active }: { seg: Segment; active: boolean }) {
 				) : seg.status === "edited" ? (
 					<span className="text-primary text-[10px]">已改</span>
 				) : null}
+				<button
+					type="button"
+					title="试听这一句"
+					disabled={previewing || !seg.translated.trim()}
+					onClick={onPreview}
+					className="hover:bg-muted flex size-6 items-center justify-center rounded disabled:opacity-40"
+				>
+					<HugeiconsIcon
+						icon={previewing ? Loading03Icon : PlayIcon}
+						className={cn("size-3", previewing && "animate-spin")}
+					/>
+				</button>
 			</div>
 		</div>
 	);
