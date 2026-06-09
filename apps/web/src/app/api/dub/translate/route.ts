@@ -35,7 +35,14 @@ export async function POST(request: NextRequest) {
 			body: JSON.stringify({
 				model,
 				messages: buildTranslateMessages({ items }),
-				temperature: 1.3,
+				// 1.3 made the model degenerate into repetition loops ("new new new…"
+				// filling the whole response). 0.7 + a frequency penalty keeps output
+				// faithful and stops the loops.
+				temperature: 0.7,
+				frequency_penalty: 0.5,
+				// Enough for a small batch of subtitles; low enough that any residual
+				// runaway is bounded (the degeneration guard re-translates it).
+				max_tokens: 4096,
 				stream: false,
 				response_format: { type: "json_object" },
 			}),
