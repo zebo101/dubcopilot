@@ -21,7 +21,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
-import { VOICES } from "@/dub/data";
+import { useAllVoices } from "@/dub/custom-voices";
 import { useDubStore } from "@/dub/store";
 import { useCourseStore } from "@/dub/course/store";
 import { runCourseBatch, stopCourseRun } from "@/dub/course/runner";
@@ -289,8 +289,9 @@ export function BatchCenter() {
 		return rows;
 	}, [lessons, filter, query]);
 
-	const voiceIdx = Math.max(0, VOICES.findIndex((v) => v.id === settings.voiceId));
-	const voice = VOICES[voiceIdx] ?? VOICES[0];
+	const voices = useAllVoices();
+	const voiceIdx = Math.max(0, voices.findIndex((v) => v.id === settings.voiceId));
+	const voice = voices[voiceIdx] ?? voices[0];
 
 	const allSelected = filtered.length > 0 && filtered.every((l) => selection.includes(l.id));
 	const toggleAll = () => {
@@ -514,7 +515,7 @@ export function BatchCenter() {
 					onClick={() =>
 						setSetting({
 							key: "voiceId",
-							value: VOICES[(voiceIdx + 1) % VOICES.length].id,
+							value: voices[(voiceIdx + 1) % voices.length].id,
 						})
 					}
 				>
