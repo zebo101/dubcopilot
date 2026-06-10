@@ -51,7 +51,6 @@ export async function assembleLesson({
 }): Promise<{ projectId: string; videoMediaId: string }> {
 	const projectId = generateUUID();
 	const videoMediaId = generateUUID();
-	const bySeg = new Map(segments.map((s) => [s.id, s]));
 
 	// --- main track: the source video, zero-copy (mediaId reference only) ---
 	const scene = buildDefaultScene({ name: "Main scene", isMain: true });
@@ -73,17 +72,16 @@ export async function assembleLesson({
 		getBuiltInElementParams({ type: "audio" }),
 	);
 	const audioElements: UploadAudioElement[] = [];
-	for (const clip of clips) {
-		const seg = bySeg.get(clip.segId);
-		if (!seg) continue;
+	for (let i = 0; i < clips.length; i++) {
+		const clip = clips[i];
 		const assetId = generateUUID();
 		await storageService.saveMediaAsset({
 			projectId,
 			mediaAsset: {
 				id: assetId,
-				name: `配音 ${seg.index + 1}`,
+				name: `配音 ${i + 1}`,
 				type: "audio",
-				file: new File([clip.bytes.slice(0)], `dub-${seg.id}.mp3`, {
+				file: new File([clip.bytes.slice(0)], `dub-unit-${i}.mp3`, {
 					type: "audio/mpeg",
 				}),
 				duration: clip.realDuration,
@@ -96,8 +94,8 @@ export async function assembleLesson({
 			type: "audio",
 			sourceType: "upload",
 			mediaId: assetId,
-			name: `配音 ${seg.index + 1}`,
-			startTime: mediaTimeFromSeconds({ seconds: seg.start }),
+			name: `配音 ${i + 1}`,
+			startTime: mediaTimeFromSeconds({ seconds: clip.start }),
 			duration: mediaTimeFromSeconds({ seconds: clip.fitted }),
 			trimStart: mediaTimeFromSeconds({ seconds: 0 }),
 			trimEnd: mediaTimeFromSeconds({ seconds: 0 }),
@@ -114,28 +112,24 @@ export async function assembleLesson({
 	};
 	scene.tracks.audio = [dubTrack];
 
-	// --- subtitle track ---
+	// --- subtitle track: per-SENTENCE granularity, independent of audio units ---
 	if (settings.subtitles) {
 		const canvasSize = { width: meta.width, height: meta.height };
-		const subtitleElements: TextElement[] = clips
-			.map((clip, i) => {
-				const seg = bySeg.get(clip.segId);
-				if (!seg) return null;
-				return {
-					...buildSubtitleTextElement({
-						index: i,
-						caption: {
-							text: seg.translated,
-							startTime: seg.start,
-							// extended slot — subtitle stays up until the next line
-							duration: seg.timing.targetDuration,
-						},
-						canvasSize,
-					}),
-					id: generateUUID(),
-				};
-			})
-			.filter((e): e is TextElement => e !== null);
+		const subtitleElements: TextElement[] = segments
+			.filter((seg) => seg.translated.trim().length > 0)
+			.map((seg, i) => ({
+				...buildSubtitleTextElement({
+					index: i,
+					caption: {
+						text: seg.translated,
+						startTime: seg.start,
+						// extended slot — subtitle stays up until the next line
+						duration: seg.timing.targetDuration,
+					},
+					canvasSize,
+				}),
+				id: generateUUID(),
+			}));
 		const subtitleTrack: TextTrack = {
 			id: generateUUID(),
 			name: DUB_SUBTITLE_TRACK_NAME,

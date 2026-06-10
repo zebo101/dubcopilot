@@ -26,7 +26,12 @@ export interface LessonWork {
 }
 
 export interface SynthesizedClip {
-	segId: string;
+	/** member segment ids of the dub UNIT this clip voices (timeline order) */
+	segIds: string[];
+	/** timeline placement = the unit's first segment start (seconds) */
+	start: number;
+	/** the unit's available span on the timeline (seconds) */
+	span: number;
 	/** raw mp3 bytes from TTS (already at native speed) */
 	bytes: ArrayBuffer;
 	/** decoded real duration of the (native-speed) audio, seconds */

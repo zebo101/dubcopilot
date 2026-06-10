@@ -45,20 +45,16 @@ export interface PipelineHooks {
 }
 
 function flagCounts({
-	segments,
 	clips,
 }: {
-	segments: Segment[];
 	clips: SynthesizedClip[];
 }): { spedCount: number; overflowCount: number } {
-	const target = new Map(segments.map((s) => [s.id, s.timing.targetDuration]));
 	let spedCount = 0;
 	let overflowCount = 0;
 	for (const c of clips) {
-		// perceived speed = native TTS ratio × mechanical retime
+		// perceived speed = native TTS ratio × mechanical retime, per UNIT
 		if (c.totalSpeedup >= 1.2) spedCount++;
-		const slot = target.get(c.segId) ?? 0;
-		if (c.fitted > slot + 0.05) overflowCount++;
+		if (c.fitted > c.span + 0.05) overflowCount++;
 	}
 	return { spedCount, overflowCount };
 }
@@ -196,7 +192,7 @@ export async function runLesson({
 			}
 		}
 
-		const { spedCount, overflowCount } = flagCounts({ segments, clips });
+		const { spedCount, overflowCount } = flagCounts({ clips });
 		return {
 			projectId,
 			videoMediaId,

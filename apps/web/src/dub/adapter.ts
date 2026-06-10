@@ -73,24 +73,22 @@ export async function applyDubToTimeline({
 		getBuiltInElementParams({ type: "audio" }),
 	);
 
-	// 1. Concurrent TTS + real-duration decode (shared with the course engine).
+	// 1. Concurrent TTS over packed dub UNITS (one clip per speech run).
 	const clips = await synthesizeLesson({ segments, settings, creds, onStep });
-	const bySeg = new Map(segments.map((s) => [s.id, s]));
 	const applied = new Map<string, AppliedTiming>();
 
-	// 2. Register assets + build elements serially (storage writes).
+	// 2. Register assets + build one element per unit, serially (storage writes).
 	const built: BuiltDubAudio[] = [];
-	for (const clip of clips) {
-		const seg = bySeg.get(clip.segId);
-		if (!seg) continue;
-		const file = new File([clip.bytes.slice(0)], `dub-${seg.id}.mp3`, {
+	for (let i = 0; i < clips.length; i++) {
+		const clip = clips[i];
+		const file = new File([clip.bytes.slice(0)], `dub-unit-${i}.mp3`, {
 			type: "audio/mpeg",
 		});
 		const asset = await editor.media.addMediaAsset({
 			projectId,
 			asset: {
 				file,
-				name: `配音 ${seg.index + 1}`,
+				name: `配音 ${i + 1}`,
 				type: "audio",
 				duration: clip.realDuration,
 				hasAudio: true,
@@ -99,21 +97,23 @@ export async function applyDubToTimeline({
 		});
 		if (!asset) continue;
 
-		applied.set(seg.id, {
-			// what the listener perceives (native × retime) — for the review UI
-			rate: clip.totalSpeedup,
-			fitted: clip.fitted,
-			realDuration: clip.realDuration,
-		});
+		// every member line shows its unit's perceived speed in the review UI
+		for (const segId of clip.segIds) {
+			applied.set(segId, {
+				rate: clip.totalSpeedup,
+				fitted: clip.fitted,
+				realDuration: clip.realDuration,
+			});
+		}
 		built.push({
-			segId: seg.id,
+			segId: clip.segIds[0],
 			element: {
 				id: generateUUID(),
 				type: "audio",
 				sourceType: "upload",
 				mediaId: asset.id,
-				name: `配音 ${seg.index + 1}`,
-				startTime: mediaTimeFromSeconds({ seconds: seg.start }),
+				name: `配音 ${i + 1}`,
+				startTime: mediaTimeFromSeconds({ seconds: clip.start }),
 				duration: mediaTimeFromSeconds({ seconds: clip.fitted }),
 				trimStart: mediaTimeFromSeconds({ seconds: 0 }),
 				trimEnd: mediaTimeFromSeconds({ seconds: 0 }),

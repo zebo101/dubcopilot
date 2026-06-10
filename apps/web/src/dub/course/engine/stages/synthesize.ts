@@ -1,12 +1,15 @@
-// Stage: synthesize — concurrent 豆包 TTS for every translated line (8-way),
+// Stage: synthesize — concurrent 豆包 TTS over DUB UNITS (packed speech runs),
 // decoding each clip's REAL duration on the shared AudioContext to drive the
-// variable-speed fit. Single-line failures retry once, then are recorded; the
-// lesson only fails if more than 10% of lines are unsynthesizable.
+// variable-speed fit. One unit = one TTS call = one timeline clip: prosody is
+// continuous across the unit's sentences and sub-second fragments ("Okay.")
+// can never be squeezed/overlapped on their own.
 //
-// TWO-STAGE speed fitting (spec dub-quality v2 §2): lines that need speeding
-// are first synthesized FASTER natively (TTS speed_ratio, ≤ nativeMaxSpeed —
-// sounds human), and only the residual is covered by mechanical retime. The
-// old single-stage retime made every ≥1.2× line sound robotic.
+// TWO-STAGE speed fitting: a unit that must compress is first synthesized
+// FASTER natively (TTS speed_ratio, 0.9–nativeMaxSpeed — sounds human); only
+// the residual is covered by mechanical retime (≥1). fitClip then rounds the
+// timeline duration so the mixer never early-breaks past the buffer (tail
+// clipping). Unit failures retry once; the lesson only fails if >10% of units
+// are unsynthesizable.
 
 import { Semaphore } from "@/dub/course/engine/semaphore";
 import { getSharedAudioContext } from "@/dub/audio-context";
@@ -17,6 +20,7 @@ import {
 	fitClip,
 	MIN_NATURAL_RATE,
 } from "@/dub/timing";
+import { packDubUnits, type DubUnit } from "@/dub/units";
 import type { DubCredentials } from "@/dub/credentials";
 import type { DubSettings, Segment } from "@/dub/types";
 import type { StepReport, SynthesizedClip } from "@/dub/course/engine/types";
@@ -36,8 +40,8 @@ export async function synthesizeLesson({
 	onStep?: (args: StepReport) => void;
 	signal?: AbortSignal;
 }): Promise<SynthesizedClip[]> {
-	const dubbable = segments.filter((s) => s.translated.trim().length > 0);
-	if (dubbable.length === 0) {
+	const units = packDubUnits({ segments, settings });
+	if (units.length === 0) {
 		throw new Error("没有可配音的句子（请先翻译）");
 	}
 
@@ -47,25 +51,20 @@ export async function synthesizeLesson({
 	const failures: string[] = [];
 	let done = 0;
 
-	const synthOne = async (seg: Segment): Promise<void> => {
-		// Stage 1 — native TTS speed: estimate the compression/stretch this line
-		// needs and let the VOICE itself absorb it (sounds human in both
-		// directions: 豆包 speed_ratio supports <1 too). Mechanical retime is
-		// reserved for residual COMPRESSION only — slowing a clip via SoundTouch
-		// added stretch artifacts to every short line.
-		const target = seg.timing.targetDuration;
-		const estimated = estimateDuration({ text: seg.translated });
+	const synthOne = async (unit: DubUnit): Promise<void> => {
+		// Stage 1 — native TTS speed over the unit's whole span.
+		const estimated = estimateDuration({ text: unit.text });
 		const nativeRatio =
-			seg.speedMode === "manual" || !settings.speedAdaptive || target <= 0
+			unit.manualRate !== undefined || !settings.speedAdaptive || unit.span <= 0
 				? 1
 				: Math.min(
-						Math.max(estimated / target, MIN_NATURAL_RATE),
+						Math.max(estimated / unit.span, MIN_NATURAL_RATE),
 						Math.max(1, settings.nativeMaxSpeed),
 					);
 
 		const attempt = () =>
 			synthesizeSegment({
-				text: seg.translated,
+				text: unit.text,
 				voiceType: settings.voiceId,
 				creds,
 				speedRatio: Number(nativeRatio.toFixed(2)),
@@ -79,63 +78,62 @@ export async function synthesizeLesson({
 				bytes = await attempt();
 			} catch (error) {
 				failures.push(
-					`${seg.id}: ${error instanceof Error ? error.message : "TTS 失败"}`,
+					`${unit.id}: ${error instanceof Error ? error.message : "TTS 失败"}`,
 				);
 				return;
 			}
 		}
 
-		let realDuration = target;
+		let realDuration = unit.span;
 		try {
 			const decoded = await audioCtx.decodeAudioData(bytes.slice(0));
 			if (decoded.duration > 0) realDuration = decoded.duration;
 		} catch {
-			// fall back to the slot length if the mp3 fails to decode
+			// fall back to the span if the mp3 fails to decode
 		}
 
-		// Stage 2 — mechanical retime covers residual COMPRESSION only (≥ 1;
-		// stretching is the TTS's job now). Total native × retime ≤ maxSpeedup.
+		// Stage 2 — mechanical retime covers residual COMPRESSION only.
 		const residualCap = Math.max(1, settings.maxSpeedup / nativeRatio);
 		const retime =
-			seg.speedMode === "manual"
-				? Math.max(seg.timing.appliedSpeedup, 1)
+			unit.manualRate !== undefined
+				? Math.max(unit.manualRate, 1)
 				: Math.max(
 						1,
 						autoFitSpeed({
 							originalDuration: realDuration,
-							targetDuration: target,
+							targetDuration: unit.span,
 							maxSpeedup: residualCap,
 						}),
 					);
 		const { fitted, rate } = fitClip({ realDuration, retime });
 		clips.push({
-			segId: seg.id,
+			segIds: unit.segIds,
+			start: unit.start,
+			span: unit.span,
 			bytes,
 			realDuration,
 			rate,
-			// totalSpeedup drives the ⚡/超时 flags — what the listener perceives
 			totalSpeedup: Number((nativeRatio * rate).toFixed(3)),
 			fitted,
 		});
 		done++;
 		onStep?.({
-			step: `合成配音 ${done}/${dubbable.length}`,
-			pct: Math.round((done / dubbable.length) * 100),
+			step: `合成配音 ${done}/${units.length} 段`,
+			pct: Math.round((done / units.length) * 100),
 		});
 	};
 
 	await Promise.all(
-		dubbable.map((seg) => sem.withPermit(() => synthOne(seg), signal)),
+		units.map((unit) => sem.withPermit(() => synthOne(unit), signal)),
 	);
 
-	if (failures.length > dubbable.length * 0.1) {
+	if (failures.length > units.length * 0.1) {
 		throw new Error(
-			`TTS 失败过多（${failures.length}/${dubbable.length}）：${failures[0]}`,
+			`TTS 失败过多（${failures.length}/${units.length}）：${failures[0]}`,
 		);
 	}
 
 	// keep timeline order deterministic regardless of completion order
-	const order = new Map(dubbable.map((s, i) => [s.id, i]));
-	clips.sort((a, b) => (order.get(a.segId) ?? 0) - (order.get(b.segId) ?? 0));
+	clips.sort((a, b) => a.start - b.start);
 	return clips;
 }
