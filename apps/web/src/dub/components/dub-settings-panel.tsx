@@ -183,6 +183,77 @@ export function CredentialsSection() {
 	);
 }
 
+/** Fixed original-audio gears — clearer than a slider for quick A/B review. */
+const VOLUME_GEARS: { label: string; value: number | "mute" }[] = [
+	{ label: "静音", value: "mute" },
+	{ label: "轻 5%", value: 0.05 },
+	{ label: "标准 12%", value: 0.12 },
+	{ label: "明显 25%", value: 0.25 },
+];
+
+/**
+ * Compact original-audio gear row, usable from ANY panel (the right-side
+ * 配音设置 disappears whenever a timeline element is selected — this lives in
+ * the left review column too, so the control is always reachable).
+ */
+export function OriginalAudioQuickControl() {
+	const editor = useEditor();
+	const settings = useDubStore((s) => s.settings);
+	const setSetting = useDubStore((s) => s.setSetting);
+
+	const apply = (value: number | "mute") => {
+		const scene = editor.scenes.getActiveSceneOrNull();
+		const main = scene?.tracks.main;
+		if (value === "mute") {
+			setSetting({ key: "originalAudio", value: "mute" });
+			if (main && !main.muted)
+				editor.timeline.toggleTrackMute({ trackId: main.id });
+			return;
+		}
+		setSetting({ key: "originalAudio", value: "background" });
+		setSetting({ key: "backgroundVolume", value });
+		if (!main) return;
+		if (main.muted) editor.timeline.toggleTrackMute({ trackId: main.id });
+		if (main.elements.length > 0) {
+			editor.timeline.updateElements({
+				updates: main.elements.map((el) => ({
+					trackId: main.id,
+					elementId: el.id,
+					patch: { params: { ...el.params, volume: linearToDb(value) } },
+				})),
+				pushHistory: false,
+			});
+		}
+	};
+
+	const isActive = (value: number | "mute") =>
+		value === "mute"
+			? settings.originalAudio === "mute"
+			: settings.originalAudio === "background" &&
+				Math.abs(settings.backgroundVolume - value) < 0.001;
+
+	return (
+		<div className="flex items-center gap-1 text-[11px]">
+			<span className="text-muted-foreground shrink-0">原声</span>
+			{VOLUME_GEARS.map((g) => (
+				<button
+					type="button"
+					key={g.label}
+					onClick={() => apply(g.value)}
+					className={cn(
+						"rounded-md border px-1.5 py-0.5 transition-colors",
+						isActive(g.value)
+							? "border-primary/40 bg-primary/10 text-primary"
+							: "border-border text-muted-foreground hover:bg-muted",
+					)}
+				>
+					{g.label}
+				</button>
+			))}
+		</div>
+	);
+}
+
 export function DubSettingsPanel() {
 	const editor = useEditor();
 	const settings = useDubStore((s) => s.settings);
@@ -296,6 +367,7 @@ export function DubSettingsPanel() {
 						（实时生效，可边播边调）
 					</span>
 				</div>
+				<OriginalAudioQuickControl />
 				<div className="bg-muted inline-flex rounded-md p-0.5">
 					{(["mute", "background"] as const).map((mode) => (
 						<button

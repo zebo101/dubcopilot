@@ -27,6 +27,7 @@ import type { Segment } from "@/dub/types";
 import { TRANSCRIPTION_MODELS } from "@/transcription/models";
 import type { TranscriptionModelId } from "@/transcription/types";
 import { useCourseStore } from "@/dub/course/store";
+import { OriginalAudioQuickControl } from "@/dub/components/dub-settings-panel";
 import { loadDubSession, saveDubSession } from "@/dub/session";
 import { useRouter } from "next/navigation";
 
@@ -643,7 +644,10 @@ function ReviewView() {
 					})
 				)}
 			</div>
-			<div className="border-t p-3">
+			<div className="space-y-2 border-t p-3">
+				{/* always-reachable original-audio gears — the right panel swaps to
+				    element properties whenever something on the timeline is selected */}
+				<OriginalAudioQuickControl />
 				<Button
 					className="w-full"
 					disabled={applying}
