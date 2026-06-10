@@ -1,22 +1,38 @@
 // Tiny IndexedDB key-value store for course-batch state. Used to persist the
 // course metadata AND the picked FileSystemDirectoryHandle (handles are
 // structured-cloneable, so they survive a reload — enabling 断点续传 / resume).
+// The connection is opened once and reused — opening/closing per call caused
+// an IDB churn storm under frequent progress writes (review IMP-1).
 
 const DB_NAME = "opencut-dub-course";
 const STORE = "kv";
 const VERSION = 1;
 
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDb(): Promise<IDBDatabase> {
-	return new Promise((resolve, reject) => {
+	if (dbPromise) return dbPromise;
+	dbPromise = new Promise((resolve, reject) => {
 		const req = indexedDB.open(DB_NAME, VERSION);
 		req.onupgradeneeded = () => {
 			if (!req.result.objectStoreNames.contains(STORE)) {
 				req.result.createObjectStore(STORE);
 			}
 		};
-		req.onsuccess = () => resolve(req.result);
-		req.onerror = () => reject(req.error);
+		req.onsuccess = () => {
+			const db = req.result;
+			// if the browser closes it (version change elsewhere), reconnect lazily
+			db.onclose = () => {
+				dbPromise = null;
+			};
+			resolve(db);
+		};
+		req.onerror = () => {
+			dbPromise = null;
+			reject(req.error);
+		};
 	});
+	return dbPromise;
 }
 
 export async function idbGet<T>(key: string): Promise<T | null> {
@@ -27,7 +43,7 @@ export async function idbGet<T>(key: string): Promise<T | null> {
 		const req = tx.objectStore(STORE).get(key);
 		req.onsuccess = () => resolve((req.result as T) ?? null);
 		req.onerror = () => reject(req.error);
-	}).finally(() => db.close());
+	});
 }
 
 export async function idbSet(key: string, value: unknown): Promise<void> {
@@ -38,7 +54,7 @@ export async function idbSet(key: string, value: unknown): Promise<void> {
 		tx.objectStore(STORE).put(value, key);
 		tx.oncomplete = () => resolve();
 		tx.onerror = () => reject(tx.error);
-	}).finally(() => db.close());
+	});
 }
 
 export async function idbDel(key: string): Promise<void> {
@@ -49,5 +65,5 @@ export async function idbDel(key: string): Promise<void> {
 		tx.objectStore(STORE).delete(key);
 		tx.oncomplete = () => resolve();
 		tx.onerror = () => reject(tx.error);
-	}).finally(() => db.close());
+	});
 }

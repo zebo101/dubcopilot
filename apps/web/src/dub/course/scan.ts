@@ -83,6 +83,55 @@ function detectSubtitleLang(stem: string): SubtitleLang {
 		: "en";
 }
 
+/** Folder names that conventionally hold sidecar subtitles for their parent. */
+const SUBTITLE_DIR_NAMES = new Set(["subs", "subtitles", "captions", "字幕"]);
+
+export type SubtitleMap = Map<
+	string,
+	Partial<Record<SubtitleLang, FileSystemFileHandle>>
+>;
+
+export function addSubtitleToMap({
+	map,
+	fileName,
+	handle,
+}: {
+	map: SubtitleMap;
+	fileName: string;
+	handle: FileSystemFileHandle;
+}): void {
+	const rawStem = stemOf(fileName);
+	const lang = detectSubtitleLang(rawStem);
+	const key = normalizeStem(rawStem);
+	const existing = map.get(key) ?? {};
+	// first match per language wins (same-dir entries are added before subs/)
+	if (!existing[lang]) existing[lang] = handle;
+	map.set(key, existing);
+}
+
+/**
+ * Pair each video with its best subtitle: Chinese (ready translation) wins
+ * over English; exact-stem match after language-tag stripping. Pure — testable.
+ */
+export function pairVideoWithSubtitles({
+	videoName,
+	subs,
+}: {
+	videoName: string;
+	subs: SubtitleMap;
+}): { subtitleHandle: FileSystemFileHandle | null; subtitleLang: SubtitleLang | null } {
+	const paired = subs.get(normalizeStem(stemOf(videoName)));
+	const subtitleLang: SubtitleLang | null = paired?.zh
+		? "zh"
+		: paired?.en
+			? "en"
+			: null;
+	return {
+		subtitleLang,
+		subtitleHandle: subtitleLang ? (paired?.[subtitleLang] ?? null) : null,
+	};
+}
+
 export async function scanCourseDirectory({
 	dirHandle,
 }: {
@@ -96,11 +145,7 @@ export async function scanCourseDirectory({
 		chapter: string,
 	): Promise<void> => {
 		const videos: { name: string; handle: FileSystemFileHandle }[] = [];
-		// keyed by language-stripped stem → the best subtitle per language
-		const subs = new Map<
-			string,
-			Partial<Record<SubtitleLang, FileSystemFileHandle>>
-		>();
+		const subs: SubtitleMap = new Map();
 		const subdirs: { name: string; handle: FileSystemDirectoryHandle }[] = [];
 
 		for await (const [name, entry] of handle.entries()) {
@@ -109,31 +154,36 @@ export async function scanCourseDirectory({
 				if ((VIDEO_EXTENSIONS as readonly string[]).includes(e)) {
 					videos.push({ name, handle: entry as FileSystemFileHandle });
 				} else if ((SUBTITLE_EXTENSIONS as readonly string[]).includes(e)) {
-					const rawStem = stemOf(name);
-					const lang = detectSubtitleLang(rawStem);
-					const key = normalizeStem(rawStem);
-					const existing = subs.get(key) ?? {};
-					existing[lang] = entry as FileSystemFileHandle;
-					subs.set(key, existing);
+					addSubtitleToMap({ map: subs, fileName: name, handle: entry as FileSystemFileHandle });
 				}
 			} else if (entry.kind === "directory") {
 				subdirs.push({ name, handle: entry as FileSystemDirectoryHandle });
 			}
 		}
 
+		// Course layouts often keep subtitles in a sibling subs/ folder
+		// (e.g. 01-intro/video.mp4 + 01-intro/subs/video.en.srt) — merge those
+		// into this directory's map so they pair with our videos.
+		for (const d of subdirs) {
+			if (!SUBTITLE_DIR_NAMES.has(d.name.toLowerCase())) continue;
+			for await (const [name, entry] of d.handle.entries()) {
+				if (
+					entry.kind === "file" &&
+					(SUBTITLE_EXTENSIONS as readonly string[]).includes(extOf(name))
+				) {
+					addSubtitleToMap({ map: subs, fileName: name, handle: entry as FileSystemFileHandle });
+				}
+			}
+		}
+
 		for (const v of videos) {
-			const stem = stemOf(v.name);
-			const paired = subs.get(normalizeStem(stem));
-			// Prefer a Chinese subtitle (ready translation → skip DeepSeek).
-			const subtitleLang: SubtitleLang | null = paired?.zh
-				? "zh"
-				: paired?.en
-					? "en"
-					: null;
-			const subtitleHandle = subtitleLang ? (paired?.[subtitleLang] ?? null) : null;
+			const { subtitleHandle, subtitleLang } = pairVideoWithSubtitles({
+				videoName: v.name,
+				subs,
+			});
 			lessons.push({
-				stem,
-				title: stem,
+				stem: stemOf(v.name),
+				title: stemOf(v.name),
 				chapter: chapter || dirHandle.name,
 				videoPath: relPath ? `${relPath}/${v.name}` : v.name,
 				videoHandle: v.handle,
@@ -143,6 +193,8 @@ export async function scanCourseDirectory({
 		}
 
 		for (const d of subdirs) {
+			// subtitle folders were consumed above — don't surface their videos
+			if (SUBTITLE_DIR_NAMES.has(d.name.toLowerCase())) continue;
 			await walk(d.handle, relPath ? `${relPath}/${d.name}` : d.name, d.name);
 		}
 	};

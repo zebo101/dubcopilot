@@ -62,8 +62,11 @@ export function parseSubtitles({ content }: { content: string }): SubtitleCue[] 
 		const [startPart, endPart] = lines[tsIdx].split("-->");
 		if (!startPart || !endPart) continue;
 		// VTT may append cue settings after the end time: "... 00:00:04.000 line:90%"
+		// Split on Unicode whitespace too (NBSP/en-space appear in some exports).
 		const start = parseTimestamp(startPart);
-		const end = parseTimestamp(endPart.trim().split(/\s+/)[0] ?? "");
+		const end = parseTimestamp(
+			endPart.trim().split(/[\s  -​　]+/)[0] ?? "",
+		);
 		if (start === null || end === null || end < start) continue;
 
 		const cueText = cleanCueText(lines.slice(tsIdx + 1));

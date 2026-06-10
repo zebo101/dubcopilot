@@ -16,6 +16,11 @@ import { idbDel, idbGet, idbSet } from "@/dub/course/idb";
 const COURSE_KEY = "course";
 const DIR_KEY = "dir";
 
+// Debounced persistence: progress ticks fire dozens of times per lesson —
+// writing the whole course to IDB each tick was a write storm (IMP-1).
+const PERSIST_DEBOUNCE_MS = 2000;
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+
 type CourseView = "none" | "import" | "center";
 type ImportStep = "source" | "scan";
 
@@ -35,6 +40,8 @@ interface CourseStore {
 	selection: string[];
 	batchRunning: boolean;
 	hydrated: boolean;
+	/** course restored from IDB but the folder permission needs a user gesture */
+	needsPermission: boolean;
 
 	exporting: boolean;
 	exportDone: number;
@@ -63,7 +70,10 @@ interface CourseStore {
 		current?: string;
 	}) => void;
 	persist: () => Promise<void>;
+	persistNow: () => Promise<void>;
 	hydrate: () => Promise<void>;
+	/** must be called from a user gesture (click) — requests folder permission */
+	restorePermission: () => Promise<boolean>;
 	reset: () => Promise<void>;
 }
 
@@ -112,6 +122,37 @@ function buildCourseFromScan({
 	return { course, videoHandles, subtitleHandles };
 }
 
+/** Re-scan the folder and match handles back to lessons by videoPath. */
+async function rebuildHandles({
+	dirHandle,
+	course,
+}: {
+	dirHandle: FileSystemDirectoryHandle;
+	course: Course;
+}): Promise<{
+	videoHandles: Record<string, FileSystemFileHandle>;
+	subtitleHandles: Record<string, FileSystemFileHandle | null>;
+}> {
+	const videoHandles: Record<string, FileSystemFileHandle> = {};
+	const subtitleHandles: Record<string, FileSystemFileHandle | null> = {};
+	try {
+		const scan = await scanCourseDirectory({ dirHandle });
+		const byPath = new Map(scan.lessons.map((l) => [l.videoPath, l]));
+		for (const lesson of course.lessons) {
+			const match = byPath.get(lesson.videoPath);
+			if (match) {
+				videoHandles[lesson.id] = match.videoHandle;
+				subtitleHandles[lesson.id] = match.subtitleHandle;
+			}
+		}
+	} catch (error) {
+		console.error("course rescan failed", error);
+	}
+	return { videoHandles, subtitleHandles };
+}
+
+const TERMINAL_STATUSES = new Set(["done", "review", "failed"]);
+
 export const useCourseStore = create<CourseStore>((set, get) => ({
 	course: null,
 	dirHandle: null,
@@ -126,6 +167,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	selection: [],
 	batchRunning: false,
 	hydrated: false,
+	needsPermission: false,
 	exporting: false,
 	exportDone: 0,
 	exportTotal: 0,
@@ -161,7 +203,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 			missingPolicy,
 		});
 		set({ course, videoHandles, subtitleHandles, view: "center", selection: [] });
-		await get().persist();
+		await get().persistNow();
 	},
 
 	toggleSelect: ({ id }) =>
@@ -191,7 +233,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 				selection: s.selection.filter((x) => !idset.has(x)),
 			};
 		});
-		void get().persist();
+		void get().persistNow();
 	},
 
 	updateLesson: ({ id, patch }) => {
@@ -202,8 +244,12 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 			);
 			return { course: { ...s.course, lessons } };
 		});
-		// fire-and-forget persistence of status/progress
-		void get().persist();
+		// terminal transitions persist immediately; progress ticks are debounced
+		if (patch.status && TERMINAL_STATUSES.has(patch.status)) {
+			void get().persistNow();
+		} else {
+			void get().persist();
+		}
 	},
 
 	setBatchRunning: ({ running }) => set({ batchRunning: running }),
@@ -217,9 +263,26 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 		})),
 
 	persist: async () => {
+		// debounced — terminal states should call persistNow instead
+		if (persistTimer) clearTimeout(persistTimer);
+		persistTimer = setTimeout(() => {
+			persistTimer = null;
+			void get().persistNow();
+		}, PERSIST_DEBOUNCE_MS);
+	},
+
+	persistNow: async () => {
+		if (persistTimer) {
+			clearTimeout(persistTimer);
+			persistTimer = null;
+		}
 		const { course, dirHandle } = get();
-		if (course) await idbSet(COURSE_KEY, course);
-		if (dirHandle) await idbSet(DIR_KEY, dirHandle);
+		try {
+			if (course) await idbSet(COURSE_KEY, course);
+			if (dirHandle) await idbSet(DIR_KEY, dirHandle);
+		} catch (error) {
+			console.error("course persist failed", error);
+		}
 	},
 
 	hydrate: async () => {
@@ -230,28 +293,42 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 			set({ hydrated: true });
 			return;
 		}
-		// Re-acquire permission and rebuild handle maps by re-scanning the folder
-		// and matching on videoPath (handles themselves aren't worth persisting
-		// per-file — the folder is the source of truth).
-		const videoHandles: Record<string, FileSystemFileHandle> = {};
-		const subtitleHandles: Record<string, FileSystemFileHandle | null> = {};
+		// Only QUERY permission here — requestPermission needs a user gesture
+		// and silently fails from an effect (IMP-5). If not granted, surface a
+		// banner; restorePermission() (button click) completes the resume.
+		let granted = false;
 		try {
-			const granted = await ensurePermission({ handle: dirHandle });
-			if (granted) {
-				const scan = await scanCourseDirectory({ dirHandle });
-				const byPath = new Map(scan.lessons.map((l) => [l.videoPath, l]));
-				for (const lesson of course.lessons) {
-					const match = byPath.get(lesson.videoPath);
-					if (match) {
-						videoHandles[lesson.id] = match.videoHandle;
-						subtitleHandles[lesson.id] = match.subtitleHandle;
-					}
+			const q = (
+				dirHandle as FileSystemDirectoryHandle & {
+					queryPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
 				}
-			}
-		} catch (error) {
-			console.error("course hydrate rescan failed", error);
+			).queryPermission;
+			granted = q ? (await q.call(dirHandle, { mode: "readwrite" })) === "granted" : true;
+		} catch {
+			granted = false;
 		}
+		if (!granted) {
+			set({ course, dirHandle, hydrated: true, needsPermission: true });
+			return;
+		}
+		const { videoHandles, subtitleHandles } = await rebuildHandles({
+			dirHandle,
+			course,
+		});
 		set({ course, dirHandle, videoHandles, subtitleHandles, hydrated: true });
+	},
+
+	restorePermission: async () => {
+		const { dirHandle, course } = get();
+		if (!dirHandle || !course) return false;
+		const granted = await ensurePermission({ handle: dirHandle });
+		if (!granted) return false;
+		const { videoHandles, subtitleHandles } = await rebuildHandles({
+			dirHandle,
+			course,
+		});
+		set({ videoHandles, subtitleHandles, needsPermission: false });
+		return true;
 	},
 
 	reset: async () => {
