@@ -66,11 +66,23 @@ describe("sanitizeSegments", () => {
 		expect(out).toHaveLength(3);
 	});
 
-	test("merge respects the max merged duration cap", () => {
+	test("real course SRT shape: long continuation cues DO merge (2-cue sentence > 8s)", () => {
+		// Udemy-style: cue ends mid-sentence, next starts at the same timestamp
 		const out = sanitizeSegments({
-			raw: [r(0, 5, "first part,"), r(5.1, 12, "second very long part,")],
+			raw: [
+				r(16.41, 21.57, "runtime environment that runs on the"),
+				r(21.57, 25.32, "V8 engine and executes JavaScript code outside of a web browser."),
+			],
 		});
-		expect(out).toHaveLength(2); // 12s combined > 8s cap → no merge
+		expect(out).toHaveLength(1);
+		expect(out[0].end).toBe(25.32);
+	});
+
+	test("merge safety net: run-on chains stop at the 20s cap", () => {
+		const out = sanitizeSegments({
+			raw: [r(0, 12, "first very long part,"), r(12.1, 25, "second very long part,")],
+		});
+		expect(out).toHaveLength(2); // 25s combined > 20s cap → forced break
 	});
 
 	test("drops empty / punctuation-only segments", () => {

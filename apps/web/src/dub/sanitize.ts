@@ -23,8 +23,13 @@ function isDegenerate(text: string): boolean {
 }
 
 const SENTENCE_END = /[.!?。！？…]["')\]]?\s*$/;
-const MERGE_MAX_GAP_SECONDS = 0.35;
-const MERGE_MAX_DURATION_SECONDS = 8;
+// Continuation cues (Udemy-style SRT: a sentence split across cues) have a
+// ~0s gap and NO sentence-final punctuation on the leading cue. The subtitle's
+// own structure is the primary merge signal — the duration cap is only a
+// safety net against run-on chains, NOT a sentence-length policy (single cues
+// run 6-9s in real course SRTs, so a 2-cue sentence easily passes 8s).
+const MERGE_MAX_GAP_SECONDS = 0.5;
+const MERGE_MAX_DURATION_SECONDS = 20;
 
 /**
  * Clean raw transcript segments:
