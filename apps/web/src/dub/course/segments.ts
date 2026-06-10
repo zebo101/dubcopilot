@@ -1,4 +1,5 @@
 import type { Segment } from "@/dub/types";
+import { sanitizeSegments } from "@/dub/sanitize";
 import { autoFitSpeed, estimateDuration, extendSlots } from "@/dub/timing";
 import type { SubtitleCue } from "@/dub/course/subtitles";
 
@@ -8,7 +9,9 @@ import type { SubtitleCue } from "@/dub/course/subtitles";
  * generateDubSegments() so the rest of the pipeline is identical.
  */
 export function segmentsFromCues({ cues }: { cues: SubtitleCue[] }): Segment[] {
-	const segments: Segment[] = cues.map((c, i) => {
+	// subtitles fragment lines too — same dedupe/merge shaping as ASR
+	const sane = sanitizeSegments({ raw: cues });
+	const segments: Segment[] = sane.map((c, i) => {
 		const target = Math.max(0, c.end - c.start);
 		return {
 			id: `seg_${String(i).padStart(3, "0")}`,

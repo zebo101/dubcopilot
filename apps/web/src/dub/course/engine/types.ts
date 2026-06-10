@@ -27,12 +27,14 @@ export interface LessonWork {
 
 export interface SynthesizedClip {
 	segId: string;
-	/** raw mp3 bytes from TTS */
+	/** raw mp3 bytes from TTS (already at native speed) */
 	bytes: ArrayBuffer;
-	/** decoded real duration, seconds */
+	/** decoded real duration of the (native-speed) audio, seconds */
 	realDuration: number;
-	/** applied speed-fit rate */
+	/** mechanical retime applied on the timeline element */
 	rate: number;
+	/** perceived total = nativeRatio × rate — drives ⚡/超时 flags */
+	totalSpeedup: number;
 	/** realDuration / rate, seconds */
 	fitted: number;
 }

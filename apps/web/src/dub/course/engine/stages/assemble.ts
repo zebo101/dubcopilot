@@ -19,6 +19,7 @@ import { floatToFrameRate } from "@/fps/utils";
 import { generateUUID } from "@/utils/id";
 import { mediaTimeFromSeconds } from "@/wasm";
 import { applyOriginalAudio } from "@/dub/original-audio";
+import { saveDubSession } from "@/dub/session";
 import type {
 	AudioTrack,
 	TextElement,
@@ -170,6 +171,9 @@ export async function assembleLesson({
 		version: CURRENT_PROJECT_VERSION,
 	};
 	await storageService.saveProject({ project });
+
+	// persist the reviewed lines so opening this project lands in 逐句编辑台
+	await saveDubSession({ projectId, segments, settings });
 
 	return { projectId, videoMediaId };
 }

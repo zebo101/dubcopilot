@@ -8,6 +8,7 @@ import type {
 } from "@/transcription/types";
 import type { DubCredentials } from "@/dub/credentials";
 import { transcribeViaGroq } from "@/dub/transcribe-cloud";
+import { sanitizeSegments } from "@/dub/sanitize";
 import { extendSlots } from "@/dub/timing";
 import type { Segment } from "@/dub/types";
 
@@ -19,7 +20,9 @@ export interface RawSegment {
 
 /** Map raw transcript segments into the editable dub-segment shape. */
 export function segmentsFromRaw({ raw }: { raw: RawSegment[] }): Segment[] {
-	const segments: Segment[] = raw.map((seg, i) => {
+	// drop hallucination loops / dupes, merge comma-level fragments first
+	const sane = sanitizeSegments({ raw });
+	const segments: Segment[] = sane.map((seg, i) => {
 		const target = Math.max(0, seg.end - seg.start);
 		return {
 			id: `seg_${String(i).padStart(3, "0")}`,

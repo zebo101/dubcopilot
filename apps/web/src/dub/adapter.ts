@@ -100,7 +100,8 @@ export async function applyDubToTimeline({
 		if (!asset) continue;
 
 		applied.set(seg.id, {
-			rate: clip.rate,
+			// what the listener perceives (native × retime) — for the review UI
+			rate: clip.totalSpeedup,
 			fitted: clip.fitted,
 			realDuration: clip.realDuration,
 		});

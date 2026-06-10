@@ -27,6 +27,7 @@ import type { Segment } from "@/dub/types";
 import { TRANSCRIPTION_MODELS } from "@/transcription/models";
 import type { TranscriptionModelId } from "@/transcription/types";
 import { useCourseStore } from "@/dub/course/store";
+import { loadDubSession, saveDubSession } from "@/dub/session";
 import { useRouter } from "next/navigation";
 
 function fmtShort({ seconds }: { seconds: number }): string {
@@ -493,6 +494,15 @@ function ReviewView() {
 			});
 			// sync the review panel to the REAL post-TTS timing (was estimates)
 			useDubStore.getState().applyRealTiming({ map: applied });
+			// persist the session so reopening this project resumes in review
+			const projectId = editor.project.getActiveOrNull()?.metadata.id;
+			if (projectId) {
+				void saveDubSession({
+					projectId,
+					segments: useDubStore.getState().segments,
+					settings,
+				});
+			}
 			toast.success("已应用配音到时间轴");
 		} catch (error) {
 			console.error("applyDubToTimeline failed", error);
@@ -627,6 +637,35 @@ export function DubView() {
 	const phase = useDubStore((s) => s.phase);
 	const router = useRouter();
 	const courseExists = useCourseStore((s) => !!s.course);
+	const activeProjectId = useEditor(
+		(e) => e.project.getActiveOrNull()?.metadata.id ?? null,
+	);
+
+	// Session restore: a project produced by the batch pipeline (or a previous
+	// in-editor run) has its reviewed lines persisted — opening it lands
+	// straight in the 逐句编辑台 instead of a dead-end setup screen.
+	useEffect(() => {
+		if (!activeProjectId) return;
+		const store = useDubStore.getState();
+		if (store.phase !== "setup" || store.segments.length > 0) return;
+		let cancelled = false;
+		void loadDubSession({ projectId: activeProjectId }).then((session) => {
+			if (cancelled || !session || session.segments.length === 0) return;
+			const s = useDubStore.getState();
+			if (s.phase !== "setup") return;
+			s.setSegments(session.segments);
+			for (const [key, value] of Object.entries(session.settings)) {
+				s.setSetting({
+					key: key as keyof typeof session.settings,
+					value: value as never,
+				});
+			}
+			s.setPhase("review");
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [activeProjectId]);
 
 	return (
 		<div className="flex h-full flex-col">

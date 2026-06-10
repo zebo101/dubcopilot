@@ -9,6 +9,7 @@ import { useCourseStore } from "@/dub/course/store";
 import { useDubStore } from "@/dub/store";
 import { useDubCredentials } from "@/dub/credentials";
 import { storageService } from "@/services/storage/service";
+import { deleteDubSession } from "@/dub/session";
 import type { StepReport } from "@/dub/course/engine/types";
 
 const STAGE_RANGES: Record<string, [number, number]> = {
@@ -102,6 +103,7 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 			try {
 				await storageService.deleteProjectMedia({ projectId: lesson.projectId });
 				await storageService.deleteProject({ id: lesson.projectId });
+				await deleteDubSession({ projectId: lesson.projectId });
 			} catch {
 				// stale id — nothing to clean
 			}

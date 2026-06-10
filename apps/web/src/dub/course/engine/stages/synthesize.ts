@@ -2,11 +2,16 @@
 // decoding each clip's REAL duration on the shared AudioContext to drive the
 // variable-speed fit. Single-line failures retry once, then are recorded; the
 // lesson only fails if more than 10% of lines are unsynthesizable.
+//
+// TWO-STAGE speed fitting (spec dub-quality v2 §2): lines that need speeding
+// are first synthesized FASTER natively (TTS speed_ratio, ≤ nativeMaxSpeed —
+// sounds human), and only the residual is covered by mechanical retime. The
+// old single-stage retime made every ≥1.2× line sound robotic.
 
 import { Semaphore } from "@/dub/course/engine/semaphore";
 import { getSharedAudioContext } from "@/dub/audio-context";
 import { synthesizeSegment } from "@/dub/tts";
-import { autoFitSpeed } from "@/dub/timing";
+import { autoFitSpeed, estimateDuration, MIN_NATURAL_RATE } from "@/dub/timing";
 import type { DubCredentials } from "@/dub/credentials";
 import type { DubSettings, Segment } from "@/dub/types";
 import type { StepReport, SynthesizedClip } from "@/dub/course/engine/types";
@@ -38,11 +43,25 @@ export async function synthesizeLesson({
 	let done = 0;
 
 	const synthOne = async (seg: Segment): Promise<void> => {
+		// Stage 1 — native TTS speed: estimate how much this line must be
+		// compressed and let the voice itself speak faster (natural) up to
+		// nativeMaxSpeed. Manual lines skip this (the user dialed a rate).
+		const target = seg.timing.targetDuration;
+		const estimated = estimateDuration({ text: seg.translated });
+		const nativeRatio =
+			seg.speedMode === "manual" || !settings.speedAdaptive || target <= 0
+				? 1
+				: Math.min(
+						Math.max(estimated / target, 1),
+						Math.max(1, settings.nativeMaxSpeed),
+					);
+
 		const attempt = () =>
 			synthesizeSegment({
 				text: seg.translated,
 				voiceType: settings.voiceId,
 				creds,
+				speedRatio: Number(nativeRatio.toFixed(2)),
 			});
 		let bytes: ArrayBuffer;
 		try {
@@ -59,7 +78,7 @@ export async function synthesizeLesson({
 			}
 		}
 
-		let realDuration = seg.timing.targetDuration;
+		let realDuration = target;
 		try {
 			const decoded = await audioCtx.decodeAudioData(bytes.slice(0));
 			if (decoded.duration > 0) realDuration = decoded.duration;
@@ -67,19 +86,25 @@ export async function synthesizeLesson({
 			// fall back to the slot length if the mp3 fails to decode
 		}
 
-		const rate =
+		// Stage 2 — mechanical retime covers only the residual. Total speed-up
+		// (native × retime) stays within maxSpeedup.
+		const residualCap = Math.max(1, settings.maxSpeedup / nativeRatio);
+		const retime =
 			seg.speedMode === "manual"
 				? seg.timing.appliedSpeedup
 				: autoFitSpeed({
 						originalDuration: realDuration,
-						targetDuration: seg.timing.targetDuration,
-						maxSpeedup: settings.maxSpeedup,
+						targetDuration: target,
+						maxSpeedup: residualCap,
 					});
+		const rate = Math.max(retime, MIN_NATURAL_RATE);
 		clips.push({
 			segId: seg.id,
 			bytes,
 			realDuration,
 			rate: Number(rate.toFixed(3)),
+			// totalSpeedup drives the ⚡/超时 flags — what the listener perceives
+			totalSpeedup: Number((nativeRatio * rate).toFixed(3)),
 			fitted: rate > 0 ? realDuration / rate : realDuration,
 		});
 		done++;

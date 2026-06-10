@@ -55,7 +55,8 @@ function flagCounts({
 	let spedCount = 0;
 	let overflowCount = 0;
 	for (const c of clips) {
-		if (c.rate > 1.05) spedCount++;
+		// perceived speed = native TTS ratio × mechanical retime
+		if (c.totalSpeedup >= 1.2) spedCount++;
 		const slot = target.get(c.segId) ?? 0;
 		if (c.fitted > slot + 0.05) overflowCount++;
 	}
