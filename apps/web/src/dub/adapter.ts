@@ -15,33 +15,15 @@ import type {
 import type { DubCredentials } from "@/dub/credentials";
 import { hasTtsKey } from "@/dub/credentials";
 import { synthesizeLesson } from "@/dub/course/engine/stages/synthesize";
+import { applyOriginalAudio } from "@/dub/original-audio";
 import type { DubSettings, Segment } from "@/dub/types";
 
 // Tracks we own — matched by name so re-apply REPLACES instead of stacking.
-const DUB_AUDIO_TRACK_NAME = "配音 · 中文";
-const DUB_SUBTITLE_TRACK_NAME = "字幕 · 中文";
-
-/** Map the原声处理 setting onto the source video track (both mute + background). */
-function applyOriginalAudio({
-	main,
-	settings,
-}: {
-	main: VideoTrack;
-	settings: DubSettings;
-}): VideoTrack {
-	if (settings.originalAudio === "mute") {
-		return { ...main, muted: true };
-	}
-	// background: keep audible but duck the volume on every source element.
-	return {
-		...main,
-		muted: false,
-		elements: main.elements.map((el) => ({
-			...el,
-			params: { ...el.params, volume: settings.backgroundVolume },
-		})),
-	} as VideoTrack;
-}
+// Single source of truth lives in the engine's assemble stage.
+import {
+	DUB_AUDIO_TRACK_NAME,
+	DUB_SUBTITLE_TRACK_NAME,
+} from "@/dub/course/engine/stages/assemble";
 
 interface BuiltDubAudio {
 	segId: string;
