@@ -1,7 +1,15 @@
-import type { EditorCore } from "@/core";
+// Batch export — fully headless. Each finished lesson's project is rendered
+// via renderLessonHeadless (never loaded into the live editor) and streamed to
+// `<courseDir>/_localized/<stem>_zh.mp4` or into a STORE ZIP. One render at a
+// time (WebCodecs encoder limit); each buffer is written and dropped before
+// the next render starts.
+
+import { readVideoFile } from "@/media/mediabunny";
 import { useCourseStore } from "@/dub/course/store";
+import { renderLessonHeadless } from "@/dub/course/engine/stages/export";
 import { StoreZipWriter } from "@/dub/course/zip";
 import type { CourseLesson } from "@/dub/course/types";
+import type { LessonMeta } from "@/dub/course/engine/types";
 
 declare global {
 	interface Window {
@@ -29,46 +37,56 @@ function exportableLessons({ onlyIds }: { onlyIds?: string[] }): CourseLesson[] 
 	return course.lessons.filter(
 		(l) =>
 			!!l.projectId &&
+			!!l.videoMediaId &&
 			(l.status === "done" || l.status === "review") &&
 			(onlyIds ? onlyIds.includes(l.id) : true),
 	);
 }
 
-/** Render one lesson's project to an mp4 buffer via the real export pipeline. */
-async function renderLesson({
-	editor,
-	projectId,
+/** Probe + render one lesson headlessly; returns the encoded mp4. */
+async function renderOne({
+	lesson,
 }: {
-	editor: EditorCore;
-	projectId: string;
+	lesson: CourseLesson;
 }): Promise<ArrayBuffer> {
-	await editor.project.loadProject({ id: projectId });
-	const active = editor.project.getActive();
-	const result = await editor.project.export({
-		options: {
-			format: "mp4",
-			quality: "high",
-			fps: active.settings.fps,
-			includeAudio: true,
-		},
-	});
-	if (!result.success || !result.buffer) {
-		throw new Error(result.error ?? "导出失败");
+	const { videoHandles } = useCourseStore.getState();
+	const handle = videoHandles[lesson.id];
+	if (!handle) {
+		throw new Error("找不到视频文件，请先恢复文件夹授权");
 	}
-	return result.buffer;
+	const videoFile = await handle.getFile();
+	const probe = await readVideoFile({ file: videoFile });
+	if (probe.thumbnailUrl) URL.revokeObjectURL(probe.thumbnailUrl);
+	const meta: LessonMeta = {
+		duration: probe.duration,
+		width: probe.width,
+		height: probe.height,
+		fps: probe.fps,
+		hasAudio: probe.hasAudio,
+	};
+	return renderLessonHeadless({
+		projectId: lesson.projectId!,
+		videoMediaId: lesson.videoMediaId!,
+		videoFile,
+		meta,
+	});
+}
+
+function markExported({ lesson }: { lesson: CourseLesson }): void {
+	useCourseStore.getState().updateLesson({
+		id: lesson.id,
+		patch: { outputName: outputName({ lesson }), exportedAt: Date.now() },
+	});
 }
 
 /**
  * Export each finished lesson to `<courseDir>/_localized/<stem>_zh.mp4`.
- * Streams each render straight to disk — no size ceiling, no memory blowup.
- * The scalable choice for a full course.
+ * Streams each render straight to disk — no archive size ceiling.
  */
 export async function exportCourseToFolder({
-	editor,
 	onlyIds,
 	onProgress,
 }: {
-	editor: EditorCore;
 	onlyIds?: string[];
 	onProgress?: (p: ExportProgress) => void;
 }): Promise<{ written: number }> {
@@ -84,13 +102,15 @@ export async function exportCourseToFolder({
 	for (let i = 0; i < targets.length; i++) {
 		const lesson = targets[i];
 		onProgress?.({ done: i, total: targets.length, current: lesson.title });
-		const buffer = await renderLesson({ editor, projectId: lesson.projectId! });
+		let buffer: ArrayBuffer | null = await renderOne({ lesson });
 		const fileHandle = await outDir.getFileHandle(outputName({ lesson }), {
 			create: true,
 		});
 		const writable = await fileHandle.createWritable();
 		await writable.write(buffer);
 		await writable.close();
+		buffer = null; // drop before the next render
+		markExported({ lesson });
 	}
 
 	onProgress?.({ done: targets.length, total: targets.length, current: "" });
@@ -99,15 +119,13 @@ export async function exportCourseToFolder({
 
 /**
  * Export finished lessons into a single ZIP, streamed to a user-chosen file.
- * STORE method (mp4 already compressed). Best for "export selected" — for a
- * multi-GB full course prefer exportCourseToFolder (no 4 GB zip limit).
+ * STORE method (mp4 already compressed). ZIP32 — guarded at 4 GB; for a
+ * multi-GB full course prefer exportCourseToFolder.
  */
 export async function exportCourseToZip({
-	editor,
 	onlyIds,
 	onProgress,
 }: {
-	editor: EditorCore;
 	onlyIds?: string[];
 	onProgress?: (p: ExportProgress) => void;
 }): Promise<{ written: number }> {
@@ -134,11 +152,13 @@ export async function exportCourseToZip({
 	for (let i = 0; i < targets.length; i++) {
 		const lesson = targets[i];
 		onProgress?.({ done: i, total: targets.length, current: lesson.title });
-		const buffer = await renderLesson({ editor, projectId: lesson.projectId! });
+		let buffer: ArrayBuffer | null = await renderOne({ lesson });
 		await zip.addFile({
 			name: outputName({ lesson }),
 			data: new Uint8Array(buffer),
 		});
+		buffer = null;
+		markExported({ lesson });
 	}
 	await zip.finish();
 

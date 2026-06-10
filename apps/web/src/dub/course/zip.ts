@@ -48,6 +48,18 @@ export class StoreZipWriter {
 	}
 
 	async addFile({ name, data }: { name: string; data: Uint8Array }): Promise<void> {
+		// ZIP32 hard limits — exceeding them silently corrupts the archive
+		// (32-bit size/offset fields wrap). Fail loud and steer to folder export.
+		if (data.length >= 0xffffffff) {
+			throw new Error(
+				`「${name}」超过单文件 4 GB 的 ZIP 上限，请改用「导出到 _localized 文件夹」`,
+			);
+		}
+		if (this.offset + data.length + 1024 > ZIP_SIZE_LIMIT_BYTES) {
+			throw new Error(
+				"ZIP 总大小将超过 4 GB 上限，请改用「导出到 _localized 文件夹」或减少所选课时",
+			);
+		}
 		const nameBytes = new TextEncoder().encode(name);
 		const crc = crc32(data);
 		const offset = this.offset;

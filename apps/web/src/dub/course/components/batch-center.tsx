@@ -200,7 +200,6 @@ export function BatchCenter() {
 		try {
 			const fn = kind === "zip" ? exportCourseToZip : exportCourseToFolder;
 			const res = await fn({
-				editor,
 				onlyIds,
 				onProgress: (p) =>
 					setExport({ done: p.done, total: p.total, current: p.current }),

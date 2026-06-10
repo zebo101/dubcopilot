@@ -38,6 +38,11 @@ export interface CourseLesson {
 	failReason?: string | null;
 	/** id of the generated OpenCut project once the lesson is processed. */
 	projectId?: string;
+	/** mediaId the project's video element references (zero-copy injection). */
+	videoMediaId?: string;
+	/** absolute output path note once exported (display only). */
+	outputName?: string;
+	exportedAt?: number;
 }
 
 export interface Course {
