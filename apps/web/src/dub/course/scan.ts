@@ -3,6 +3,7 @@
 // / foo.en.srt …). Chrome / Edge only (File System Access API).
 
 import { SUBTITLE_EXTENSIONS } from "@/dub/course/subtitles";
+import { detectLangTag, stripLangTag } from "@/dub/languages";
 
 const VIDEO_EXTENSIONS = ["mp4", "mov", "mkv", "webm", "m4v", "avi"] as const;
 
@@ -15,7 +16,12 @@ declare global {
 	}
 }
 
-export type SubtitleLang = "en" | "zh";
+/** Language code from dub/languages.ts, or "und" when the stem is untagged
+ * (an untagged subtitle is treated as source language → goes through
+ * translation). */
+export type SubtitleLang = string;
+
+export const UNTAGGED_LANG = "und";
 
 export interface ScannedLesson {
 	stem: string;
@@ -24,7 +30,8 @@ export interface ScannedLesson {
 	videoPath: string;
 	videoHandle: FileSystemFileHandle;
 	subtitleHandle: FileSystemFileHandle | null;
-	/** language of the paired subtitle: en → translate, zh → use directly. */
+	/** language of the paired subtitle: target language → use directly,
+	 * anything else → translate. */
 	subtitleLang: SubtitleLang | null;
 }
 
@@ -32,8 +39,8 @@ export interface ScanResult {
 	rootName: string;
 	lessons: ScannedLesson[];
 	withSubtitle: number;
-	/** subset of withSubtitle that are Chinese (will skip translation). */
-	chinese: number;
+	/** subset of withSubtitle already in the TARGET language (skip translation). */
+	ready: number;
 	missing: number;
 }
 
@@ -68,19 +75,12 @@ function stemOf(name: string): string {
 
 /** Strip a trailing language tag so "foo_en" / "foo.zh-cn" pair with "foo". */
 function normalizeStem(stem: string): string {
-	return stem
-		.toLowerCase()
-		.replace(
-			/[_.\-](en|eng|english|zh|zh-cn|zh-hans|zh-hant|cn|chs|cht|chi|chinese)$/,
-			"",
-		);
+	return stripLangTag(stem);
 }
 
-/** A subtitle stem ending in a Chinese tag is treated as a ready translation. */
+/** Detect the subtitle's language from its stem tag; untagged → "und". */
 function detectSubtitleLang(stem: string): SubtitleLang {
-	return /[_.\-](zh|zh-cn|zh-hans|zh-hant|cn|chs|cht|chi|chinese)$/i.test(stem)
-		? "zh"
-		: "en";
+	return detectLangTag(stem) ?? UNTAGGED_LANG;
 }
 
 /** Folder names that conventionally hold sidecar subtitles for their parent. */
@@ -88,7 +88,7 @@ const SUBTITLE_DIR_NAMES = new Set(["subs", "subtitles", "captions", "字幕"]);
 
 export type SubtitleMap = Map<
 	string,
-	Partial<Record<SubtitleLang, FileSystemFileHandle>>
+	Record<SubtitleLang, FileSystemFileHandle>
 >;
 
 export function addSubtitleToMap({
@@ -110,32 +110,35 @@ export function addSubtitleToMap({
 }
 
 /**
- * Pair each video with its best subtitle: Chinese (ready translation) wins
- * over English; exact-stem match after language-tag stripping. Pure — testable.
+ * Pair each video with its best subtitle: one already in the TARGET language
+ * (ready translation) wins, then an untagged sidecar, then English, then any
+ * other tagged language; exact-stem match after tag stripping. Pure — testable.
  */
 export function pairVideoWithSubtitles({
 	videoName,
 	subs,
+	targetLang = "zh",
 }: {
 	videoName: string;
 	subs: SubtitleMap;
+	targetLang?: string;
 }): { subtitleHandle: FileSystemFileHandle | null; subtitleLang: SubtitleLang | null } {
-	const paired = subs.get(normalizeStem(stemOf(videoName)));
-	const subtitleLang: SubtitleLang | null = paired?.zh
-		? "zh"
-		: paired?.en
-			? "en"
-			: null;
+	const paired = subs.get(normalizeStem(stemOf(videoName))) ?? {};
+	const candidates = [targetLang, UNTAGGED_LANG, "en", ...Object.keys(paired)];
+	const subtitleLang = candidates.find((lang) => paired[lang]) ?? null;
 	return {
 		subtitleLang,
-		subtitleHandle: subtitleLang ? (paired?.[subtitleLang] ?? null) : null,
+		subtitleHandle: subtitleLang ? paired[subtitleLang] : null,
 	};
 }
 
 export async function scanCourseDirectory({
 	dirHandle,
+	targetLang = "zh",
 }: {
 	dirHandle: FileSystemDirectoryHandle;
+	/** subtitles already in this language are paired as ready translations */
+	targetLang?: string;
 }): Promise<ScanResult> {
 	const lessons: ScannedLesson[] = [];
 
@@ -180,6 +183,7 @@ export async function scanCourseDirectory({
 			const { subtitleHandle, subtitleLang } = pairVideoWithSubtitles({
 				videoName: v.name,
 				subs,
+				targetLang,
 			});
 			lessons.push({
 				stem: stemOf(v.name),
@@ -206,12 +210,12 @@ export async function scanCourseDirectory({
 	);
 
 	const withSubtitle = lessons.filter((l) => l.subtitleHandle).length;
-	const chinese = lessons.filter((l) => l.subtitleLang === "zh").length;
+	const ready = lessons.filter((l) => l.subtitleLang === targetLang).length;
 	return {
 		rootName: dirHandle.name,
 		lessons,
 		withSubtitle,
-		chinese,
+		ready,
 		missing: lessons.length - withSubtitle,
 	};
 }

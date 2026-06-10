@@ -10,6 +10,8 @@ const bodySchema = z.object({
 	apiKey: z.string().min(1),
 	baseUrl: z.string().url(),
 	model: z.string().min(1),
+	/** target-language display name injected into the prompt (default 简体中文) */
+	targetLabel: z.string().min(1).max(40).optional(),
 	items: z
 		.array(z.object({ id: z.string(), text: z.string() }))
 		.min(1)
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
 	if (!parsed.success) {
 		return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 	}
-	const { apiKey, baseUrl, model, items } = parsed.data;
+	const { apiKey, baseUrl, model, items, targetLabel } = parsed.data;
 
 	const endpoint = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
 	let upstream: Response;
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
 			},
 			body: JSON.stringify({
 				model,
-				messages: buildTranslateMessages({ items }),
+				messages: buildTranslateMessages({ items, targetLabel }),
 				// 1.3 made the model degenerate into repetition loops ("new new new…"
 				// filling the whole response). 0.7 + a frequency penalty keeps output
 				// faithful and stops the loops.
@@ -75,12 +77,16 @@ export async function POST(request: NextRequest) {
 	}
 	const content = data.choices?.[0]?.message?.content ?? "";
 
-	let translations: { id: string; zh: string }[] = [];
+	// the prompt asks for "text"; tolerate the legacy "zh" key so a cached or
+	// stale model response never drops a whole batch
+	let translations: { id: string; text: string }[] = [];
 	try {
 		const obj = JSON.parse(content) as {
-			translations?: { id: string; zh: string }[];
+			translations?: { id: string; text?: string; zh?: string }[];
 		};
-		translations = Array.isArray(obj.translations) ? obj.translations : [];
+		translations = (Array.isArray(obj.translations) ? obj.translations : [])
+			.map((t) => ({ id: t.id, text: t.text ?? t.zh ?? "" }))
+			.filter((t) => t.text.length > 0);
 	} catch {
 		return NextResponse.json(
 			{ error: "Failed to parse DeepSeek JSON output" },

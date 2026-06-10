@@ -9,6 +9,7 @@ import { synthesizeLesson } from "@/dub/course/engine/stages/synthesize";
 import { assembleLesson } from "@/dub/course/engine/stages/assemble";
 import { renderLessonHeadless } from "@/dub/course/engine/stages/export";
 import { segmentsFromCues, applyTranslationMap } from "@/dub/course/segments";
+import { languageByCode } from "@/dub/languages";
 import { translateSegments } from "@/dub/translate";
 import { hasTranslateKey, type DubCredentials } from "@/dub/credentials";
 import type { DubSettings, Segment } from "@/dub/types";
@@ -103,13 +104,14 @@ export async function runLesson({
 		let segments: Segment[];
 		if (prep.subtitle) {
 			segments = segmentsFromCues({ cues: prep.subtitle.cues });
-			if (prep.subtitle.lang === "zh") {
-				// ready translation — use directly, no DeepSeek
+			if (prep.subtitle.lang === settings.targetLang) {
+				// subtitle already in the target language — use directly, no DeepSeek
 				const map = new Map(segments.map((s) => [s.id, s.source]));
 				segments = applyTranslationMap({
 					segments,
 					map,
 					maxSpeedup: settings.maxSpeedup,
+					targetLang: settings.targetLang,
 				});
 			}
 		} else {
@@ -120,6 +122,7 @@ export async function runLesson({
 						meta: prep.meta,
 						provider: settings.transcribeProvider,
 						modelId: settings.transcribeModel,
+						sourceLang: settings.sourceLang,
 						creds,
 						onStep: step("转写"),
 					}),
@@ -141,12 +144,14 @@ export async function runLesson({
 				const map = await translateSegments({
 					segments,
 					creds,
+					targetLang: settings.targetLang,
 					onStep: step("翻译"),
 				});
 				segments = applyTranslationMap({
 					segments,
 					map,
 					maxSpeedup: settings.maxSpeedup,
+					targetLang: settings.targetLang,
 				});
 			}
 			return synthesizeLesson({
@@ -200,7 +205,7 @@ export async function runLesson({
 			spedCount,
 			overflowCount,
 			exportedBuffer,
-			outputName: `${lesson.stem}_zh.mp4`,
+			outputName: `${lesson.stem}_${languageByCode(settings.targetLang).suffix}.mp4`,
 		};
 	}, hooks.signal);
 }

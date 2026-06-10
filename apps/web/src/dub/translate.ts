@@ -1,4 +1,5 @@
 import type { DubCredentials } from "@/dub/credentials";
+import { languageByCode } from "@/dub/languages";
 import type { Segment } from "@/dub/types";
 
 // Smaller batches translate far more reliably than large ones: with 20+ items
@@ -11,10 +12,12 @@ const MAX_RETRY_ROUNDS = 3;
 async function requestBatch({
 	items,
 	creds,
+	targetLabel,
 }: {
 	items: { id: string; text: string }[];
 	creds: DubCredentials;
-}): Promise<{ id: string; zh: string }[]> {
+	targetLabel: string;
+}): Promise<{ id: string; text: string }[]> {
 	const res = await fetch("/api/dub/translate", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
@@ -22,6 +25,7 @@ async function requestBatch({
 			apiKey: creds.deepseekApiKey,
 			baseUrl: creds.deepseekBaseUrl,
 			model: creds.deepseekModel,
+			targetLabel,
 			items,
 		}),
 	});
@@ -29,10 +33,14 @@ async function requestBatch({
 		const err = (await res.json().catch(() => ({}))) as { error?: string };
 		throw new Error(err.error ?? `翻译请求失败 (${res.status})`);
 	}
+	// route normalizes to "text"; tolerate legacy "zh" from older deployments
 	const { translations } = (await res.json()) as {
-		translations: { id: string; zh: string }[];
+		translations: { id: string; text?: string; zh?: string }[];
 	};
-	return Array.isArray(translations) ? translations : [];
+	return (Array.isArray(translations) ? translations : []).map((t) => ({
+		id: t.id,
+		text: t.text ?? t.zh ?? "",
+	}));
 }
 
 function chunk<T>({ list, size }: { list: T[]; size: number }): T[][] {
@@ -47,10 +55,16 @@ function chunk<T>({ list, size }: { list: T[]; size: number }): T[][] {
  * timeline. Heuristics: an absurdly long line relative to the source, the same
  * token repeated many times in a row, or one token dominating the output.
  */
-function looksDegenerate({ zh, source }: { zh: string; source: string }): boolean {
-	const text = zh.trim();
+function looksDegenerate({
+	translated,
+	source,
+}: {
+	translated: string;
+	source: string;
+}): boolean {
+	const text = translated.trim();
 	if (!text) return true;
-	// 1. Wildly longer than the source (a real zh line is rarely > ~3x the EN).
+	// 1. Wildly longer than the source (a real translation is rarely > ~4x).
 	if (text.length > Math.max(40, source.length * 4)) return true;
 	const tokens = text.split(/\s+/).filter(Boolean);
 	if (tokens.length >= 8) {
@@ -76,8 +90,8 @@ function looksDegenerate({ zh, source }: { zh: string; source: string }): boolea
 }
 
 /**
- * Translate the (English) source of each segment to Chinese via the DeepSeek
- * proxy route. Returns a map of segment id → Chinese text.
+ * Translate each segment's source into the TARGET LANGUAGE via the DeepSeek
+ * proxy route. Returns a map of segment id → translated text.
  *
  * Robustness is the whole point here: the model occasionally omits items from a
  * batch, and a single batch can fail. We therefore (1) translate in small
@@ -88,12 +102,16 @@ function looksDegenerate({ zh, source }: { zh: string; source: string }): boolea
 export async function translateSegments({
 	segments,
 	creds,
+	targetLang = "zh",
 	onStep,
 }: {
 	segments: Segment[];
 	creds: DubCredentials;
+	/** language code from dub/languages.ts; resolved to its display label */
+	targetLang?: string;
 	onStep?: (args: { step: string; pct: number }) => void;
 }): Promise<Map<string, string>> {
+	const targetLabel = languageByCode(targetLang).label;
 	const result = new Map<string, string>();
 	const pending = segments.filter((s) => s.source.trim().length > 0);
 	const total = pending.length;
@@ -117,13 +135,13 @@ export async function translateSegments({
 		});
 		const applyBatch = async (items: { id: string; text: string }[]) => {
 			try {
-				const translations = await requestBatch({ items, creds });
+				const translations = await requestBatch({ items, creds, targetLabel });
 				for (const t of translations) {
 					const source = byId.get(t.id);
-					if (source === undefined || !t.zh) continue;
+					if (source === undefined || !t.text) continue;
 					// Drop repetition-loop garbage so it gets retried, not applied.
-					if (looksDegenerate({ zh: t.zh, source })) continue;
-					result.set(t.id, t.zh);
+					if (looksDegenerate({ translated: t.text, source })) continue;
+					result.set(t.id, t.text);
 				}
 			} catch (error) {
 				errors.push(error instanceof Error ? error.message : String(error));

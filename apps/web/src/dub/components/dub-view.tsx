@@ -25,7 +25,16 @@ import { VOICES } from "@/dub/data";
 import { isOverflow, isSped } from "@/dub/timing";
 import type { Segment } from "@/dub/types";
 import { TRANSCRIPTION_MODELS } from "@/transcription/models";
-import type { TranscriptionModelId } from "@/transcription/types";
+import type {
+	TranscriptionLanguage,
+	TranscriptionModelId,
+} from "@/transcription/types";
+import {
+	AUTO_LANG,
+	LANGUAGES,
+	languageByCode,
+	toWhisperLanguage,
+} from "@/dub/languages";
 import { useCourseStore } from "@/dub/course/store";
 import { OriginalAudioQuickControl } from "@/dub/components/dub-settings-panel";
 import { loadDubSession, saveDubSession } from "@/dub/session";
@@ -35,6 +44,32 @@ function fmtShort({ seconds }: { seconds: number }): string {
 	const m = Math.floor(seconds / 60);
 	const s = Math.floor(seconds % 60);
 	return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Compact language dropdown for the 翻译方向 row. */
+function LangSelect({
+	value,
+	onChange,
+	includeAuto = false,
+}: {
+	value: string;
+	onChange: (value: string) => void;
+	includeAuto?: boolean;
+}) {
+	return (
+		<select
+			value={value}
+			onChange={(e) => onChange(e.target.value)}
+			className="border-border bg-background min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm"
+		>
+			{includeAuto ? <option value={AUTO_LANG}>自动检测</option> : null}
+			{LANGUAGES.map((l) => (
+				<option key={l.code} value={l.code}>
+					{l.label}
+				</option>
+			))}
+		</select>
+	);
 }
 
 
@@ -66,7 +101,9 @@ function SetupView() {
 				editor,
 				provider: settings.transcribeProvider,
 				modelId: settings.transcribeModel,
-				language: "en",
+				language: toWhisperLanguage(
+					settings.sourceLang,
+				) as TranscriptionLanguage,
 				creds,
 				onStep: (a) => setProc(a),
 			});
@@ -84,6 +121,7 @@ function SetupView() {
 					const map = await translateSegments({
 						segments: segs,
 						creds,
+						targetLang: settings.targetLang,
 						onStep: (a) => setProc(a),
 					});
 					applyTranslations({ map });
@@ -107,23 +145,32 @@ function SetupView() {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex-1 space-y-5 overflow-y-auto p-4">
-				{/* detected → target */}
+				{/* source → target, both user-selectable */}
 				<div className="space-y-2">
 					<div className="text-muted-foreground text-xs font-medium">
 						翻译方向
 					</div>
 					<div className="flex items-center gap-2">
-						<span className="bg-muted rounded-md px-2.5 py-1.5 text-sm">
-							English（检测）
-						</span>
+						<LangSelect
+							value={settings.sourceLang}
+							includeAuto
+							onChange={(v) => setSetting({ key: "sourceLang", value: v })}
+						/>
 						<HugeiconsIcon
 							icon={ArrowRight01Icon}
-							className="text-muted-foreground size-4"
+							className="text-muted-foreground size-4 shrink-0"
 						/>
-						<span className="bg-primary/15 text-primary rounded-md px-2.5 py-1.5 text-sm font-medium">
-							中文（简体）
-						</span>
+						<LangSelect
+							value={settings.targetLang}
+							onChange={(v) => setSetting({ key: "targetLang", value: v })}
+						/>
 					</div>
+					{!settings.targetLang.startsWith("zh") ? (
+						<p className="text-muted-foreground text-[10px] leading-relaxed">
+							预设音色为中文音色——配{languageByCode(settings.targetLang).label}
+							建议在右侧「配音设置 → 配音音色」添加该语言的豆包 voice_type。
+						</p>
+					) : null}
 				</div>
 
 				{/* transcription backend — speed vs privacy */}
@@ -468,7 +515,11 @@ function ReviewView() {
 			// otherwise re-translate everything (a deliberate redo).
 			const missing = segments.filter((s) => !s.translated.trim());
 			const targets = missing.length > 0 ? missing : segments;
-			const map = await translateSegments({ segments: targets, creds });
+			const map = await translateSegments({
+				segments: targets,
+				creds,
+				targetLang: useDubStore.getState().settings.targetLang,
+			});
 			applyTranslations({ map });
 			const stillMissing = targets.filter((s) => !map.has(s.id)).length;
 			toast.success(

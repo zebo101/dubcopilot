@@ -45,7 +45,10 @@ export interface Voice {
 }
 
 export interface DubSettings {
+	/** target language code from dub/languages.ts (e.g. "zh", "ja") */
 	targetLang: string;
+	/** source language code, or "auto" — let Whisper detect it */
+	sourceLang: string;
 	voiceId: string;
 	originalAudio: OriginalAudioMode;
 	backgroundVolume: number;

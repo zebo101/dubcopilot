@@ -24,8 +24,9 @@ export interface CourseLesson {
 	videoPath: string;
 	/** whether a sibling subtitle (.srt/.vtt) was found (→ skip ASR). */
 	hasSubtitle: boolean;
-	/** language of the paired subtitle: "en" → translate; "zh" → use directly. */
-	subtitleLang?: "en" | "zh" | null;
+	/** language code of the paired subtitle ("und" = untagged). Matches the
+	 * target language → used directly; anything else → translated. */
+	subtitleLang?: string | null;
 	durationSec?: number;
 	status: LessonStatus;
 	/** 0..100 within the current stage / overall lesson. */

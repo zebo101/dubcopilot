@@ -19,12 +19,16 @@ import { applyOriginalAudio } from "@/dub/original-audio";
 import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
 import type { DubSettings, Segment } from "@/dub/types";
 
-// Tracks we own — matched by name so re-apply REPLACES instead of stacking.
-// Single source of truth lives in the engine's assemble stage.
+// Tracks we own — matched by PREFIX so re-apply REPLACES instead of stacking,
+// even when the target language changed between two applies. Single source of
+// truth lives in the engine's assemble stage.
 import {
-	DUB_AUDIO_TRACK_NAME,
-	DUB_SUBTITLE_TRACK_NAME,
+	DUB_AUDIO_TRACK_PREFIX,
+	DUB_SUBTITLE_TRACK_PREFIX,
+	dubAudioTrackName,
+	dubSubtitleTrackName,
 } from "@/dub/course/engine/stages/assemble";
+import { languageByCode } from "@/dub/languages";
 
 interface BuiltDubAudio {
 	segId: string;
@@ -69,6 +73,7 @@ export async function applyDubToTimeline({
 	}
 	const projectId = project.metadata.id;
 	const canvasSize = project.settings.canvasSize ?? { width: 1920, height: 1080 };
+	const langLabel = languageByCode(settings.targetLang).label;
 
 	const audioParams = buildDefaultParamValues(
 		getBuiltInElementParams({ type: "audio" }),
@@ -134,19 +139,19 @@ export async function applyDubToTimeline({
 
 	const dubAudioTrack: AudioTrack = {
 		id: generateUUID(),
-		name: DUB_AUDIO_TRACK_NAME,
+		name: dubAudioTrackName({ label: langLabel }),
 		type: "audio",
 		muted: false,
 		elements: built.map((b) => b.element),
 	};
 
 	const existingAudio = before.audio
-		.filter((t) => t.name !== DUB_AUDIO_TRACK_NAME)
+		.filter((t) => !t.name?.startsWith(DUB_AUDIO_TRACK_PREFIX))
 		.map((t) => ({ ...t, muted: settings.originalAudio === "mute" }));
 	const nextAudio: AudioTrack[] = [...existingAudio, dubAudioTrack];
 
 	let nextOverlay = before.overlay.filter(
-		(t) => !(t.type === "text" && t.name === DUB_SUBTITLE_TRACK_NAME),
+		(t) => !(t.type === "text" && t.name?.startsWith(DUB_SUBTITLE_TRACK_PREFIX)),
 	);
 	const dubbable = segments.filter((s) => s.translated.trim().length > 0);
 	if (settings.subtitles) {
@@ -168,7 +173,7 @@ export async function applyDubToTimeline({
 		}));
 		const subtitleTrack: TextTrack = {
 			id: generateUUID(),
-			name: DUB_SUBTITLE_TRACK_NAME,
+			name: dubSubtitleTrackName({ label: langLabel }),
 			type: "text",
 			hidden: false,
 			elements: subtitleElements,
@@ -190,4 +195,4 @@ export async function applyDubToTimeline({
 	return applied;
 }
 
-export { DUB_AUDIO_TRACK_NAME, DUB_SUBTITLE_TRACK_NAME };
+export { DUB_AUDIO_TRACK_PREFIX, DUB_SUBTITLE_TRACK_PREFIX };

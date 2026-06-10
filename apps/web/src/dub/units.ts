@@ -6,7 +6,8 @@
 // between speech runs (gap > MAX_CHAIN_GAP), never over the next line.
 // Subtitles stay per-sentence — packing only changes the AUDIO granularity.
 
-import { estimateDuration } from "@/dub/timing";
+import { DEFAULT_SECONDS_PER_CHAR, estimateDuration } from "@/dub/timing";
+import { languageByCode } from "@/dub/languages";
 import type { Segment } from "@/dub/types";
 
 export interface DubUnit {
@@ -31,6 +32,19 @@ const MIN_COMFORTABLE_SLOT = 1.2;
 const MAX_UNIT_SPAN_SECONDS = 14;
 const MAX_UNIT_TEXT_CHARS = 280;
 
+/**
+ * The 280-char TTS-request cap was tuned for Chinese (~1 syllable/char).
+ * Lower-density scripts say less per char, so the cap scales with the
+ * language's speech rate — clamped so zh stays exactly 280 and latin
+ * scripts never exceed a safe request size.
+ */
+function maxUnitChars({ secondsPerChar }: { secondsPerChar: number }): number {
+	const scaled = Math.round(
+		(MAX_UNIT_TEXT_CHARS * DEFAULT_SECONDS_PER_CHAR) / secondsPerChar,
+	);
+	return Math.min(700, Math.max(MAX_UNIT_TEXT_CHARS, scaled));
+}
+
 interface Building {
 	segs: Segment[];
 	text: string;
@@ -44,13 +58,15 @@ function fitsNatively({
 	text,
 	span,
 	nativeMaxSpeed,
+	secondsPerChar,
 }: {
 	text: string;
 	span: number;
 	nativeMaxSpeed: number;
+	secondsPerChar: number;
 }): boolean {
 	if (span <= 0) return false;
-	return estimateDuration({ text }) <= span * nativeMaxSpeed;
+	return estimateDuration({ text, secondsPerChar }) <= span * nativeMaxSpeed;
 }
 
 /**
@@ -65,10 +81,14 @@ export function packDubUnits({
 	settings,
 }: {
 	segments: Segment[];
-	settings: { nativeMaxSpeed: number };
+	settings: { nativeMaxSpeed: number; targetLang?: string };
 }): DubUnit[] {
 	const dubbable = segments.filter((s) => s.translated.trim().length > 0);
 	const nativeMax = Math.max(1, settings.nativeMaxSpeed);
+	const secondsPerChar = languageByCode(
+		settings.targetLang ?? "zh",
+	).secondsPerChar;
+	const textCap = maxUnitChars({ secondsPerChar });
 	const units: DubUnit[] = [];
 	let cur: Building | null = null;
 
@@ -117,6 +137,7 @@ export function packDubUnits({
 			text: cur.text,
 			span: curSpan,
 			nativeMaxSpeed: nativeMax,
+			secondsPerChar,
 		});
 		const nextIsFragment =
 			seg.timing.targetDuration < MIN_COMFORTABLE_SLOT ||
@@ -124,13 +145,14 @@ export function packDubUnits({
 				text: zh,
 				span: seg.timing.targetDuration,
 				nativeMaxSpeed: nativeMax,
+				secondsPerChar,
 			});
 
 		const shouldChain =
 			gap <= MAX_CHAIN_GAP &&
 			(unitNeedsMore || nextIsFragment) &&
 			mergedSpan <= MAX_UNIT_SPAN_SECONDS &&
-			mergedText.length <= MAX_UNIT_TEXT_CHARS;
+			mergedText.length <= textCap;
 
 		if (shouldChain) {
 			cur.segs.push(seg);

@@ -21,6 +21,7 @@ import { mediaTimeFromSeconds } from "@/wasm";
 import { applyOriginalAudio } from "@/dub/original-audio";
 import { saveDubSession } from "@/dub/session";
 import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
+import { languageByCode } from "@/dub/languages";
 import type {
 	AudioTrack,
 	TextElement,
@@ -34,8 +35,19 @@ import type {
 	SynthesizedClip,
 } from "@/dub/course/engine/types";
 
-export const DUB_AUDIO_TRACK_NAME = "配音 · 中文";
-export const DUB_SUBTITLE_TRACK_NAME = "字幕 · 中文";
+// Track names carry the target language ("配音 · 日本語"). The adapter's
+// idempotent replace matches by PREFIX so switching the target language
+// between two applies replaces the old-language tracks instead of stacking.
+export const DUB_AUDIO_TRACK_PREFIX = "配音 ·";
+export const DUB_SUBTITLE_TRACK_PREFIX = "字幕 ·";
+
+export function dubAudioTrackName({ label }: { label: string }): string {
+	return `${DUB_AUDIO_TRACK_PREFIX} ${label}`;
+}
+
+export function dubSubtitleTrackName({ label }: { label: string }): string {
+	return `${DUB_SUBTITLE_TRACK_PREFIX} ${label}`;
+}
 
 export async function assembleLesson({
 	title,
@@ -52,6 +64,7 @@ export async function assembleLesson({
 }): Promise<{ projectId: string; videoMediaId: string }> {
 	const projectId = generateUUID();
 	const videoMediaId = generateUUID();
+	const langLabel = languageByCode(settings.targetLang).label;
 
 	// --- main track: the source video, zero-copy (mediaId reference only) ---
 	const scene = buildDefaultScene({ name: "Main scene", isMain: true });
@@ -106,7 +119,7 @@ export async function assembleLesson({
 	}
 	const dubTrack: AudioTrack = {
 		id: generateUUID(),
-		name: DUB_AUDIO_TRACK_NAME,
+		name: dubAudioTrackName({ label: langLabel }),
 		type: "audio",
 		muted: false,
 		elements: audioElements,
@@ -135,7 +148,7 @@ export async function assembleLesson({
 			}));
 		const subtitleTrack: TextTrack = {
 			id: generateUUID(),
-			name: DUB_SUBTITLE_TRACK_NAME,
+			name: dubSubtitleTrackName({ label: langLabel }),
 			type: "text",
 			hidden: false,
 			elements: subtitleElements,
@@ -147,7 +160,7 @@ export async function assembleLesson({
 	const project: TProject = {
 		metadata: {
 			id: projectId,
-			name: `${title} · 中文配音`,
+			name: `${title} · ${langLabel}配音`,
 			duration: getProjectDurationFromScenes({ scenes: [scene] }),
 			createdAt: new Date(),
 			updatedAt: new Date(),

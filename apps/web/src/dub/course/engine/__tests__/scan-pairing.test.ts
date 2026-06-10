@@ -15,9 +15,9 @@ function mapOf(...names: string[]): SubtitleMap {
 }
 
 describe("subtitle pairing", () => {
-	test("pairs exact stem (foo.mp4 ↔ foo.srt) as English", () => {
+	test("pairs exact stem (foo.mp4 ↔ foo.srt) as untagged source", () => {
 		const r = pairVideoWithSubtitles({ videoName: "foo.mp4", subs: mapOf("foo.srt") });
-		expect(r.subtitleLang).toBe("en");
+		expect(r.subtitleLang).toBe("und");
 		expect(r.subtitleHandle).not.toBeNull();
 	});
 
@@ -64,5 +64,32 @@ describe("subtitle pairing", () => {
 		addSubtitleToMap({ map, fileName: "x_en.srt", handle: h("subs-dir") });
 		const r = pairVideoWithSubtitles({ videoName: "x.mp4", subs: map });
 		expect((r.subtitleHandle as unknown as { tag: string }).tag).toBe("same-dir");
+	});
+
+	test("detects non-Chinese tags (_ja / .es) and prefers the target language", () => {
+		const ja = pairVideoWithSubtitles({
+			videoName: "a.mp4",
+			subs: mapOf("a_en.srt", "a_ja.srt"),
+			targetLang: "ja",
+		});
+		expect(ja.subtitleLang).toBe("ja");
+
+		const es = pairVideoWithSubtitles({
+			videoName: "b.mp4",
+			subs: mapOf("b.es.vtt"),
+			targetLang: "es",
+		});
+		expect(es.subtitleLang).toBe("es");
+	});
+
+	test("non-target tagged subtitle still pairs as a translation source", () => {
+		// target ja, only an en subtitle present → use it (translate path)
+		const r = pairVideoWithSubtitles({
+			videoName: "c.mp4",
+			subs: mapOf("c_en.srt"),
+			targetLang: "ja",
+		});
+		expect(r.subtitleLang).toBe("en");
+		expect(r.subtitleHandle).not.toBeNull();
 	});
 });

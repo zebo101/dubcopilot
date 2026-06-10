@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { useAllVoices } from "@/dub/custom-voices";
+import { AUTO_LANG, languageByCode } from "@/dub/languages";
 import { useDubStore } from "@/dub/store";
 import { useCourseStore } from "@/dub/course/store";
 import { runCourseBatch, stopCourseRun } from "@/dub/course/runner";
@@ -91,6 +92,14 @@ function LessonRow({
 	onApprove: () => void;
 }) {
 	const flagged = (lesson.spedCount ?? 0) > 0 || (lesson.overflowCount ?? 0) > 0;
+	const targetLang = useDubStore((s) => s.settings.targetLang);
+	const sourceLang = useDubStore((s) => s.settings.sourceLang);
+	const targetLabel = languageByCode(targetLang).label;
+	const targetShort = languageByCode(targetLang).suffix.toUpperCase();
+	const sourceShort =
+		sourceLang === AUTO_LANG
+			? "自动"
+			: languageByCode(sourceLang).suffix.toUpperCase();
 	return (
 		<div
 			className={cn(
@@ -112,17 +121,17 @@ function LessonRow({
 				<div className="text-muted-foreground truncate text-[10px]">
 					{lesson.chapter}
 					{lesson.segCount ? ` · ${lesson.segCount} 句` : ""}
-					{lesson.subtitleLang === "zh"
-						? " · 中文字幕·直配"
-						: lesson.subtitleLang === "en"
-							? " · 英文字幕·翻译"
+					{lesson.subtitleLang === targetLang
+						? ` · ${targetLabel}字幕·直配`
+						: lesson.subtitleLang
+							? " · 有字幕·翻译"
 							: " · 需转写"}
 				</div>
 			</button>
 			<div className="text-muted-foreground flex items-center gap-1">
-				<span>EN</span>
+				<span>{sourceShort}</span>
 				<HugeiconsIcon icon={ArrowRight01Icon} className="size-3" />
-				<span className="text-foreground">中</span>
+				<span className="text-foreground">{targetShort}</span>
 			</div>
 			<StatusPill lesson={lesson} />
 			<div className="flex flex-wrap gap-1">
@@ -339,7 +348,11 @@ export function BatchCenter() {
 						批量配音中心
 					</div>
 					<div className="text-muted-foreground truncate text-xs">
-						{course.name} · {course.total} 节 · 英文 → 中文
+						{course.name} · {course.total} 节 ·{" "}
+					{settings.sourceLang === AUTO_LANG
+						? "自动检测"
+						: languageByCode(settings.sourceLang).label}{" "}
+					→ {languageByCode(settings.targetLang).label}
 					</div>
 				</div>
 				<div className="ml-auto flex items-center gap-2">

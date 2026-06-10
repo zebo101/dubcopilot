@@ -1,9 +1,22 @@
 import type { Segment, SegmentTiming } from "@/dub/types";
 
-/** Estimate spoken duration of a Chinese line (seconds). */
-export function estimateDuration({ text }: { text: string }): number {
+/** Default speech rate (seconds per non-whitespace char) — Chinese. */
+export const DEFAULT_SECONDS_PER_CHAR = 0.19;
+
+/**
+ * Estimate spoken duration of a line (seconds). The rate comes from the
+ * target language's profile (dub/languages.ts); the default keeps the
+ * original Chinese model so untouched call sites behave identically.
+ */
+export function estimateDuration({
+	text,
+	secondsPerChar = DEFAULT_SECONDS_PER_CHAR,
+}: {
+	text: string;
+	secondsPerChar?: number;
+}): number {
 	const chars = (text || "").replace(/\s+/g, "").length;
-	return Math.max(0.6, chars * 0.19 + 0.3);
+	return Math.max(0.6, chars * secondsPerChar + 0.3);
 }
 
 /**

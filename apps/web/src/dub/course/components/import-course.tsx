@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { useCourseStore } from "@/dub/course/store";
 import { isFolderImportSupported } from "@/dub/course/scan";
+import { useDubStore } from "@/dub/store";
+import { languageByCode } from "@/dub/languages";
 
 function Segmented<T extends string>({
 	value,
@@ -111,6 +113,8 @@ function ScanStep() {
 	const missingPolicy = useCourseStore((s) => s.missingPolicy);
 	const output = useCourseStore((s) => s.output);
 	const confirmImport = useCourseStore((s) => s.confirmImport);
+	const targetLang = useDubStore((s) => s.settings.targetLang);
+	const targetLabel = languageByCode(targetLang).label;
 
 	if (!scan) return null;
 	const sample = scan.lessons.slice(0, 8);
@@ -144,9 +148,9 @@ function ScanStep() {
 				</div>
 			</div>
 
-			{scan.chinese > 0 && (
+			{scan.ready > 0 && (
 				<div className="rounded bg-emerald-500/10 px-2 py-1.5 text-[11px] text-emerald-600 dark:text-emerald-500">
-					其中 {scan.chinese} 节是中文字幕（`_zh`），将<b>直接配音、跳过翻译</b>；其余英文字幕会自动翻成中文。
+					其中 {scan.ready} 节已是{targetLabel}字幕，将<b>直接配音、跳过翻译</b>；其余字幕会自动翻成{targetLabel}。
 				</div>
 			)}
 
@@ -189,10 +193,10 @@ function ScanStep() {
 								l.subtitleHandle ? "text-emerald-500" : "text-amber-500",
 							)}
 						>
-							{l.subtitleLang === "zh"
-								? "✓ 中文 · 直配"
-								: l.subtitleLang === "en"
-									? "✓ 英文 · 翻译"
+							{l.subtitleLang === targetLang
+								? `✓ ${targetLabel} · 直配`
+								: l.subtitleHandle
+									? "✓ 有字幕 · 翻译"
 									: missingPolicy === "asr"
 										? "将转写"
 										: "将跳过"}

@@ -12,6 +12,7 @@ import {
 	scanCourseDirectory,
 } from "@/dub/course/scan";
 import { idbDel, idbGet, idbSet } from "@/dub/course/idb";
+import { useDubStore } from "@/dub/store";
 
 const COURSE_KEY = "course";
 const DIR_KEY = "dir";
@@ -150,7 +151,10 @@ async function rebuildHandles({
 	const videoHandles: Record<string, FileSystemFileHandle> = {};
 	const subtitleHandles: Record<string, FileSystemFileHandle | null> = {};
 	try {
-		const scan = await scanCourseDirectory({ dirHandle });
+		const scan = await scanCourseDirectory({
+			dirHandle,
+			targetLang: useDubStore.getState().settings.targetLang,
+		});
 		const byPath = new Map(scan.lessons.map((l) => [l.videoPath, l]));
 		for (const lesson of course.lessons) {
 			const match = byPath.get(lesson.videoPath);
@@ -205,7 +209,10 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 		if (!dirHandle) return;
 		set({ scanning: true });
 		try {
-			const scanResult = await scanCourseDirectory({ dirHandle });
+			const scanResult = await scanCourseDirectory({
+				dirHandle,
+				targetLang: useDubStore.getState().settings.targetLang,
+			});
 			set({ dirHandle, scanResult, importStep: "scan", scanning: false });
 		} catch (error) {
 			set({ scanning: false });

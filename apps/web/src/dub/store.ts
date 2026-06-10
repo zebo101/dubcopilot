@@ -1,9 +1,11 @@
 import { create } from "zustand";
 import { autoFitSpeed, estimateDuration } from "@/dub/timing";
+import { AUTO_LANG, languageByCode } from "@/dub/languages";
 import type { DubPhase, DubSettings, Segment } from "@/dub/types";
 
 const DEFAULT_SETTINGS: DubSettings = {
 	targetLang: "zh",
+	sourceLang: AUTO_LANG,
 	voiceId: "zh_male_liufei_uranus_bigtts",
 	// "background" (ducked) by default: with "mute", every inter-line gap was
 	// ABSOLUTE silence — the single biggest cause of the choppy/discontinuous
@@ -81,7 +83,10 @@ export const useDubStore = create<DubStore>((set) => ({
 			segments: s.segments.map((seg) => {
 				const zh = map.get(seg.id);
 				if (!zh || zh === seg.translated) return seg;
-				const orig = estimateDuration({ text: zh });
+				const orig = estimateDuration({
+					text: zh,
+					secondsPerChar: languageByCode(s.settings.targetLang).secondsPerChar,
+				});
 				const rate = autoFitSpeed({
 					originalDuration: orig,
 					targetDuration: seg.timing.targetDuration,
@@ -136,7 +141,13 @@ export const useDubStore = create<DubStore>((set) => ({
 		set((s) => ({
 			segments: s.segments.map((seg) => {
 				if (seg.id !== id || text === seg.translated) return seg;
-				const orig = text ? estimateDuration({ text }) : 0;
+				const orig = text
+					? estimateDuration({
+							text,
+							secondsPerChar: languageByCode(s.settings.targetLang)
+								.secondsPerChar,
+						})
+					: 0;
 				const rate =
 					seg.speedMode === "manual"
 						? seg.timing.appliedSpeedup

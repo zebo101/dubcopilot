@@ -115,4 +115,39 @@ describe("packDubUnits", () => {
 		});
 		expect(units[0].text).toBe("好的。我们继续。");
 	});
+
+	test("zh regression: explicit targetLang 'zh' packs exactly like the default", () => {
+		const segs = [
+			seg(0, 0, 3, "我们来测试一下 Node.js，看看它运行得怎么样。"),
+			seg(1, 3.1, 3.5, "好的。"),
+			seg(2, 3.7, 7, "现在它已经安装完成了。"),
+		];
+		const def = packDubUnits({ segments: segs, settings: SETTINGS });
+		const zh = packDubUnits({
+			segments: segs,
+			settings: { ...SETTINGS, targetLang: "zh" },
+		});
+		expect(zh).toEqual(def);
+	});
+
+	test("language rate changes packing: same text fits an en slot but not a zh one", () => {
+		// 30 chars ≈ 30×0.19+0.3 ≈ 6.0s spoken as zh — far over a 2.6s slot even
+		// at ×1.35; as English (0.08 s/char) ≈ 2.7s — fits natively. So the zh
+		// run must absorb the follower while the en run leaves it standalone.
+		const text = "abcdefghijklmnopqrstuvwxyzabcd";
+		const segs = () => [
+			seg(0, 0, 2.6, text),
+			seg(1, 2.7, 6.4, "follower line"),
+		];
+		const zhUnits = packDubUnits({
+			segments: segs(),
+			settings: { ...SETTINGS, targetLang: "zh" },
+		});
+		const enUnits = packDubUnits({
+			segments: segs(),
+			settings: { ...SETTINGS, targetLang: "en" },
+		});
+		expect(zhUnits).toHaveLength(1); // chained to borrow the next slot
+		expect(enUnits).toHaveLength(2); // fits natively — no need to chain
+	});
 });

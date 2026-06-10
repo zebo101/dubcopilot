@@ -6,6 +6,8 @@
 
 import { readVideoFile } from "@/media/mediabunny";
 import { useCourseStore } from "@/dub/course/store";
+import { useDubStore } from "@/dub/store";
+import { languageByCode } from "@/dub/languages";
 import { renderLessonHeadless } from "@/dub/course/engine/stages/export";
 import { StoreZipWriter } from "@/dub/course/zip";
 import type { CourseLesson } from "@/dub/course/types";
@@ -30,7 +32,8 @@ export interface ExportProgress {
 }
 
 function outputName({ lesson }: { lesson: CourseLesson }): string {
-	return `${lesson.stem}_zh.mp4`;
+	const { suffix } = languageByCode(useDubStore.getState().settings.targetLang);
+	return `${lesson.stem}_${suffix}.mp4`;
 }
 
 /** Lessons that have a generated project and finished (done/review). */
@@ -154,7 +157,7 @@ export async function exportCourseToZip({
 	if (targets.length === 0) throw new Error("没有可导出的课时（先生成）");
 
 	const fileHandle = await window.showSaveFilePicker({
-		suggestedName: `${course.name}_中文配音.zip`,
+		suggestedName: `${course.name}_${languageByCode(useDubStore.getState().settings.targetLang).label}配音.zip`,
 		types: [{ description: "ZIP", accept: { "application/zip": [".zip"] } }],
 	});
 	const writable = await fileHandle.createWritable();

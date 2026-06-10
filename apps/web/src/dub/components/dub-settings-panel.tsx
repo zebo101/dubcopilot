@@ -33,6 +33,7 @@ import {
 	useAllVoices,
 	useCustomVoices,
 } from "@/dub/custom-voices";
+import { languageByCode } from "@/dub/languages";
 
 function CredField({
 	label,
@@ -436,6 +437,13 @@ function VoicePicker() {
 					)}
 				</PopoverContent>
 			</Popover>
+			{!settings.targetLang.startsWith("zh") ? (
+				<p className="text-[10px] leading-relaxed text-amber-600 dark:text-amber-500">
+					预设音色为中文音色——目标语言是
+					{languageByCode(settings.targetLang).label}
+					时，建议「添加音色」填入适合该语言的豆包 voice_type。
+				</p>
+			) : null}
 			{phase === "review" ? (
 				<p className="text-muted-foreground text-[10px]">
 					提示：在左侧句列表点 ▶ 可用当前音色试听单句。
@@ -639,7 +647,9 @@ export function DubSettingsPanel() {
 			{/* subtitles */}
 			<div className="space-y-2">
 				<label className="flex cursor-pointer items-center justify-between">
-					<span className="text-sm">同时生成中文字幕</span>
+					<span className="text-sm">
+						同时生成{languageByCode(settings.targetLang).label}字幕
+					</span>
 					<input
 						type="checkbox"
 						checked={settings.subtitles}

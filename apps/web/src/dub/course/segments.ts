@@ -1,6 +1,7 @@
 import type { Segment } from "@/dub/types";
 import { sanitizeSegments } from "@/dub/sanitize";
 import { autoFitSpeed, estimateDuration, extendSlots } from "@/dub/timing";
+import { languageByCode } from "@/dub/languages";
 import type { SubtitleCue } from "@/dub/course/subtitles";
 
 /**
@@ -35,23 +36,26 @@ export function segmentsFromCues({ cues }: { cues: SubtitleCue[] }): Segment[] {
 }
 
 /**
- * Apply a translation map (segment id → Chinese) to segments, recomputing the
- * speed-fit timing exactly like the single-lesson store's applyTranslations.
- * Pure, so it works in the headless batch runner (no Zustand needed).
+ * Apply a translation map (segment id → translated text) to segments,
+ * recomputing the speed-fit timing exactly like the single-lesson store's
+ * applyTranslations. Pure, so it works in the headless batch runner.
  */
 export function applyTranslationMap({
 	segments,
 	map,
 	maxSpeedup,
+	targetLang = "zh",
 }: {
 	segments: Segment[];
 	map: Map<string, string>;
 	maxSpeedup: number;
+	targetLang?: string;
 }): Segment[] {
+	const secondsPerChar = languageByCode(targetLang).secondsPerChar;
 	return segments.map((seg) => {
 		const zh = map.get(seg.id);
 		if (!zh || zh === seg.translated) return seg;
-		const orig = estimateDuration({ text: zh });
+		const orig = estimateDuration({ text: zh, secondsPerChar });
 		const rate = autoFitSpeed({
 			originalDuration: orig,
 			targetDuration: seg.timing.targetDuration,

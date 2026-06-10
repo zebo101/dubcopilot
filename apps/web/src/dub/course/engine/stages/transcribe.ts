@@ -14,9 +14,13 @@ import {
 import { generateUUID } from "@/utils/id";
 import { mediaTimeFromSeconds } from "@/wasm";
 import type { MediaAsset } from "@/media/types";
-import type { TranscriptionModelId } from "@/transcription/types";
+import type {
+	TranscriptionLanguage,
+	TranscriptionModelId,
+} from "@/transcription/types";
 import type { DubCredentials } from "@/dub/credentials";
 import { transcribeSamples } from "@/dub/transcribe-core";
+import { AUTO_LANG, toWhisperLanguage } from "@/dub/languages";
 import type { Segment } from "@/dub/types";
 import type { LessonMeta, StepReport } from "@/dub/course/engine/types";
 
@@ -25,6 +29,7 @@ export async function transcribeLesson({
 	meta,
 	provider,
 	modelId,
+	sourceLang = AUTO_LANG,
 	creds,
 	onStep,
 }: {
@@ -32,6 +37,8 @@ export async function transcribeLesson({
 	meta: LessonMeta;
 	provider: "local" | "cloud";
 	modelId: TranscriptionModelId;
+	/** "auto" = let Whisper detect; otherwise a code from dub/languages.ts */
+	sourceLang?: string;
 	creds: DubCredentials;
 	onStep?: (args: StepReport) => void;
 }): Promise<Segment[]> {
@@ -82,7 +89,9 @@ export async function transcribeLesson({
 		sampleRate: DEFAULT_TRANSCRIPTION_SAMPLE_RATE,
 		provider,
 		modelId,
-		language: "en",
+		// Whisper accepts any ISO 639-1 code; the app-level union is just the UI
+		// list, so the widened value is narrowed here.
+		language: toWhisperLanguage(sourceLang) as TranscriptionLanguage,
 		creds,
 		onStep,
 	});

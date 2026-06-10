@@ -21,6 +21,7 @@ import {
 	MIN_NATURAL_RATE,
 } from "@/dub/timing";
 import { packDubUnits, type DubUnit } from "@/dub/units";
+import { languageByCode } from "@/dub/languages";
 import type { DubCredentials } from "@/dub/credentials";
 import type { DubSettings, Segment } from "@/dub/types";
 import type { StepReport, SynthesizedClip } from "@/dub/course/engine/types";
@@ -51,9 +52,11 @@ export async function synthesizeLesson({
 	const failures: string[] = [];
 	let done = 0;
 
+	const secondsPerChar = languageByCode(settings.targetLang).secondsPerChar;
+
 	const synthOne = async (unit: DubUnit): Promise<void> => {
 		// Stage 1 — native TTS speed over the unit's whole span.
-		const estimated = estimateDuration({ text: unit.text });
+		const estimated = estimateDuration({ text: unit.text, secondsPerChar });
 		const nativeRatio =
 			unit.manualRate !== undefined || !settings.speedAdaptive || unit.span <= 0
 				? 1

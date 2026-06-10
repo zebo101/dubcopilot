@@ -86,7 +86,8 @@ export function CourseOverlay() {
 		const missing = scene.tracks.main.elements.some(
 			(el) => el.type === "video" && !ids.has(el.mediaId),
 		);
-		setMissingSource(missing && activeProject.metadata.name.includes("中文配音"));
+		// dub-generated projects are named "<title> · <语言>配音" — any language
+		setMissingSource(missing && activeProject.metadata.name.includes("配音"));
 	}, [pending, mediaLoading, activeProject, assets]);
 
 	if (!missingSource) return null;
