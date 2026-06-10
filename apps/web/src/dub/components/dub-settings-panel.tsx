@@ -9,12 +9,19 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+	ArrowDown01Icon,
 	ArrowRight01Icon,
 	Cancel01Icon,
 	DashboardSpeed02Icon,
 	PlusSignIcon,
+	Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/utils/ui";
 import { useEditor } from "@/editor/use-editor";
 import { useDubStore } from "@/dub/store";
@@ -197,12 +204,36 @@ export function CredentialsSection() {
 	);
 }
 
+/** Round colored initial for a voice — shared by trigger and list rows. */
+function VoiceAvatar({
+	name,
+	hue,
+	size = "size-5",
+}: {
+	name: string;
+	hue: number;
+	size?: string;
+}) {
+	return (
+		<span
+			className={cn(
+				"flex shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white",
+				size,
+			)}
+			style={{ background: `oklch(0.55 0.13 ${hue})` }}
+		>
+			{name[0]}
+		</span>
+	);
+}
+
 /**
- * Voice gallery — presets plus user-added voices. Any Volcengine BigTTS
- * voice_type can be added (the gallery is a convenience, not a whitelist);
- * custom voices persist globally in localStorage and can be removed.
+ * Voice picker — a single compact row that opens a dropdown (the old 2-column
+ * card grid ate half the panel). Lists presets + user-added voices; any
+ * Volcengine BigTTS voice_type can be added via the in-dropdown form, and
+ * custom voices can be removed (hover ×).
  */
-function VoiceGallery() {
+function VoicePicker() {
 	const settings = useDubStore((s) => s.settings);
 	const setSetting = useDubStore((s) => s.setSetting);
 	const phase = useDubStore((s) => s.phase);
@@ -211,11 +242,13 @@ function VoiceGallery() {
 	const addVoice = useCustomVoices((s) => s.addVoice);
 	const removeVoice = useCustomVoices((s) => s.removeVoice);
 
+	const [open, setOpen] = useState(false);
 	const [adding, setAdding] = useState(false);
 	const [draftName, setDraftName] = useState("");
 	const [draftId, setDraftId] = useState("");
 	const [draftDesc, setDraftDesc] = useState("");
 
+	const current = voices.find((v) => v.id === settings.voiceId) ?? voices[0];
 	const isCustom = (id: string) => customVoices.some((v) => v.id === id);
 
 	const submit = () => {
@@ -255,112 +288,154 @@ function VoiceGallery() {
 	};
 
 	return (
-		<div className="space-y-2">
+		<div className="space-y-1.5">
 			<div className="text-muted-foreground text-xs font-medium">配音音色</div>
-			<div className="grid grid-cols-2 gap-2">
-				{voices.map((v) => {
-					const selected = settings.voiceId === v.id;
-					const custom = isCustom(v.id);
-					return (
-						<div
-							key={v.id}
-							className={cn(
-								"group relative rounded-md border transition-colors",
-								selected
-									? "border-primary bg-primary/10"
-									: "border-border hover:bg-muted",
-							)}
-						>
-							<button
-								type="button"
-								onClick={() => setSetting({ key: "voiceId", value: v.id })}
-								title={v.desc}
-								className="flex w-full flex-col items-start gap-1 p-2.5 text-left"
-							>
-								<div className="flex w-full items-center gap-2">
-									<span
-										className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-										style={{ background: `oklch(0.55 0.13 ${v.hue})` }}
-									>
-										{v.name[0]}
-									</span>
-									<span className="truncate text-sm font-medium">{v.name}</span>
-									{v.recommended ? (
-										<span className="bg-primary/20 text-primary ml-auto shrink-0 rounded px-1 text-[10px]">
-											推荐
-										</span>
-									) : null}
-								</div>
-								<span className="text-muted-foreground w-full truncate text-[11px]">
-									{custom ? v.style : `${v.genderLabel} · ${v.style}`}
-								</span>
-							</button>
-							{custom ? (
-								<button
-									type="button"
-									title="删除该音色"
-									onClick={() => remove(v.id)}
-									className="bg-background text-muted-foreground hover:text-destructive absolute -top-1.5 -right-1.5 hidden size-4 items-center justify-center rounded-full border group-hover:flex"
-								>
-									<HugeiconsIcon icon={Cancel01Icon} className="size-2.5" />
-								</button>
-							) : null}
-						</div>
-					);
-				})}
-
-				{/* add-voice card / inline form */}
-				{adding ? (
-					<div className="border-primary/40 col-span-2 space-y-1.5 rounded-md border border-dashed p-2.5">
-						<div className="text-xs font-medium">添加音色</div>
-						<input
-							value={draftId}
-							onChange={(e) => setDraftId(e.target.value)}
-							placeholder="音色 ID（voice_type），如 zh_male_..."
-							spellCheck={false}
-							autoComplete="off"
-							className="border-border bg-background w-full rounded border px-2 py-1 text-xs"
-						/>
-						<input
-							value={draftName}
-							onChange={(e) => setDraftName(e.target.value)}
-							placeholder="显示名称（选填，默认用 ID）"
-							className="border-border bg-background w-full rounded border px-2 py-1 text-xs"
-						/>
-						<input
-							value={draftDesc}
-							onChange={(e) => setDraftDesc(e.target.value)}
-							placeholder="备注，如「女声 · 活泼」（选填）"
-							className="border-border bg-background w-full rounded border px-2 py-1 text-xs"
-						/>
-						<div className="flex items-center gap-2 pt-0.5">
-							<Button size="sm" className="h-6 text-xs" onClick={submit}>
-								添加
-							</Button>
-							<Button
-								size="sm"
-								variant="ghost"
-								className="h-6 text-xs"
-								onClick={() => setAdding(false)}
-							>
-								取消
-							</Button>
-							<span className="text-muted-foreground ml-auto text-[10px]">
-								豆包 BigTTS 任意 voice_type
-							</span>
-						</div>
-					</div>
-				) : (
+			<Popover
+				open={open}
+				onOpenChange={(o) => {
+					setOpen(o);
+					if (!o) setAdding(false);
+				}}
+			>
+				<PopoverTrigger asChild>
 					<button
 						type="button"
-						onClick={() => setAdding(true)}
-						className="border-border text-muted-foreground hover:border-primary/40 hover:text-foreground flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-md border border-dashed p-2.5 text-[11px] transition-colors"
+						className="border-border hover:bg-muted flex w-full items-center gap-2 rounded-md border px-2.5 py-2 text-left transition-colors"
 					>
-						<HugeiconsIcon icon={PlusSignIcon} className="size-4" />
-						添加音色
+						<VoiceAvatar name={current.name} hue={current.hue} size="size-6" />
+						<span className="min-w-0 flex-1">
+							<span className="block truncate text-sm font-medium">
+								{current.name}
+							</span>
+							<span className="text-muted-foreground block truncate text-[11px]">
+								{isCustom(current.id)
+									? current.style
+									: `${current.genderLabel} · ${current.style}`}
+							</span>
+						</span>
+						<HugeiconsIcon
+							icon={ArrowDown01Icon}
+							className={cn(
+								"text-muted-foreground size-4 shrink-0 transition-transform",
+								open && "rotate-180",
+							)}
+						/>
 					</button>
-				)}
-			</div>
+				</PopoverTrigger>
+				<PopoverContent
+					align="start"
+					className="w-[var(--radix-popover-trigger-width)] min-w-64 p-1"
+				>
+					{adding ? (
+						<div className="space-y-1.5 p-1.5">
+							<div className="text-xs font-medium">添加音色</div>
+							<input
+								value={draftId}
+								onChange={(e) => setDraftId(e.target.value)}
+								placeholder="音色 ID（voice_type），如 zh_male_..."
+								spellCheck={false}
+								autoComplete="off"
+								autoFocus
+								className="border-border bg-background w-full rounded border px-2 py-1 text-xs"
+							/>
+							<input
+								value={draftName}
+								onChange={(e) => setDraftName(e.target.value)}
+								placeholder="显示名称（选填，默认用 ID）"
+								className="border-border bg-background w-full rounded border px-2 py-1 text-xs"
+							/>
+							<input
+								value={draftDesc}
+								onChange={(e) => setDraftDesc(e.target.value)}
+								placeholder="备注，如「女声 · 活泼」（选填）"
+								className="border-border bg-background w-full rounded border px-2 py-1 text-xs"
+							/>
+							<div className="flex items-center gap-2 pt-0.5">
+								<Button size="sm" className="h-6 text-xs" onClick={submit}>
+									添加
+								</Button>
+								<Button
+									size="sm"
+									variant="ghost"
+									className="h-6 text-xs"
+									onClick={() => setAdding(false)}
+								>
+									返回
+								</Button>
+								<span className="text-muted-foreground ml-auto text-[10px]">
+									豆包任意 voice_type
+								</span>
+							</div>
+						</div>
+					) : (
+						<>
+							<div className="max-h-64 overflow-y-auto">
+								{voices.map((v) => {
+									const selected = settings.voiceId === v.id;
+									const custom = isCustom(v.id);
+									return (
+										<div
+											key={v.id}
+											className={cn(
+												"group flex items-center gap-2 rounded px-2 py-1.5",
+												selected ? "bg-primary/10" : "hover:bg-muted",
+											)}
+										>
+											<button
+												type="button"
+												title={v.desc}
+												onClick={() => {
+													setSetting({ key: "voiceId", value: v.id });
+													setOpen(false);
+												}}
+												className="flex min-w-0 flex-1 items-center gap-2 text-left"
+											>
+												<VoiceAvatar name={v.name} hue={v.hue} />
+												<span className="truncate text-xs font-medium">
+													{v.name}
+												</span>
+												<span className="text-muted-foreground truncate text-[11px]">
+													{custom ? v.style : `${v.genderLabel} · ${v.style}`}
+												</span>
+												{v.recommended ? (
+													<span className="bg-primary/20 text-primary ml-auto shrink-0 rounded px-1 text-[10px]">
+														推荐
+													</span>
+												) : null}
+											</button>
+											{selected ? (
+												<HugeiconsIcon
+													icon={Tick02Icon}
+													className="text-primary size-3.5 shrink-0"
+												/>
+											) : null}
+											{custom ? (
+												<button
+													type="button"
+													title="删除该音色"
+													onClick={() => remove(v.id)}
+													className="text-muted-foreground hover:text-destructive hidden shrink-0 group-hover:block"
+												>
+													<HugeiconsIcon icon={Cancel01Icon} className="size-3" />
+												</button>
+											) : null}
+										</div>
+									);
+								})}
+							</div>
+							<div className="bg-border my-1 h-px" />
+							<button
+								type="button"
+								onClick={() => setAdding(true)}
+								className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors"
+							>
+								<HugeiconsIcon icon={PlusSignIcon} className="size-3.5" />
+								添加音色（任意豆包 voice_type）
+							</button>
+						</>
+					)}
+				</PopoverContent>
+			</Popover>
 			{phase === "review" ? (
 				<p className="text-muted-foreground text-[10px]">
 					提示：在左侧句列表点 ▶ 可用当前音色试听单句。
@@ -504,7 +579,7 @@ export function DubSettingsPanel() {
 			    new users must see this first (it auto-expands when unconfigured) */}
 			<CredentialsSection />
 
-			<VoiceGallery />
+			<VoicePicker />
 
 			{/* original audio — changes apply LIVE to the open project */}
 			<div className="space-y-2">
