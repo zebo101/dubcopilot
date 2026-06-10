@@ -19,13 +19,12 @@ import {
 	UploadIcon,
 	VolumeOffIcon,
 } from "@hugeicons/core-free-icons";
-import { useEditor } from "@/editor/use-editor";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { VOICES } from "@/dub/data";
 import { useDubStore } from "@/dub/store";
 import { useCourseStore } from "@/dub/course/store";
-import { runCourseBatch } from "@/dub/course/runner";
+import { runCourseBatch, stopCourseRun } from "@/dub/course/runner";
 import {
 	exportCourseToFolder,
 	exportCourseToZip,
@@ -182,11 +181,13 @@ const TABS: [LessonStatus | "all", string][] = [
 ];
 
 export function BatchCenter() {
-	const editor = useEditor();
 	const router = useRouter();
 	const course = useCourseStore((s) => s.course);
 	const selection = useCourseStore((s) => s.selection);
 	const batchRunning = useCourseStore((s) => s.batchRunning);
+	const paused = useCourseStore((s) => s.paused);
+	const autoExport = useCourseStore((s) => s.autoExport);
+	const needsPermission = useCourseStore((s) => s.needsPermission);
 	const exporting = useCourseStore((s) => s.exporting);
 	const exportDone = useCourseStore((s) => s.exportDone);
 	const exportTotal = useCourseStore((s) => s.exportTotal);
@@ -259,22 +260,39 @@ export function BatchCenter() {
 		allSelected ? s.clearSelection() : s.selectMany({ ids: filtered.map((l) => l.id) });
 	};
 
-	const openLesson = (lesson: CourseLesson) => {
-		if (lesson.projectId) router.push(`/editor/${lesson.projectId}`);
+	// Review hand-off: stage the zero-copy video for in-memory injection, then
+	// open the lesson's project in the editor.
+	const openLesson = async (lesson: CourseLesson) => {
+		if (!lesson.projectId || !lesson.videoMediaId) return;
+		const s = useCourseStore.getState();
+		const handle = s.videoHandles[lesson.id];
+		if (!handle) {
+			toast.error("找不到视频文件，请先恢复文件夹授权");
+			return;
+		}
+		try {
+			const file = await handle.getFile();
+			s.setPendingInjection({
+				injection: {
+					projectId: lesson.projectId,
+					mediaId: lesson.videoMediaId,
+					file,
+				},
+			});
+			router.push(`/editor/${lesson.projectId}`);
+		} catch {
+			toast.error("读取视频失败，请恢复文件夹授权后重试");
+		}
 	};
 
 	if (!course) return null;
 
 	return (
-		<div className="bg-background fixed inset-0 z-50 flex flex-col">
+		<div className="bg-background flex h-screen w-screen flex-col">
 			{/* header */}
 			<header className="flex items-center gap-4 border-b px-4 py-3">
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => useCourseStore.getState().closeCourse()}
-				>
-					<HugeiconsIcon icon={Cancel01Icon} className="size-4" /> 返回编辑器
+				<Button variant="ghost" size="sm" onClick={() => router.push("/projects")}>
+					<HugeiconsIcon icon={Cancel01Icon} className="size-4" /> 返回
 				</Button>
 				<div className="min-w-0">
 					<div className="flex items-center gap-2 text-sm font-semibold">
@@ -344,13 +362,20 @@ export function BatchCenter() {
 						)}
 					</Button>
 					{batchRunning && (
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => useCourseStore.getState().setBatchRunning({ running: false })}
-						>
-							停止
-						</Button>
+						<>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() =>
+									useCourseStore.getState().setPaused({ paused: !paused })
+								}
+							>
+								{paused ? "恢复" : "暂停"}
+							</Button>
+							<Button variant="outline" size="sm" onClick={() => stopCourseRun()}>
+								停止
+							</Button>
+						</>
 					)}
 					{counts.done + counts.review > 0 && (
 						<>
@@ -374,6 +399,24 @@ export function BatchCenter() {
 					)}
 				</div>
 			</header>
+
+			{needsPermission && (
+				<div className="flex items-center gap-2 border-b bg-amber-500/10 px-4 py-1.5 text-xs text-amber-600 dark:text-amber-500">
+					<HugeiconsIcon icon={InformationCircleIcon} className="size-3.5" />
+					课程已恢复，但浏览器需要你重新授权课程文件夹才能继续。
+					<Button
+						size="sm"
+						variant="outline"
+						className="h-6 text-xs"
+						onClick={async () => {
+							const ok = await useCourseStore.getState().restorePermission();
+							if (!ok) toast.error("授权未通过，请重试");
+						}}
+					>
+						恢复文件夹授权
+					</Button>
+				</div>
+			)}
 
 			{exporting && (
 				<div className="bg-primary/5 flex items-center gap-2 border-b px-4 py-1.5 text-xs">
@@ -423,6 +466,18 @@ export function BatchCenter() {
 					onClick={() => setSetting({ key: "subtitles", value: !settings.subtitles })}
 				>
 					字幕 · {settings.subtitles ? (settings.subtitleMode === "burn" ? "烧录" : "软") : "无"}
+				</button>
+				<button
+					type="button"
+					className={cn(
+						"hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1",
+						autoExport && "border-primary/40 bg-primary/10 text-primary",
+					)}
+					onClick={() =>
+						useCourseStore.getState().setAutoExport({ autoExport: !autoExport })
+					}
+				>
+					生成后自动导出 · {autoExport ? "开" : "关"}
 				</button>
 				<span className="text-muted-foreground ml-auto flex items-center gap-1 text-[11px]">
 					<HugeiconsIcon icon={InformationCircleIcon} className="size-3" />

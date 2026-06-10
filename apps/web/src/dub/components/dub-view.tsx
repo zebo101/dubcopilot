@@ -27,6 +27,7 @@ import type { Segment } from "@/dub/types";
 import { TRANSCRIPTION_MODELS } from "@/transcription/models";
 import type { TranscriptionModelId } from "@/transcription/types";
 import { useCourseStore } from "@/dub/course/store";
+import { useRouter } from "next/navigation";
 
 function fmtShort({ seconds }: { seconds: number }): string {
 	const m = Math.floor(seconds / 60);
@@ -921,9 +922,8 @@ function ReviewView() {
 
 export function DubView() {
 	const phase = useDubStore((s) => s.phase);
+	const router = useRouter();
 	const courseExists = useCourseStore((s) => !!s.course);
-	const openImport = useCourseStore((s) => s.openImport);
-	const openCenter = useCourseStore((s) => s.openCenter);
 
 	return (
 		<div className="flex h-full flex-col">
@@ -935,10 +935,10 @@ export function DubView() {
 				</span>
 				<button
 					type="button"
-					onClick={() => (courseExists ? openCenter() : openImport())}
+					onClick={() => router.push("/course")}
 					className="border-border hover:bg-muted ml-auto rounded-md border px-2 py-0.5 text-[11px]"
 				>
-					{courseExists ? "批量中心" : "批量整门课 →"}
+					{courseExists ? "批量中心 →" : "批量整门课 →"}
 				</button>
 			</div>
 			<div className="min-h-0 flex-1">
