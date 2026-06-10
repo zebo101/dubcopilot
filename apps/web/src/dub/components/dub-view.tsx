@@ -443,6 +443,18 @@ function ReviewView() {
 	// gap separators only make sense on the unfiltered, unsearched list
 	const showGaps = filter === "all" && !query.trim();
 
+	// Course hand-back: if this project is a batch lesson, reviewing ends with
+	// an explicit ✓ that flips its triage status and returns to /course.
+	const router = useRouter();
+	const activeProjectId = useEditor(
+		(e) => e.project.getActiveOrNull()?.metadata.id ?? null,
+	);
+	const courseLesson = useCourseStore((s) =>
+		activeProjectId
+			? s.course?.lessons.find((l) => l.projectId === activeProjectId)
+			: undefined,
+	);
+
 	const onTranslate = async () => {
 		const creds = useDubCredentials.getState();
 		if (!creds.deepseekApiKey.trim()) {
@@ -508,6 +520,17 @@ function ReviewView() {
 					segments: useDubStore.getState().segments,
 					settings,
 				});
+				// the previously exported mp4 (if any) is now stale — clear the
+				// export marker so 批量中心 shows 未导出 and prompts a re-export
+				const courseLesson = useCourseStore
+					.getState()
+					.course?.lessons.find((l) => l.projectId === projectId);
+				if (courseLesson?.exportedAt) {
+					useCourseStore.getState().updateLesson({
+						id: courseLesson.id,
+						patch: { exportedAt: undefined, outputName: undefined },
+					});
+				}
 			}
 			toast.success("已应用配音到时间轴");
 		} catch (error) {
@@ -633,6 +656,23 @@ function ReviewView() {
 					<div className="text-muted-foreground mt-2 text-center text-xs">
 						{applyStep}
 					</div>
+				) : null}
+				{courseLesson ? (
+					<Button
+						variant="outline"
+						className="mt-2 w-full"
+						disabled={applying}
+						onClick={() => {
+							useCourseStore.getState().updateLesson({
+								id: courseLesson.id,
+								patch: { status: "done" },
+							});
+							toast.success(`「${courseLesson.title}」已标记复核通过`);
+							router.push("/course");
+						}}
+					>
+						✓ 复核通过，返回批量中心
+					</Button>
 				) : null}
 			</div>
 		</div>

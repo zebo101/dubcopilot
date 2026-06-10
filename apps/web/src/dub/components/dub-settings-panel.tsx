@@ -17,6 +17,7 @@ import { cn } from "@/utils/ui";
 import { useEditor } from "@/editor/use-editor";
 import { useDubStore } from "@/dub/store";
 import { useDubCredentials, hasTtsKey } from "@/dub/credentials";
+import { linearToDb } from "@/dub/original-audio";
 import { VOICES } from "@/dub/data";
 
 function CredField({
@@ -211,7 +212,8 @@ export function DubSettingsPanel() {
 				updates: main.elements.map((el) => ({
 					trackId: main.id,
 					elementId: el.id,
-					patch: { params: { ...el.params, volume } },
+					// params.volume is in dB — raw 0–1 ratios are inaudible no-ops
+					patch: { params: { ...el.params, volume: linearToDb(volume) } },
 				})),
 				pushHistory: false,
 			});

@@ -81,12 +81,14 @@ function LessonRow({
 	onToggle,
 	onOpen,
 	onRun,
+	onApprove,
 }: {
 	lesson: CourseLesson;
 	selected: boolean;
 	onToggle: () => void;
 	onOpen: () => void;
 	onRun: () => void;
+	onApprove: () => void;
 }) {
 	const flagged = (lesson.spedCount ?? 0) > 0 || (lesson.overflowCount ?? 0) > 0;
 	return (
@@ -143,10 +145,17 @@ function LessonRow({
 						{!flagged && lesson.status === "done" && (
 							<span className="text-muted-foreground text-[10px]">无需改</span>
 						)}
+						{(lesson.status === "done" || lesson.status === "review") &&
+							lesson.projectId &&
+							!lesson.exportedAt && (
+								<span className="bg-muted text-muted-foreground rounded px-1 text-[10px]">
+									未导出
+								</span>
+							)}
 					</>
 				)}
 			</div>
-			<div className="flex justify-end">
+			<div className="flex justify-end gap-1">
 				{lesson.status === "failed" || lesson.status === "queued" ? (
 					<Button size="sm" variant="outline" className="h-7 text-xs" onClick={onRun}>
 						<HugeiconsIcon
@@ -156,15 +165,28 @@ function LessonRow({
 						{lesson.status === "failed" ? "重试" : "生成"}
 					</Button>
 				) : (
-					<Button
-						size="sm"
-						variant={lesson.status === "review" ? "default" : "outline"}
-						className="h-7 text-xs"
-						onClick={onOpen}
-						disabled={!lesson.projectId}
-					>
-						打开
-					</Button>
+					<>
+						{lesson.status === "review" && (
+							<Button
+								size="sm"
+								variant="outline"
+								className="h-7 text-xs text-emerald-600"
+								onClick={onApprove}
+								title="不打开直接确认复核通过"
+							>
+								✓ 通过
+							</Button>
+						)}
+						<Button
+							size="sm"
+							variant={lesson.status === "review" ? "default" : "outline"}
+							className="h-7 text-xs"
+							onClick={onOpen}
+							disabled={!lesson.projectId}
+						>
+							打开
+						</Button>
+					</>
 				)}
 			</div>
 		</div>
@@ -549,6 +571,13 @@ export function BatchCenter() {
 							onToggle={() => useCourseStore.getState().toggleSelect({ id: lesson.id })}
 							onOpen={() => openLesson(lesson)}
 							onRun={() => void runCourseBatch({ onlyIds: [lesson.id] })}
+							onApprove={() => {
+								useCourseStore.getState().updateLesson({
+									id: lesson.id,
+									patch: { status: "done" },
+								});
+								toast.success(`「${lesson.title}」已标记复核通过`);
+							}}
 						/>
 					))
 				)}
