@@ -32,8 +32,13 @@ export async function synthesizeSegment({
 		}),
 	});
 	if (!res.ok) {
-		const err = (await res.json().catch(() => ({}))) as { error?: string };
-		throw new Error(err.error ?? `TTS 请求失败 (${res.status})`);
+		const err = (await res.json().catch(() => ({}))) as {
+			error?: string;
+			detail?: string;
+		};
+		// surface the upstream message — "TTS error 400" alone is undebuggable
+		const detail = err.detail ? `：${err.detail.slice(0, 200)}` : "";
+		throw new Error((err.error ?? `TTS 请求失败 (${res.status})`) + detail);
 	}
 	return await res.arrayBuffer();
 }

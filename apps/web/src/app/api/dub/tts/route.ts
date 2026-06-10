@@ -83,6 +83,11 @@ export async function POST(request: NextRequest) {
 
 	const raw = await upstream.text();
 	if (!upstream.ok) {
+		// dev-console visibility — the browser toast truncates the detail
+		console.error(
+			`[dub/tts] upstream ${upstream.status} voice=${voiceType} lang=${language ?? "-"}:`,
+			raw.slice(0, 500),
+		);
 		return NextResponse.json(
 			{ error: `TTS error ${upstream.status}`, detail: raw.slice(0, 500) },
 			{ status: 502 },

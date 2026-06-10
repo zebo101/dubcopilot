@@ -147,8 +147,18 @@ export async function synthesizeLesson({
 	);
 
 	if (failures.length > units.length * 0.1) {
+		// near-total failure on a non-Chinese target is almost always a voice
+		// whose 支持语种 doesn't include that language (zh_ voices speak 中/英
+		// only) — say so instead of leaving the user staring at "error 400"
+		const langLabel = languageByCode(settings.targetLang).label;
+		const voiceHint =
+			settings.targetLang.startsWith("zh") || failures.length < units.length * 0.8
+				? ""
+				: `。当前音色「${settings.voiceId}」很可能不支持${langLabel}——` +
+					`请在火山控制台音色列表找一个「支持语种」含${langLabel}的音色，` +
+					`通过「配音音色 → 添加音色」填入其 voice_type`;
 		throw new Error(
-			`TTS 失败过多（${failures.length}/${units.length}）：${failures[0]}`,
+			`TTS 失败过多（${failures.length}/${units.length}）：${failures[0]}${voiceHint}`,
 		);
 	}
 
