@@ -11,7 +11,12 @@
 import { Semaphore } from "@/dub/course/engine/semaphore";
 import { getSharedAudioContext } from "@/dub/audio-context";
 import { synthesizeSegment } from "@/dub/tts";
-import { autoFitSpeed, estimateDuration, MIN_NATURAL_RATE } from "@/dub/timing";
+import {
+	autoFitSpeed,
+	estimateDuration,
+	fitClip,
+	MIN_NATURAL_RATE,
+} from "@/dub/timing";
 import type { DubCredentials } from "@/dub/credentials";
 import type { DubSettings, Segment } from "@/dub/types";
 import type { StepReport, SynthesizedClip } from "@/dub/course/engine/types";
@@ -43,16 +48,18 @@ export async function synthesizeLesson({
 	let done = 0;
 
 	const synthOne = async (seg: Segment): Promise<void> => {
-		// Stage 1 — native TTS speed: estimate how much this line must be
-		// compressed and let the voice itself speak faster (natural) up to
-		// nativeMaxSpeed. Manual lines skip this (the user dialed a rate).
+		// Stage 1 — native TTS speed: estimate the compression/stretch this line
+		// needs and let the VOICE itself absorb it (sounds human in both
+		// directions: 豆包 speed_ratio supports <1 too). Mechanical retime is
+		// reserved for residual COMPRESSION only — slowing a clip via SoundTouch
+		// added stretch artifacts to every short line.
 		const target = seg.timing.targetDuration;
 		const estimated = estimateDuration({ text: seg.translated });
 		const nativeRatio =
 			seg.speedMode === "manual" || !settings.speedAdaptive || target <= 0
 				? 1
 				: Math.min(
-						Math.max(estimated / target, 1),
+						Math.max(estimated / target, MIN_NATURAL_RATE),
 						Math.max(1, settings.nativeMaxSpeed),
 					);
 
@@ -86,26 +93,29 @@ export async function synthesizeLesson({
 			// fall back to the slot length if the mp3 fails to decode
 		}
 
-		// Stage 2 — mechanical retime covers only the residual. Total speed-up
-		// (native × retime) stays within maxSpeedup.
+		// Stage 2 — mechanical retime covers residual COMPRESSION only (≥ 1;
+		// stretching is the TTS's job now). Total native × retime ≤ maxSpeedup.
 		const residualCap = Math.max(1, settings.maxSpeedup / nativeRatio);
 		const retime =
 			seg.speedMode === "manual"
-				? seg.timing.appliedSpeedup
-				: autoFitSpeed({
-						originalDuration: realDuration,
-						targetDuration: target,
-						maxSpeedup: residualCap,
-					});
-		const rate = Math.max(retime, MIN_NATURAL_RATE);
+				? Math.max(seg.timing.appliedSpeedup, 1)
+				: Math.max(
+						1,
+						autoFitSpeed({
+							originalDuration: realDuration,
+							targetDuration: target,
+							maxSpeedup: residualCap,
+						}),
+					);
+		const { fitted, rate } = fitClip({ realDuration, retime });
 		clips.push({
 			segId: seg.id,
 			bytes,
 			realDuration,
-			rate: Number(rate.toFixed(3)),
+			rate,
 			// totalSpeedup drives the ⚡/超时 flags — what the listener perceives
 			totalSpeedup: Number((nativeRatio * rate).toFixed(3)),
-			fitted: rate > 0 ? realDuration / rate : realDuration,
+			fitted,
 		});
 		done++;
 		onStep?.({

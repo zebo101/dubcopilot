@@ -39,13 +39,17 @@ export async function renderLessonHeadless({
 	if (!scene) throw new Error("项目没有场景");
 	const tracks = scene.tracks;
 
-	// media = stored TTS clips + the zero-copy source video injected in memory
+	// media = stored TTS clips + the zero-copy source video injected in memory.
+	// `url` must be truthy or scene-builder skips the VideoNode entirely
+	// (scene-builder.ts:64) and the export renders BLACK video.
 	const stored = await storageService.loadAllMediaAssets({ projectId });
+	const videoUrl = URL.createObjectURL(videoFile);
 	const videoAsset: MediaAsset = {
 		id: videoMediaId,
 		name: videoFile.name,
 		type: "video",
 		file: videoFile,
+		url: videoUrl,
 		duration: meta.duration,
 		width: meta.width,
 		height: meta.height,
@@ -86,7 +90,11 @@ export async function renderLessonHeadless({
 		onStep?.({ step: "渲染导出…", pct: 5 + Math.round(progress * 95) });
 	});
 
-	const buffer = await exporter.export({ rootNode });
-	if (!buffer) throw new Error("导出渲染失败");
-	return buffer;
+	try {
+		const buffer = await exporter.export({ rootNode });
+		if (!buffer) throw new Error("导出渲染失败");
+		return buffer;
+	} finally {
+		URL.revokeObjectURL(videoUrl);
+	}
 }

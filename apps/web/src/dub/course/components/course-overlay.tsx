@@ -46,6 +46,10 @@ export function CourseOverlay() {
 					name: pending.file.name,
 					type: "video",
 					file: pending.file,
+					// scene-builder gates VideoNode creation on a truthy url
+					// (scene-builder.ts:64) even though frames decode from `file` —
+					// without this the preview renders BLACK. clearAllAssets revokes it.
+					url: URL.createObjectURL(pending.file),
 					duration: probe.duration,
 					width: probe.width,
 					height: probe.height,

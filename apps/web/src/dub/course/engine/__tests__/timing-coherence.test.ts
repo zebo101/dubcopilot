@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { autoFitSpeed, extendSlots, MIN_NATURAL_RATE } from "@/dub/timing";
+import { autoFitSpeed, extendSlots, fitClip, MIN_NATURAL_RATE } from "@/dub/timing";
 import type { Segment } from "@/dub/types";
 
 function seg(i: number, start: number, end: number): Segment {
@@ -60,5 +60,17 @@ describe("coherence timing", () => {
 	test("extendSlots never shrinks a slot (tight/overlapping cues unchanged)", () => {
 		const [a] = extendSlots({ segments: [seg(0, 0, 4), seg(1, 4, 8)] });
 		expect(a.timing.targetDuration).toBe(4);
+	});
+
+	test("fitClip: consumed source (fitted × rate) never exceeds the real audio", () => {
+		// sweep awkward durations/rates that previously rounded into tail-clipping
+		for (const real of [0.733, 1.001, 2.499, 5.0101, 13.37]) {
+			for (const retime of [1, 1.13, 1.49, 2.3]) {
+				const { fitted, rate } = fitClip({ realDuration: real, retime });
+				expect(fitted * rate).toBeLessThanOrEqual(real + 1e-9);
+				// and we don't under-consume by more than ~2ms worth of audio
+				expect(fitted * rate).toBeGreaterThan(real - 0.005 * real - 0.002);
+			}
+		}
 	});
 });

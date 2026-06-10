@@ -35,6 +35,28 @@ export function autoFitSpeed({
 	return Math.max(needed, MIN_NATURAL_RATE);
 }
 
+/**
+ * Final clip fit, anti-tail-clipping: round the timeline duration UP to ms,
+ * then derive the rate back DOWN from it, guaranteeing consumed source
+ * (fitted × rate) never exceeds the real audio. The mixer silently
+ * early-breaks past the buffer end — naive rounding ate line tails.
+ */
+export function fitClip({
+	realDuration,
+	retime,
+}: {
+	realDuration: number;
+	retime: number;
+}): { fitted: number; rate: number } {
+	const safeRetime = Math.max(retime, 0.01);
+	const fitted = Math.ceil((realDuration / safeRetime) * 1000) / 1000;
+	const rate = Math.max(
+		Math.floor((realDuration / fitted) * 1000) / 1000,
+		0.01,
+	);
+	return { fitted, rate };
+}
+
 /** Keep this much clear before the next line starts (matches overlapGuardMs). */
 const SLOT_GUARD_SECONDS = 0.08;
 /** Never absorb more than this much of the following silence into a slot. */
