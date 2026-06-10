@@ -24,6 +24,9 @@ export interface ExportProgress {
 	done: number;
 	total: number;
 	current: string;
+	/** render progress of the CURRENT lesson, 0–100 — a lesson takes minutes,
+	 * so without this the banner sits frozen and reads as a hang */
+	pct: number;
 }
 
 function outputName({ lesson }: { lesson: CourseLesson }): string {
@@ -46,8 +49,10 @@ function exportableLessons({ onlyIds }: { onlyIds?: string[] }): CourseLesson[] 
 /** Probe + render one lesson headlessly; returns the encoded mp4. */
 async function renderOne({
 	lesson,
+	onPct,
 }: {
 	lesson: CourseLesson;
+	onPct?: (pct: number) => void;
 }): Promise<ArrayBuffer> {
 	const { videoHandles } = useCourseStore.getState();
 	const handle = videoHandles[lesson.id];
@@ -69,6 +74,7 @@ async function renderOne({
 		videoMediaId: lesson.videoMediaId!,
 		videoFile,
 		meta,
+		onStep: ({ pct }) => onPct?.(pct),
 	});
 }
 
@@ -101,8 +107,10 @@ export async function exportCourseToFolder({
 
 	for (let i = 0; i < targets.length; i++) {
 		const lesson = targets[i];
-		onProgress?.({ done: i, total: targets.length, current: lesson.title });
-		let buffer: ArrayBuffer | null = await renderOne({ lesson });
+		const report = (pct: number) =>
+			onProgress?.({ done: i, total: targets.length, current: lesson.title, pct });
+		report(0);
+		let buffer: ArrayBuffer | null = await renderOne({ lesson, onPct: report });
 		const fileHandle = await outDir.getFileHandle(outputName({ lesson }), {
 			create: true,
 		});
@@ -113,7 +121,7 @@ export async function exportCourseToFolder({
 		markExported({ lesson });
 	}
 
-	onProgress?.({ done: targets.length, total: targets.length, current: "" });
+	onProgress?.({ done: targets.length, total: targets.length, current: "", pct: 100 });
 	return { written: targets.length };
 }
 
@@ -151,8 +159,10 @@ export async function exportCourseToZip({
 
 	for (let i = 0; i < targets.length; i++) {
 		const lesson = targets[i];
-		onProgress?.({ done: i, total: targets.length, current: lesson.title });
-		let buffer: ArrayBuffer | null = await renderOne({ lesson });
+		const report = (pct: number) =>
+			onProgress?.({ done: i, total: targets.length, current: lesson.title, pct });
+		report(0);
+		let buffer: ArrayBuffer | null = await renderOne({ lesson, onPct: report });
 		await zip.addFile({
 			name: outputName({ lesson }),
 			data: new Uint8Array(buffer),
@@ -162,6 +172,6 @@ export async function exportCourseToZip({
 	}
 	await zip.finish();
 
-	onProgress?.({ done: targets.length, total: targets.length, current: "" });
+	onProgress?.({ done: targets.length, total: targets.length, current: "", pct: 100 });
 	return { written: targets.length };
 }

@@ -53,6 +53,8 @@ interface CourseStore {
 	exportDone: number;
 	exportTotal: number;
 	exportCurrent: string;
+	/** render progress of the current lesson, 0–100 */
+	exportPct: number;
 
 	openImport: () => void;
 	closeImport: () => void;
@@ -79,6 +81,7 @@ interface CourseStore {
 		done?: number;
 		total?: number;
 		current?: string;
+		pct?: number;
 	}) => void;
 	persist: () => Promise<void>;
 	persistNow: () => Promise<void>;
@@ -186,6 +189,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	exportDone: 0,
 	exportTotal: 0,
 	exportCurrent: "",
+	exportPct: 0,
 
 	openImport: () => set({ view: "import", importStep: "source" }),
 	closeImport: () =>
@@ -271,12 +275,13 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	setAutoExport: ({ autoExport }) => set({ autoExport }),
 	setPendingInjection: ({ injection }) => set({ pendingInjection: injection }),
 
-	setExport: ({ exporting, done, total, current }) =>
+	setExport: ({ exporting, done, total, current, pct }) =>
 		set((s) => ({
 			exporting: exporting ?? s.exporting,
 			exportDone: done ?? s.exportDone,
 			exportTotal: total ?? s.exportTotal,
 			exportCurrent: current ?? s.exportCurrent,
+			exportPct: pct ?? s.exportPct,
 		})),
 
 	persist: async () => {

@@ -214,23 +214,30 @@ export function BatchCenter() {
 	const exportDone = useCourseStore((s) => s.exportDone);
 	const exportTotal = useCourseStore((s) => s.exportTotal);
 	const exportCurrent = useCourseStore((s) => s.exportCurrent);
+	const exportPct = useCourseStore((s) => s.exportPct);
+	// which export button was clicked — its own spinner, the other just disables
+	const [exportKind, setExportKind] = useState<"folder" | "zip" | null>(null);
 	const settings = useDubStore((s) => s.settings);
 	const setSetting = useDubStore((s) => s.setSetting);
 
 	const runExport = async (kind: "folder" | "zip", onlyIds?: string[]) => {
 		const setExport = useCourseStore.getState().setExport;
-		setExport({ exporting: true, done: 0, total: 0, current: "" });
+		setExportKind(kind);
+		setExport({ exporting: true, done: 0, total: 0, current: "", pct: 0 });
 		try {
 			const fn = kind === "zip" ? exportCourseToZip : exportCourseToFolder;
 			const res = await fn({
 				onlyIds,
 				onProgress: (p) =>
-					setExport({ done: p.done, total: p.total, current: p.current }),
+					setExport({ done: p.done, total: p.total, current: p.current, pct: p.pct }),
 			});
 			toast.success(`已导出 ${res.written} 节`);
 		} catch (error) {
+			// user closed the save-file dialog — not an error
+			if (error instanceof DOMException && error.name === "AbortError") return;
 			toast.error(error instanceof Error ? error.message : "导出失败");
 		} finally {
+			setExportKind(null);
 			setExport({ exporting: false });
 		}
 	};
@@ -407,7 +414,16 @@ export function BatchCenter() {
 								disabled={exporting || batchRunning}
 								onClick={() => void runExport("folder")}
 							>
-								<HugeiconsIcon icon={UploadIcon} className="size-4" /> 导出到 _localized
+								{exportKind === "folder" ? (
+									<>
+										<HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />
+										导出中…
+									</>
+								) : (
+									<>
+										<HugeiconsIcon icon={UploadIcon} className="size-4" /> 导出到 _localized
+									</>
+								)}
 							</Button>
 							<Button
 								variant="outline"
@@ -415,7 +431,14 @@ export function BatchCenter() {
 								disabled={exporting || batchRunning}
 								onClick={() => void runExport("zip")}
 							>
-								导出 ZIP
+								{exportKind === "zip" ? (
+									<>
+										<HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />
+										导出中…
+									</>
+								) : (
+									"导出 ZIP"
+								)}
 							</Button>
 						</>
 					)}
@@ -441,10 +464,35 @@ export function BatchCenter() {
 			)}
 
 			{exporting && (
-				<div className="bg-primary/5 flex items-center gap-2 border-b px-4 py-1.5 text-xs">
-					<HugeiconsIcon icon={Loading03Icon} className="text-primary size-3.5 animate-spin" />
-					导出中 {exportDone}/{exportTotal}
-					{exportCurrent ? ` · ${exportCurrent}` : ""}（渲染较重，请耐心等待）
+				<div className="bg-primary/5 border-b px-4 py-2 text-xs">
+					<div className="flex items-center gap-2">
+						<HugeiconsIcon icon={Loading03Icon} className="text-primary size-3.5 animate-spin" />
+						<span className="font-medium">
+							正在导出 第 {Math.min(exportDone + 1, Math.max(exportTotal, 1))}/
+							{exportTotal || "…"} 节
+						</span>
+						{exportCurrent ? (
+							<span className="text-muted-foreground truncate">{exportCurrent}</span>
+						) : null}
+						<span className="text-primary ml-auto font-medium tabular-nums">
+							{exportPct}%
+						</span>
+					</div>
+					<div className="bg-muted mt-1.5 h-1.5 overflow-hidden rounded-full">
+						<div
+							className="bg-primary h-full transition-[width] duration-300"
+							style={{
+								width: `${
+									exportTotal > 0
+										? Math.round(((exportDone + exportPct / 100) / exportTotal) * 100)
+										: 0
+								}%`,
+							}}
+						/>
+					</div>
+					<div className="text-muted-foreground mt-1">
+						逐节渲染导出较慢（每节约 1–3 分钟），请勿关闭本页面。
+					</div>
 				</div>
 			)}
 
@@ -603,7 +651,16 @@ export function BatchCenter() {
 						disabled={exporting || batchRunning}
 						onClick={() => void runExport("zip", selection)}
 					>
-						<HugeiconsIcon icon={UploadIcon} className="size-3" /> 导出所选 ZIP
+						{exportKind === "zip" ? (
+							<>
+								<HugeiconsIcon icon={Loading03Icon} className="size-3 animate-spin" />
+								导出中…
+							</>
+						) : (
+							<>
+								<HugeiconsIcon icon={UploadIcon} className="size-3" /> 导出所选 ZIP
+							</>
+						)}
 					</Button>
 					<Button
 						size="sm"
