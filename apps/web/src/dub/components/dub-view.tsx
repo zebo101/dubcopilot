@@ -138,6 +138,7 @@ function SetupView() {
 						/>
 						<LangSelect
 							value={settings.targetLang}
+							voiceableOnly
 							className="min-w-0 flex-1"
 							onChange={(v) => setSetting({ key: "targetLang", value: v })}
 						/>

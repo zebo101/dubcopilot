@@ -538,6 +538,7 @@ export function BatchCenter() {
 					/>
 					<LangSelect
 						value={settings.targetLang}
+						voiceableOnly
 						disabled={batchRunning}
 						className="border-0 px-1 py-0.5 text-xs font-medium"
 						onChange={(v) => setSetting({ key: "targetLang", value: v })}
