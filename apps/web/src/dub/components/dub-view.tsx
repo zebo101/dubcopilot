@@ -482,6 +482,12 @@ function ReviewView() {
 
 	const onApply = async () => {
 		const creds = useDubCredentials.getState();
+		// hard guard: never write one project's lines onto another's timeline
+		const activeProj = editor.project.getActiveOrNull()?.metadata.id ?? null;
+		if (activeProj && useDubStore.getState().projectId !== activeProj) {
+			toast.error("当前句子不属于打开的项目，请等待会话加载后重试");
+			return;
+		}
 		setApplying(true);
 		setApplyStep("");
 		try {
@@ -641,18 +647,21 @@ export function DubView() {
 		(e) => e.project.getActiveOrNull()?.metadata.id ?? null,
 	);
 
-	// Session restore: a project produced by the batch pipeline (or a previous
-	// in-editor run) has its reviewed lines persisted — opening it lands
-	// straight in the 逐句编辑台 instead of a dead-end setup screen.
+	// Per-project session scoping: the dub store is a singleton, so switching
+	// projects MUST drop the previous project's lines (otherwise project A's
+	// segments could be applied onto project B's timeline) and then restore
+	// the session persisted for the newly active project — batch products land
+	// straight in the 逐句编辑台.
 	useEffect(() => {
 		if (!activeProjectId) return;
 		const store = useDubStore.getState();
-		if (store.phase !== "setup" || store.segments.length > 0) return;
-		let cancelled = false;
+		if (store.projectId === activeProjectId) return; // same project — keep state
+		store.resetForProject({ projectId: activeProjectId });
 		void loadDubSession({ projectId: activeProjectId }).then((session) => {
-			if (cancelled || !session || session.segments.length === 0) return;
 			const s = useDubStore.getState();
-			if (s.phase !== "setup") return;
+			// the user may have switched again while we were loading
+			if (s.projectId !== activeProjectId) return;
+			if (!session || session.segments.length === 0) return;
 			s.setSegments(session.segments);
 			for (const [key, value] of Object.entries(session.settings)) {
 				s.setSetting({
@@ -662,9 +671,6 @@ export function DubView() {
 			}
 			s.setPhase("review");
 		});
-		return () => {
-			cancelled = true;
-		};
 	}, [activeProjectId]);
 
 	return (

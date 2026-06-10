@@ -28,6 +28,8 @@ const DEFAULT_SETTINGS: DubSettings = {
 };
 
 interface DubStore {
+	/** which project the current segments belong to — guards cross-project leaks */
+	projectId: string | null;
 	phase: DubPhase;
 	settings: DubSettings;
 	/** Real segments from transcription — empty until the user generates. */
@@ -50,6 +52,8 @@ interface DubStore {
 		map: Map<string, { rate: number; fitted: number; realDuration: number }>;
 	}) => void;
 	backToSetup: () => void;
+	/** Project switched: drop the previous project's in-memory session. */
+	resetForProject: (args: { projectId: string }) => void;
 	selectSegment: (args: { id: string | null }) => void;
 	editSegment: (args: { id: string; text: string }) => void;
 	setSegmentSpeed: (args: { id: string; rate: number }) => void;
@@ -57,6 +61,7 @@ interface DubStore {
 }
 
 export const useDubStore = create<DubStore>((set) => ({
+	projectId: null,
 	phase: "setup",
 	settings: { ...DEFAULT_SETTINGS },
 	segments: [],
@@ -114,6 +119,16 @@ export const useDubStore = create<DubStore>((set) => ({
 		})),
 
 	backToSetup: () => set({ phase: "setup", selectedSegId: null }),
+
+	resetForProject: ({ projectId }) =>
+		set({
+			projectId,
+			phase: "setup",
+			segments: [],
+			selectedSegId: null,
+			procStep: "",
+			procPct: 0,
+		}),
 
 	selectSegment: ({ id }) => set({ selectedSegId: id }),
 
