@@ -16,6 +16,7 @@ import type { DubCredentials } from "@/dub/credentials";
 import { hasTtsKey } from "@/dub/credentials";
 import { synthesizeLesson } from "@/dub/course/engine/stages/synthesize";
 import { applyOriginalAudio } from "@/dub/original-audio";
+import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
 import type { DubSettings, Segment } from "@/dub/types";
 
 // Tracks we own — matched by name so re-apply REPLACES instead of stacking.
@@ -158,6 +159,8 @@ export async function applyDubToTimeline({
 					// extended slot: subtitle stays up until just before the next
 					// line — continuous reading instead of flashing off in gaps
 					duration: seg.timing.targetDuration,
+					// legibility on any background (white-on-white was unreadable)
+					style: DUB_SUBTITLE_STYLE,
 				},
 				canvasSize,
 			}),

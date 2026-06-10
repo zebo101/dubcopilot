@@ -20,6 +20,7 @@ import { generateUUID } from "@/utils/id";
 import { mediaTimeFromSeconds } from "@/wasm";
 import { applyOriginalAudio } from "@/dub/original-audio";
 import { saveDubSession } from "@/dub/session";
+import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
 import type {
 	AudioTrack,
 	TextElement,
@@ -125,6 +126,8 @@ export async function assembleLesson({
 						startTime: seg.start,
 						// extended slot — subtitle stays up until the next line
 						duration: seg.timing.targetDuration,
+						// legibility on any background (white-on-white was unreadable)
+						style: DUB_SUBTITLE_STYLE,
 					},
 					canvasSize,
 				}),
