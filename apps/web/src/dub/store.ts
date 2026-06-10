@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { autoFitSpeed, estimateDuration } from "@/dub/timing";
 import { AUTO_LANG, languageByCode } from "@/dub/languages";
 import type { DubPhase, DubSettings, Segment } from "@/dub/types";
@@ -62,7 +63,9 @@ interface DubStore {
 	resetSegmentSpeed: (args: { id: string }) => void;
 }
 
-export const useDubStore = create<DubStore>((set) => ({
+export const useDubStore = create<DubStore>()(
+	persist(
+		(set) => ({
 	projectId: null,
 	phase: "setup",
 	settings: { ...DEFAULT_SETTINGS },
@@ -216,4 +219,21 @@ export const useDubStore = create<DubStore>((set) => ({
 				};
 			}),
 		})),
-}));
+		}),
+		{
+			// 设置必须跨刷新存活：用户在批量中心选了日语+日语音色，一次整页
+			// 刷新就静默回落到默认中文，产物变回中文配音（线上踩过的真实事故）。
+			name: "dub-settings-v1",
+			// only the user's preference settings — segments/phase are per-project
+			// session data (dub/session.ts) and must NOT leak across projects
+			partialize: (state) => ({ settings: state.settings }),
+			merge: (persisted, current) => ({
+				...current,
+				settings: {
+					...DEFAULT_SETTINGS,
+					...(persisted as { settings?: Partial<DubSettings> })?.settings,
+				},
+			}),
+		},
+	),
+);

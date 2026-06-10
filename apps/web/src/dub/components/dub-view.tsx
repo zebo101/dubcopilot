@@ -742,12 +742,10 @@ export function DubView() {
 			if (s.projectId !== activeProjectId) return;
 			if (!session || session.segments.length === 0) return;
 			s.setSegments(session.segments);
-			for (const [key, value] of Object.entries(session.settings)) {
-				s.setSetting({
-					key: key as keyof typeof session.settings,
-					value: value as never,
-				});
-			}
+			// Restore SEGMENTS only — never the settings. Writing the project's
+			// generation-time settings into the global store silently reverted
+			// the user's current 语言/音色 choice (open one old zh lesson →
+			// targetLang back to zh → the next batch run produces Chinese again).
 			s.setPhase("review");
 		});
 	}, [activeProjectId]);
