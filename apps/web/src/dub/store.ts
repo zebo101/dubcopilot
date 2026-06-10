@@ -41,6 +41,10 @@ interface DubStore {
 	setProc: (args: { step: string; pct: number }) => void;
 	setSegments: (segments: Segment[]) => void;
 	applyTranslations: (args: { map: Map<string, string> }) => void;
+	/** Replace heuristic timing with the REAL post-TTS values (from apply). */
+	applyRealTiming: (args: {
+		map: Map<string, { rate: number; fitted: number; realDuration: number }>;
+	}) => void;
 	backToSetup: () => void;
 	selectSegment: (args: { id: string | null }) => void;
 	editSegment: (args: { id: string; text: string }) => void;
@@ -83,6 +87,23 @@ export const useDubStore = create<DubStore>((set) => ({
 						originalDuration: Number(orig.toFixed(2)),
 						fittedDuration: Number((orig / rate).toFixed(2)),
 						appliedSpeedup: Number(rate.toFixed(2)),
+					},
+				};
+			}),
+		})),
+
+	applyRealTiming: ({ map }) =>
+		set((s) => ({
+			segments: s.segments.map((seg) => {
+				const real = map.get(seg.id);
+				if (!real) return seg;
+				return {
+					...seg,
+					timing: {
+						...seg.timing,
+						originalDuration: Number(real.realDuration.toFixed(2)),
+						fittedDuration: Number(real.fitted.toFixed(2)),
+						appliedSpeedup: Number(real.rate.toFixed(2)),
 					},
 				};
 			}),

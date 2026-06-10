@@ -832,13 +832,15 @@ function ReviewView() {
 		setApplying(true);
 		setApplyStep("");
 		try {
-			await applyDubToTimeline({
+			const applied = await applyDubToTimeline({
 				editor,
 				segments,
 				settings,
 				creds,
 				onStep: ({ step }) => setApplyStep(step),
 			});
+			// sync the review panel to the REAL post-TTS timing (was estimates)
+			useDubStore.getState().applyRealTiming({ map: applied });
 			toast.success("已应用配音到时间轴");
 		} catch (error) {
 			console.error("applyDubToTimeline failed", error);

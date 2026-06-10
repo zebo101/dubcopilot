@@ -115,9 +115,9 @@ export async function translateSegments({
 			list: ids.map((id) => ({ id, text: byId.get(id) ?? "" })),
 			size,
 		});
-		for (let b = 0; b < batches.length; b++) {
+		const applyBatch = async (items: { id: string; text: string }[]) => {
 			try {
-				const translations = await requestBatch({ items: batches[b], creds });
+				const translations = await requestBatch({ items, creds });
 				for (const t of translations) {
 					const source = byId.get(t.id);
 					if (source === undefined || !t.zh) continue;
@@ -135,6 +135,12 @@ export async function translateSegments({
 						: `补译遗漏句 ${Math.min(result.size, total)}/${total}`,
 				pct: Math.round((result.size / total) * 100),
 			});
+		};
+		// 4 batches in flight — serial batches wasted ~20-30s of dead network
+		// time per lesson; the retry rounds already tolerate partial failures.
+		const POOL = 4;
+		for (let i = 0; i < batches.length; i += POOL) {
+			await Promise.allSettled(batches.slice(i, i + POOL).map(applyBatch));
 		}
 	};
 
