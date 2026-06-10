@@ -17,10 +17,11 @@ export interface DubLanguage {
 	/** short export-file suffix: `${stem}_${suffix}.mp4` */
 	suffix: string;
 	/**
-	 * 豆包 BigTTS synthesis support. BigTTS speaks only 中/英/日/西/葡/泰/越/印尼
-	 * — absent means the language can be translated/subtitled but NOT voiced.
-	 * `explicit` is the `audio.explicit_language` request value; null means the
-	 * default Chinese pipeline (no parameter sent — keeps zh behavior bit-equal).
+	 * 豆包 BigTTS synthesis support. Per official docs the 多语种大模型音色
+	 * speak ONLY 中文/英文/日文/西班牙文 (4 languages) — absent means the
+	 * language can be translated/subtitled but NOT voiced. `explicit` is the
+	 * `audio.explicit_language` request value; null means the default Chinese
+	 * pipeline (no parameter sent — keeps zh behavior bit-equal).
 	 */
 	tts?: { explicit: string | null };
 }
@@ -105,7 +106,6 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.075,
 		tagAliases: ["pt", "por", "portuguese", "pt-br", "pt-pt"],
 		suffix: "pt",
-		tts: { explicit: "pt-br" },
 	},
 	{
 		code: "nl",
@@ -197,7 +197,6 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.105,
 		tagAliases: ["th", "tha", "thai"],
 		suffix: "th",
-		tts: { explicit: "th" },
 	},
 	{
 		code: "vi",
@@ -205,7 +204,6 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.09,
 		tagAliases: ["vi", "vie", "vietnamese"],
 		suffix: "vi",
-		tts: { explicit: "vi" },
 	},
 	{
 		code: "id",
@@ -213,7 +211,6 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: LATIN_RATE,
 		tagAliases: ["id", "ind", "indonesian"],
 		suffix: "id",
-		tts: { explicit: "id" },
 	},
 	{
 		code: "ms",

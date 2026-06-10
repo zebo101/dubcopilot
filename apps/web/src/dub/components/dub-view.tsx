@@ -146,7 +146,7 @@ function SetupView() {
 					{!ttsSupported(settings.targetLang) ? (
 						<p className="text-[10px] leading-relaxed text-amber-600 dark:text-amber-500">
 							⚠ 豆包 TTS 不支持{languageByCode(settings.targetLang).label}
-							语音合成（支持中/英/日/西/葡/泰/越/印尼）——只能生成翻译字幕，
+							语音合成（仅支持中文/英语/日语/西班牙语）——只能生成翻译字幕，
 							无法生成配音。
 						</p>
 					) : !settings.targetLang.startsWith("zh") ? (
