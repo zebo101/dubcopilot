@@ -5,7 +5,7 @@
 // / speed / credentials), adjustable at ANY phase — notably during review,
 // which is the natural moment to audition voices and re-apply.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -220,6 +220,19 @@ export function DubSettingsPanel() {
 		}
 	};
 
+	// Every timeline update restarts the audio engine (it re-collects clips and
+	// reschedules from the playhead) — applying on EVERY slider tick during a
+	// drag caused a restart storm and audible stutter. Debounce the volume
+	// application; mode switches still apply immediately.
+	const volumeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const applyVolumeDebounced = (volume: number) => {
+		if (volumeDebounce.current) clearTimeout(volumeDebounce.current);
+		volumeDebounce.current = setTimeout(() => {
+			volumeDebounce.current = null;
+			applyOriginalAudioLive({ mode: "background", volume });
+		}, 150);
+	};
+
 	return (
 		<div className="space-y-5 p-4">
 			<div>
@@ -321,7 +334,7 @@ export function DubSettingsPanel() {
 							onChange={(e) => {
 								const volume = Number(e.target.value);
 								setSetting({ key: "backgroundVolume", value: volume });
-								applyOriginalAudioLive({ mode: "background", volume });
+								applyVolumeDebounced(volume);
 							}}
 							className="w-full"
 						/>
