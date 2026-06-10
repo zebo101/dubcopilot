@@ -21,9 +21,9 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
-import { useAllVoices } from "@/dub/custom-voices";
 import { AUTO_LANG, languageByCode } from "@/dub/languages";
 import { LangSelect } from "@/dub/components/lang-select";
+import { VoicePicker } from "@/dub/components/voice-picker";
 import { useDubStore } from "@/dub/store";
 import { useCourseStore } from "@/dub/course/store";
 import { runCourseBatch, stopCourseRun } from "@/dub/course/runner";
@@ -299,9 +299,6 @@ export function BatchCenter() {
 		return rows;
 	}, [lessons, filter, query]);
 
-	const voices = useAllVoices();
-	const voiceIdx = Math.max(0, voices.findIndex((v) => v.id === settings.voiceId));
-	const voice = voices[voiceIdx] ?? voices[0];
 
 	const allSelected = filtered.length > 0 && filtered.every((l) => selection.includes(l.id));
 	const toggleAll = () => {
@@ -544,24 +541,7 @@ export function BatchCenter() {
 						onChange={(v) => setSetting({ key: "targetLang", value: v })}
 					/>
 				</div>
-				<button
-					type="button"
-					className="hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1"
-					onClick={() =>
-						setSetting({
-							key: "voiceId",
-							value: voices[(voiceIdx + 1) % voices.length].id,
-						})
-					}
-				>
-					<span
-						className="flex size-4 items-center justify-center rounded-full text-[9px] font-semibold text-white"
-						style={{ background: `oklch(0.55 0.13 ${voice.hue})` }}
-					>
-						{voice.name[0]}
-					</span>
-					音色 · {voice.name}
-				</button>
+				<VoicePicker variant="chip" />
 				<button
 					type="button"
 					className="hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1"
