@@ -19,6 +19,7 @@ import { useDubStore } from "@/dub/store";
 import { useDubCredentials, hasTtsKey } from "@/dub/credentials";
 import { linearToDb } from "@/dub/original-audio";
 import { VoicePicker } from "@/dub/components/voice-picker";
+import { LangSelect } from "@/dub/components/lang-select";
 import { languageByCode } from "@/dub/languages";
 
 function CredField({
@@ -324,6 +325,35 @@ export function DubSettingsPanel() {
 			{/* credentials live at the TOP — without keys nothing below works, so
 			    new users must see this first (it auto-expands when unconfigured) */}
 			<CredentialsSection />
+
+			{/* translation direction — the review phase has no setup view, so the
+			    language must also be changeable from this panel */}
+			<div className="space-y-1.5">
+				<div className="text-muted-foreground text-xs font-medium">翻译方向</div>
+				<div className="flex items-center gap-2">
+					<LangSelect
+						value={settings.sourceLang}
+						includeAuto
+						className="min-w-0 flex-1"
+						onChange={(v) => setSetting({ key: "sourceLang", value: v })}
+					/>
+					<HugeiconsIcon
+						icon={ArrowRight01Icon}
+						className="text-muted-foreground size-4 shrink-0"
+					/>
+					<LangSelect
+						value={settings.targetLang}
+						voiceableOnly
+						className="min-w-0 flex-1"
+						onChange={(v) => setSetting({ key: "targetLang", value: v })}
+					/>
+				</div>
+				{phase === "review" ? (
+					<p className="text-muted-foreground text-[10px] leading-relaxed">
+						改了目标语言后，点左侧「重新翻译」生成新译文，再点「② 合成配音并应用」。
+					</p>
+				) : null}
+			</div>
 
 			<VoicePicker />
 
