@@ -12,6 +12,7 @@ import type {
 	UploadAudioElement,
 	VideoTrack,
 } from "@/timeline";
+import { getSharedAudioContext } from "@/dub/audio-context";
 import type { DubCredentials } from "@/dub/credentials";
 import { hasTtsKey } from "@/dub/credentials";
 import { synthesizeSegment } from "@/dub/tts";
@@ -89,10 +90,9 @@ export async function applyDubToTimeline({
 		throw new Error("没有可配音的句子（请先翻译或填写译文）");
 	}
 
-	// Decode TTS mp3 → real duration (drives retime). Reused across segments.
-	const audioCtx = new (window.AudioContext ||
-		(window as unknown as { webkitAudioContext: typeof AudioContext })
-			.webkitAudioContext)();
+	// Decode TTS mp3 → real duration (drives retime). Shared module-level
+	// context — never per-call (browsers cap live AudioContexts at ~6).
+	const audioCtx = getSharedAudioContext();
 
 	// 1. Synthesize real audio per line, register as a media asset, build element.
 	const built: BuiltDubAudio[] = [];
@@ -164,7 +164,6 @@ export async function applyDubToTimeline({
 			},
 		});
 	}
-	void audioCtx.close();
 	onStep?.({ step: "写入时间轴…", pct: 100 });
 
 	// 2. Build the `after` snapshot. Idempotent: drop any prior dub-owned tracks

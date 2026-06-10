@@ -131,8 +131,12 @@ export const useDubStore = create<DubStore>((set) => ({
 					timing: {
 						...seg.timing,
 						appliedSpeedup: Number(rate.toFixed(2)),
+						// guard rate<=0: a zero from the UI must not produce Infinity
 						fittedDuration: Number(
-							(seg.timing.originalDuration / rate).toFixed(2),
+							(rate > 0
+								? seg.timing.originalDuration / rate
+								: seg.timing.originalDuration
+							).toFixed(2),
 						),
 					},
 				};

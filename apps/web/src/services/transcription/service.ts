@@ -17,6 +17,7 @@ class TranscriptionService {
 	private currentModelId: TranscriptionModelId | null = null;
 	private isInitialized = false;
 	private isInitializing = false;
+	private initError: Error | null = null;
 
 	async transcribe({
 		audioData,
@@ -115,6 +116,7 @@ class TranscriptionService {
 		this.terminate();
 		this.isInitializing = true;
 		this.isInitialized = false;
+		this.initError = null;
 
 		const model = TRANSCRIPTION_MODELS.find((m) => m.id === modelId);
 		if (!model) {
@@ -154,8 +156,11 @@ class TranscriptionService {
 					case "init-error":
 						this.worker?.removeEventListener("message", handleMessage);
 						this.isInitializing = false;
+						// keep the real failure so concurrent waiters get it too,
+						// not a confusing "Worker not initialized"
+						this.initError = new Error(response.error);
 						this.terminate();
-						reject(new Error(response.error));
+						reject(this.initError);
 						break;
 				}
 			};
@@ -170,12 +175,14 @@ class TranscriptionService {
 	}
 
 	private waitForInit(): Promise<void> {
-		return new Promise((resolve) => {
+		return new Promise((resolve, reject) => {
 			const checkInit = () => {
 				if (this.isInitialized) {
 					resolve();
 				} else if (!this.isInitializing) {
-					resolve();
+					// init finished without success — surface the real error
+					if (this.initError) reject(this.initError);
+					else resolve();
 				} else {
 					setTimeout(checkInit, 100);
 				}

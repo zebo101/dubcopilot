@@ -26,6 +26,14 @@ export async function transcribeViaGroq({
 	creds: DubCredentials;
 }): Promise<{ text: string; segments: CloudTranscriptSegment[] }> {
 	const wav = encodeWavFromFloat32({ samples, sampleRate });
+	// Groq caps uploads at 25 MB. 16 kHz mono 16-bit ≈ 1.92 MB/min, so this
+	// triggers around ~12.5 min of audio — fail with guidance, not a vague 4xx.
+	const MAX_GROQ_BYTES = 24 * 1024 * 1024;
+	if (wav.size > MAX_GROQ_BYTES) {
+		throw new Error(
+			`音频 ${(wav.size / 1e6).toFixed(0)} MB 超出 Groq 25 MB 上限（约 12 分钟），请改用本地转写`,
+		);
+	}
 	const form = new FormData();
 	form.append("file", wav, "audio.wav");
 	form.append("apiKey", creds.groqApiKey);

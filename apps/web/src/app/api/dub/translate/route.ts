@@ -63,8 +63,16 @@ export async function POST(request: NextRequest) {
 	}
 
 	const data = (await upstream.json()) as {
-		choices?: { message?: { content?: string } }[];
+		choices?: { message?: { content?: string }; finish_reason?: string }[];
 	};
+	// A length-cut response is truncated mid-JSON — losing the whole batch
+	// silently. Fail loud so the client retries with a smaller batch.
+	if (data.choices?.[0]?.finish_reason === "length") {
+		return NextResponse.json(
+			{ error: "翻译输出超长被截断（max_tokens），请缩小批次后重试" },
+			{ status: 502 },
+		);
+	}
 	const content = data.choices?.[0]?.message?.content ?? "";
 
 	let translations: { id: string; zh: string }[] = [];

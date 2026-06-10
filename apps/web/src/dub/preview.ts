@@ -18,6 +18,12 @@ export async function previewLine({
 	const url = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
 	const audio = new Audio(url);
 	audio.onended = () => URL.revokeObjectURL(url);
-	await audio.play();
+	try {
+		await audio.play();
+	} catch {
+		// play() can reject (autoplay policy etc.) — don't leak the blob URL
+		URL.revokeObjectURL(url);
+		return false;
+	}
 	return true;
 }
