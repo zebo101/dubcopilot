@@ -105,7 +105,10 @@ interface AssetsPanelStore {
 export const useAssetsPanelStore = create<AssetsPanelStore>()(
 	persist(
 		(set) => ({
-			activeTab: "media",
+			// the dubbing workflow is this fork's whole purpose — land on it,
+			// not on Media (activeTab is not persisted, so this applies on
+			// every editor entry)
+			activeTab: "dub",
 			setActiveTab: (tab) => set({ activeTab: tab }),
 			highlightMediaId: null,
 			requestRevealMedia: (mediaId) =>
