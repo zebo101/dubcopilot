@@ -11,6 +11,7 @@
 import { storageService } from "@/services/storage/service";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { SceneExporter } from "@/services/renderer/scene-exporter";
+import { initializeGpuRenderer } from "@/services/renderer/gpu-renderer";
 import { createTimelineAudioBuffer } from "@/media/audio";
 import { calculateTotalDuration } from "@/timeline";
 import type { MediaAsset } from "@/media/types";
@@ -30,6 +31,11 @@ export async function renderLessonHeadless({
 	meta: LessonMeta;
 	onStep?: (args: StepReport) => void;
 }): Promise<ArrayBuffer> {
+	// the editor page initializes the wasm GPU context on mount — headless
+	// export (course page, no editor) must do it itself or the render nodes
+	// throw "GPU context not initialized". Idempotent; failure = degraded mode.
+	await initializeGpuRenderer();
+
 	const loaded = await storageService.loadProject({ id: projectId });
 	if (!loaded) throw new Error("项目不存在，请重新生成");
 	const project = loaded.project;
