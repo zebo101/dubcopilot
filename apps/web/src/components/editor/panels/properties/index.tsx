@@ -16,6 +16,8 @@ import { cn } from "@/utils/ui";
 import { EmptyView } from "./empty-view";
 import { useDubStore } from "@/dub/store";
 import { DubSegmentInspector } from "@/dub/components/segment-inspector";
+import { DubSettingsPanel } from "@/dub/components/dub-settings-panel";
+import { useAssetsPanelStore } from "@/components/editor/panels/assets/assets-panel-store";
 
 export function PropertiesPanel() {
 	const editor = useEditor();
@@ -25,14 +27,21 @@ export function PropertiesPanel() {
 	const { activeTabPerType, setActiveTab } = usePropertiesStore();
 	const dubSegId = useDubStore((s) => s.selectedSegId);
 	const dubReviewing = useDubStore((s) => s.phase === "review");
+	const dubTabActive = useAssetsPanelStore((s) => s.activeTab === "dub");
 
-	// While dubbing, selecting a line in the 逐句编辑台 shows its inspector here
-	// (voice / speed / fit-meter / timing) instead of the empty state.
-	if (selectedElements.length === 0 && dubReviewing && dubSegId) {
+	// While the AI 配音 tab is active and nothing on the timeline is selected,
+	// this panel is the dub workspace: the selected line's inspector during
+	// review, otherwise the always-available 配音设置 (voice / original audio /
+	// subtitles / speed / credentials).
+	if (selectedElements.length === 0 && dubTabActive) {
 		return (
 			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-sm border">
 				<ScrollArea className="flex-1 scrollbar-hidden">
-					<DubSegmentInspector />
+					{dubReviewing && dubSegId ? (
+						<DubSegmentInspector />
+					) : (
+						<DubSettingsPanel />
+					)}
 				</ScrollArea>
 			</div>
 		);
