@@ -29,12 +29,8 @@ import type {
 	TranscriptionLanguage,
 	TranscriptionModelId,
 } from "@/transcription/types";
-import {
-	AUTO_LANG,
-	LANGUAGES,
-	languageByCode,
-	toWhisperLanguage,
-} from "@/dub/languages";
+import { languageByCode, toWhisperLanguage } from "@/dub/languages";
+import { LangSelect } from "@/dub/components/lang-select";
 import { useCourseStore } from "@/dub/course/store";
 import { OriginalAudioQuickControl } from "@/dub/components/dub-settings-panel";
 import { loadDubSession, saveDubSession } from "@/dub/session";
@@ -46,31 +42,6 @@ function fmtShort({ seconds }: { seconds: number }): string {
 	return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-/** Compact language dropdown for the 翻译方向 row. */
-function LangSelect({
-	value,
-	onChange,
-	includeAuto = false,
-}: {
-	value: string;
-	onChange: (value: string) => void;
-	includeAuto?: boolean;
-}) {
-	return (
-		<select
-			value={value}
-			onChange={(e) => onChange(e.target.value)}
-			className="border-border bg-background min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm"
-		>
-			{includeAuto ? <option value={AUTO_LANG}>自动检测</option> : null}
-			{LANGUAGES.map((l) => (
-				<option key={l.code} value={l.code}>
-					{l.label}
-				</option>
-			))}
-		</select>
-	);
-}
 
 
 function SetupView() {
@@ -154,6 +125,7 @@ function SetupView() {
 						<LangSelect
 							value={settings.sourceLang}
 							includeAuto
+							className="min-w-0 flex-1"
 							onChange={(v) => setSetting({ key: "sourceLang", value: v })}
 						/>
 						<HugeiconsIcon
@@ -162,6 +134,7 @@ function SetupView() {
 						/>
 						<LangSelect
 							value={settings.targetLang}
+							className="min-w-0 flex-1"
 							onChange={(v) => setSetting({ key: "targetLang", value: v })}
 						/>
 					</div>

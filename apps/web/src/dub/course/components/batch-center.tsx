@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { useAllVoices } from "@/dub/custom-voices";
 import { AUTO_LANG, languageByCode } from "@/dub/languages";
+import { LangSelect } from "@/dub/components/lang-select";
 import { useDubStore } from "@/dub/store";
 import { useCourseStore } from "@/dub/course/store";
 import { runCourseBatch, stopCourseRun } from "@/dub/course/runner";
@@ -522,6 +523,26 @@ export function BatchCenter() {
 			{/* shared config */}
 			<div className="flex items-center gap-2 border-b px-4 py-2 text-xs">
 				<span className="text-muted-foreground">统一配置（整门课程）</span>
+				<div className="flex items-center gap-1 rounded-md border px-2 py-0.5">
+					<span className="text-muted-foreground">语言</span>
+					<LangSelect
+						value={settings.sourceLang}
+						includeAuto
+						disabled={batchRunning}
+						className="border-0 px-1 py-0.5 text-xs"
+						onChange={(v) => setSetting({ key: "sourceLang", value: v })}
+					/>
+					<HugeiconsIcon
+						icon={ArrowRight01Icon}
+						className="text-muted-foreground size-3"
+					/>
+					<LangSelect
+						value={settings.targetLang}
+						disabled={batchRunning}
+						className="border-0 px-1 py-0.5 text-xs font-medium"
+						onChange={(v) => setSetting({ key: "targetLang", value: v })}
+					/>
+				</div>
 				<button
 					type="button"
 					className="hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1"
