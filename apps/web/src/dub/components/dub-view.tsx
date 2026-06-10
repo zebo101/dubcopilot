@@ -309,7 +309,9 @@ function SegmentRow({ seg, active }: { seg: Segment; active: boolean }) {
 					? "border-l-primary bg-primary/10"
 					: active
 						? "border-l-primary/40 bg-primary/5"
-						: "border-l-transparent hover:bg-muted",
+						: !seg.translated.trim()
+							? "border-l-red-400/70 hover:bg-muted"
+							: "border-l-transparent hover:bg-muted",
 			)}
 		>
 			<span className="text-muted-foreground w-9 shrink-0 pt-0.5 text-[11px] tabular-nums">
@@ -338,18 +340,25 @@ function SegmentRow({ seg, active }: { seg: Segment; active: boolean }) {
 						className="border-border bg-background mt-0.5 w-full resize-none rounded border p-1 text-sm"
 					/>
 				) : (
+					// click the text = edit (discoverable); click elsewhere = seek
 					<div
-						className="text-sm"
-						title="双击编辑译文"
-						onDoubleClick={(e) => {
+						className="hover:bg-muted/60 -mx-1 cursor-text rounded px-1 text-sm"
+						title="点击编辑译文"
+						onClick={(e) => {
 							e.stopPropagation();
 							setEditing(true);
 						}}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								e.stopPropagation();
+								setEditing(true);
+							}
+						}}
+						role="textbox"
+						tabIndex={0}
 					>
 						{seg.translated || (
-							<span className="text-muted-foreground italic">
-								（待翻译，双击编辑）
-							</span>
+							<span className="italic text-red-400">（未译 · 点击填写）</span>
 						)}
 					</div>
 				)}
@@ -401,13 +410,37 @@ function ReviewView() {
 	const [applyStep, setApplyStep] = useState("");
 	const [translating, setTranslating] = useState(false);
 	const [query, setQuery] = useState("");
-	const filtered = query.trim()
-		? segments.filter((s) =>
+	const [filter, setFilter] = useState<
+		"all" | "untranslated" | "overflow" | "sped" | "edited"
+	>("all");
+
+	const overflowCount = segments.filter((s) =>
+		isOverflow({ timing: s.timing }),
+	).length;
+	const matchesFilter = (s: Segment): boolean => {
+		switch (filter) {
+			case "untranslated":
+				return !s.translated.trim();
+			case "overflow":
+				return isOverflow({ timing: s.timing });
+			case "sped":
+				return isSped({ timing: s.timing });
+			case "edited":
+				return s.status === "edited";
+			default:
+				return true;
+		}
+	};
+	const filtered = segments.filter(
+		(s) =>
+			matchesFilter(s) &&
+			(!query.trim() ||
 				(s.translated + s.source)
 					.toLowerCase()
-					.includes(query.trim().toLowerCase()),
-			)
-		: segments;
+					.includes(query.trim().toLowerCase())),
+	);
+	// gap separators only make sense on the unfiltered, unsearched list
+	const showGaps = filter === "all" && !query.trim();
 
 	const onTranslate = async () => {
 		const creds = useDubCredentials.getState();
@@ -470,29 +503,53 @@ function ReviewView() {
 		}
 	};
 
+	const chips: {
+		key: typeof filter;
+		label: string;
+		count: number;
+		tone?: "red" | "amber";
+	}[] = [
+		{ key: "all", label: "全部", count: segments.length },
+		{ key: "untranslated", label: "未译", count: untranslatedCount, tone: "red" },
+		{ key: "overflow", label: "超时", count: overflowCount, tone: "red" },
+		{ key: "sped", label: "加速", count: spedCount, tone: "amber" },
+		{ key: "edited", label: "已改", count: editedCount },
+	];
+
 	return (
 		<div className="flex h-full flex-col">
-			<div className="flex items-center gap-3 border-b px-4 py-2 text-xs">
-				<span>
-					<b>{segments.length}</b> 句
+			{/* triage chips — click to filter straight to the problem lines */}
+			<div className="flex items-center gap-1.5 border-b px-3 py-2 text-xs">
+				{chips.map((c) => (
+					<button
+						type="button"
+						key={c.key}
+						onClick={() => setFilter(filter === c.key ? "all" : c.key)}
+						disabled={c.count === 0 && c.key !== "all"}
+						className={cn(
+							"flex items-center gap-1 rounded-md px-2 py-0.5 transition-colors disabled:opacity-35",
+							filter === c.key
+								? "bg-primary/15 text-primary"
+								: "text-muted-foreground hover:bg-muted",
+						)}
+					>
+						{c.label}
+						<b
+							className={cn(
+								c.tone === "red" && c.count > 0 && "text-red-500",
+								c.tone === "amber" && c.count > 0 && "text-amber-500",
+							)}
+						>
+							{c.count}
+						</b>
+					</button>
+				))}
+				<span className="text-muted-foreground ml-auto tabular-nums">
+					{fmtShort({ seconds: dubDuration })}
 				</span>
-				<span>
-					<b>{fmtShort({ seconds: dubDuration })}</b> 配音时长
-				</span>
-				<span className={cn(spedCount > 0 && "text-amber-500")}>
-					<b>{spedCount}</b> 已加速
-				</span>
-				<span>
-					<b>{editedCount}</b> 已编辑
-				</span>
-				{untranslatedCount > 0 ? (
-					<span className="text-red-500">
-						<b>{untranslatedCount}</b> 未译（会留空白，点「DeepSeek 翻译」补全）
-					</span>
-				) : null}
 				<button
 					type="button"
-					className="text-muted-foreground hover:text-foreground ml-auto"
+					className="text-muted-foreground hover:text-foreground"
 					onClick={() => backToSetup()}
 				>
 					重新设置
@@ -511,13 +568,41 @@ function ReviewView() {
 					onClick={() => onTranslate()}
 					disabled={translating}
 				>
-					{translating ? "翻译中…" : "DeepSeek 翻译"}
+					{translating
+						? "翻译中…"
+						: untranslatedCount > 0
+							? `补译 ${untranslatedCount} 句`
+							: "重新翻译"}
 				</button>
 			</div>
 			<div className="flex-1 space-y-0.5 overflow-y-auto p-2">
-				{filtered.map((seg) => (
-					<SegmentRow key={seg.id} seg={seg} active={activeId === seg.id} />
-				))}
+				{filtered.length === 0 ? (
+					<div className="text-muted-foreground p-6 text-center text-xs">
+						该筛选下没有句子
+					</div>
+				) : (
+					filtered.map((seg, i) => {
+						// surface the source's natural silences so the timeline
+						// structure is visible (these are NOT missing dub lines)
+						const next = filtered[i + 1];
+						const gap = showGaps && next ? next.start - seg.end : 0;
+						return (
+							<div key={seg.id}>
+								<SegmentRow seg={seg} active={activeId === seg.id} />
+								{gap > 1.2 ? (
+									<div className="text-muted-foreground/70 flex items-center gap-2 px-2 py-0.5 text-[10px]">
+										<span className="bg-border h-px flex-1" />
+										原片静默 {gap.toFixed(1)}s
+										{settings.originalAudio === "background"
+											? "（背景原声填充）"
+											: "（已静音 — 可在右侧改为保留背景）"}
+										<span className="bg-border h-px flex-1" />
+									</div>
+								) : null}
+							</div>
+						);
+					})
+				)}
 			</div>
 			<div className="border-t p-3">
 				<Button

@@ -8,6 +8,7 @@ import type {
 } from "@/transcription/types";
 import type { DubCredentials } from "@/dub/credentials";
 import { transcribeViaGroq } from "@/dub/transcribe-cloud";
+import { extendSlots } from "@/dub/timing";
 import type { Segment } from "@/dub/types";
 
 export interface RawSegment {
@@ -18,7 +19,7 @@ export interface RawSegment {
 
 /** Map raw transcript segments into the editable dub-segment shape. */
 export function segmentsFromRaw({ raw }: { raw: RawSegment[] }): Segment[] {
-	return raw.map((seg, i) => {
+	const segments: Segment[] = raw.map((seg, i) => {
 		const target = Math.max(0, seg.end - seg.start);
 		return {
 			id: `seg_${String(i).padStart(3, "0")}`,
@@ -38,6 +39,8 @@ export function segmentsFromRaw({ raw }: { raw: RawSegment[] }): Segment[] {
 			},
 		};
 	});
+	// absorb inter-cue silence so lines breathe instead of leaving dead air
+	return extendSlots({ segments });
 }
 
 /** Transcribe decoded 16 kHz samples via the chosen backend → dub segments. */

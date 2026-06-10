@@ -154,7 +154,9 @@ export async function applyDubToTimeline({
 				caption: {
 					text: seg.translated,
 					startTime: seg.start,
-					duration: seg.end - seg.start,
+					// extended slot: subtitle stays up until just before the next
+					// line — continuous reading instead of flashing off in gaps
+					duration: seg.timing.targetDuration,
 				},
 				canvasSize,
 			}),

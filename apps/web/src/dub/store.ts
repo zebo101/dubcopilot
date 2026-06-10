@@ -5,7 +5,11 @@ import type { DubPhase, DubSettings, Segment } from "@/dub/types";
 const DEFAULT_SETTINGS: DubSettings = {
 	targetLang: "zh",
 	voiceId: "zh_male_liufei_uranus_bigtts",
-	originalAudio: "mute",
+	// "background" (ducked) by default: with "mute", every inter-line gap was
+	// ABSOLUTE silence — the single biggest cause of the choppy/discontinuous
+	// feel. Original ambience at 12% glues the lines together; mute remains an
+	// option in 配音设置.
+	originalAudio: "background",
 	backgroundVolume: 0.12,
 	subtitles: true,
 	subtitleMode: "soft",

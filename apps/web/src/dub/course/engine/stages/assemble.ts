@@ -126,7 +126,8 @@ export async function assembleLesson({
 						caption: {
 							text: seg.translated,
 							startTime: seg.start,
-							duration: seg.end - seg.start,
+							// extended slot — subtitle stays up until the next line
+							duration: seg.timing.targetDuration,
 						},
 						canvasSize,
 					}),
