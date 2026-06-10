@@ -235,7 +235,16 @@ export function BatchCenter() {
 		} catch (error) {
 			// user closed the save-file dialog — not an error
 			if (error instanceof DOMException && error.name === "AbortError") return;
-			toast.error(error instanceof Error ? error.message : "导出失败");
+			// worker/wasm rejections can be cross-realm (instanceof Error fails) —
+			// surface whatever we got instead of a blind fallback
+			console.error("[course-export] 导出失败:", error);
+			const msg =
+				error instanceof Error
+					? error.message
+					: typeof error === "object" && error !== null && "message" in error
+						? String((error as { message: unknown }).message)
+						: String(error);
+			toast.error(msg && msg !== "undefined" ? msg : "导出失败（详情见控制台）");
 		} finally {
 			setExportKind(null);
 			setExport({ exporting: false });

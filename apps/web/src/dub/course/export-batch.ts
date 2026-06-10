@@ -107,8 +107,14 @@ export async function exportCourseToFolder({
 
 	for (let i = 0; i < targets.length; i++) {
 		const lesson = targets[i];
-		const report = (pct: number) =>
+		// exporter progress fires per FRAME — only forward integer pct changes so
+		// the store (and the whole lesson table) isn't re-rendered 60×/s
+		let lastPct = -1;
+		const report = (pct: number) => {
+			if (pct === lastPct) return;
+			lastPct = pct;
 			onProgress?.({ done: i, total: targets.length, current: lesson.title, pct });
+		};
 		report(0);
 		let buffer: ArrayBuffer | null = await renderOne({ lesson, onPct: report });
 		const fileHandle = await outDir.getFileHandle(outputName({ lesson }), {
@@ -159,8 +165,12 @@ export async function exportCourseToZip({
 
 	for (let i = 0; i < targets.length; i++) {
 		const lesson = targets[i];
-		const report = (pct: number) =>
+		let lastPct = -1;
+		const report = (pct: number) => {
+			if (pct === lastPct) return;
+			lastPct = pct;
 			onProgress?.({ done: i, total: targets.length, current: lesson.title, pct });
+		};
 		report(0);
 		let buffer: ArrayBuffer | null = await renderOne({ lesson, onPct: report });
 		await zip.addFile({
