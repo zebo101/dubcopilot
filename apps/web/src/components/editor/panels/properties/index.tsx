@@ -55,10 +55,23 @@ export function PropertiesPanel() {
 		);
 	}
 
+	// While the dub tab is active, element selection swaps this panel to the
+	// element's properties — give users an obvious one-click way back.
+	const dubReturnBar = dubTabActive ? (
+		<button
+			type="button"
+			onClick={() => editor.selection.clearSelection()}
+			className="text-primary hover:bg-muted flex w-full shrink-0 items-center gap-1 border-b px-3 py-1.5 text-left text-xs"
+		>
+			← 返回配音设置（取消选中）
+		</button>
+	) : null;
+
 	if (selectedElements.length > 1) {
 		return (
-			<div className="panel bg-background flex h-full flex-col items-center justify-center overflow-hidden rounded-sm border">
-				<p className="text-muted-foreground text-sm">
+			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-sm border">
+				{dubReturnBar}
+				<p className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
 					{selectedElements.length} elements selected.0
 				</p>
 			</div>
@@ -87,39 +100,42 @@ export function PropertiesPanel() {
 	if (!activeTab) return null;
 
 	return (
-		<div className="panel bg-background flex h-full overflow-hidden rounded-sm border">
-			<TooltipProvider delayDuration={0}>
-				<div className="flex shrink-0 flex-col gap-0.5 border-r p-1 scrollbar-hidden overflow-y-auto">
-					{visibleTabs.map((tab) => (
-						<Tooltip key={tab.id}>
-							<TooltipTrigger asChild>
-								<Button
-									variant={tab.id === activeTab.id ? "secondary" : "ghost"}
-									size="icon"
-									onClick={() =>
-										setActiveTab({
-											elementType: element.type,
-											tabId: tab.id,
-										})
-									}
-									aria-label={tab.label}
-									className={cn(
-										"shrink-0",
-										"h-8 w-8",
-										tab.id !== activeTab.id && "text-muted-foreground",
-									)}
-								>
-									{tab.icon}
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="right">{tab.label}</TooltipContent>
-						</Tooltip>
-					))}
-				</div>
-			</TooltipProvider>
-			<ScrollArea className="flex-1 scrollbar-hidden">
-				{activeTab.content({ trackId: track.id })}
-			</ScrollArea>
+		<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-sm border">
+			{dubReturnBar}
+			<div className="flex min-h-0 flex-1">
+				<TooltipProvider delayDuration={0}>
+					<div className="flex shrink-0 flex-col gap-0.5 border-r p-1 scrollbar-hidden overflow-y-auto">
+						{visibleTabs.map((tab) => (
+							<Tooltip key={tab.id}>
+								<TooltipTrigger asChild>
+									<Button
+										variant={tab.id === activeTab.id ? "secondary" : "ghost"}
+										size="icon"
+										onClick={() =>
+											setActiveTab({
+												elementType: element.type,
+												tabId: tab.id,
+											})
+										}
+										aria-label={tab.label}
+										className={cn(
+											"shrink-0",
+											"h-8 w-8",
+											tab.id !== activeTab.id && "text-muted-foreground",
+										)}
+									>
+										{tab.icon}
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="right">{tab.label}</TooltipContent>
+							</Tooltip>
+						))}
+					</div>
+				</TooltipProvider>
+				<ScrollArea className="flex-1 scrollbar-hidden">
+					{activeTab.content({ trackId: track.id })}
+				</ScrollArea>
+			</div>
 		</div>
 	);
 }
