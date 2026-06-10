@@ -21,6 +21,7 @@ import { linearToDb } from "@/dub/original-audio";
 import { VoicePicker } from "@/dub/components/voice-picker";
 import { LangSelect } from "@/dub/components/lang-select";
 import { languageByCode } from "@/dub/languages";
+import { warnVoiceLanguageMismatch } from "@/dub/voice-lang-check";
 
 function CredField({
 	label,
@@ -345,7 +346,10 @@ export function DubSettingsPanel() {
 						value={settings.targetLang}
 						voiceableOnly
 						className="min-w-0 flex-1"
-						onChange={(v) => setSetting({ key: "targetLang", value: v })}
+						onChange={(v) => {
+							setSetting({ key: "targetLang", value: v });
+							warnVoiceLanguageMismatch({ targetLang: v });
+						}}
 					/>
 				</div>
 				{phase === "review" ? (

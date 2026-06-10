@@ -24,6 +24,7 @@ import { cn } from "@/utils/ui";
 import { AUTO_LANG, languageByCode } from "@/dub/languages";
 import { LangSelect } from "@/dub/components/lang-select";
 import { VoicePicker } from "@/dub/components/voice-picker";
+import { warnVoiceLanguageMismatch } from "@/dub/voice-lang-check";
 import { useDubStore } from "@/dub/store";
 import { useCourseStore } from "@/dub/course/store";
 import { runCourseBatch, stopCourseRun } from "@/dub/course/runner";
@@ -538,7 +539,10 @@ export function BatchCenter() {
 						voiceableOnly
 						disabled={batchRunning}
 						className="border-0 px-1 py-0.5 text-xs font-medium"
-						onChange={(v) => setSetting({ key: "targetLang", value: v })}
+						onChange={(v) => {
+							setSetting({ key: "targetLang", value: v });
+							warnVoiceLanguageMismatch({ targetLang: v });
+						}}
 					/>
 				</div>
 				<VoicePicker variant="chip" />

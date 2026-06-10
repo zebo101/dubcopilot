@@ -35,6 +35,7 @@ import {
 	ttsSupported,
 } from "@/dub/languages";
 import { LangSelect } from "@/dub/components/lang-select";
+import { warnVoiceLanguageMismatch } from "@/dub/voice-lang-check";
 import { useCourseStore } from "@/dub/course/store";
 import { OriginalAudioQuickControl } from "@/dub/components/dub-settings-panel";
 import { loadDubSession, saveDubSession } from "@/dub/session";
@@ -140,7 +141,10 @@ function SetupView() {
 							value={settings.targetLang}
 							voiceableOnly
 							className="min-w-0 flex-1"
-							onChange={(v) => setSetting({ key: "targetLang", value: v })}
+							onChange={(v) => {
+								setSetting({ key: "targetLang", value: v });
+								warnVoiceLanguageMismatch({ targetLang: v });
+							}}
 						/>
 					</div>
 					{!ttsSupported(settings.targetLang) ? (
