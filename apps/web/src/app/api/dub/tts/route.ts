@@ -14,6 +14,8 @@ const bodySchema = z.object({
 	text: z.string().min(1),
 	encoding: z.enum(["mp3", "wav"]).default("mp3"),
 	speedRatio: z.number().min(0.5).max(2).default(1),
+	/** BigTTS explicit_language (en/ja/es-mx/pt-br/id/th/vi); omitted for 中文 */
+	language: z.string().min(1).max(10).optional(),
 });
 
 function pickBase64(obj: unknown): string | null {
@@ -31,8 +33,17 @@ export async function POST(request: NextRequest) {
 	if (!parsed.success) {
 		return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 	}
-	const { apiKey, ttsUrl, resourceId, cluster, voiceType, text, encoding, speedRatio } =
-		parsed.data;
+	const {
+		apiKey,
+		ttsUrl,
+		resourceId,
+		cluster,
+		voiceType,
+		text,
+		encoding,
+		speedRatio,
+		language,
+	} = parsed.data;
 
 	const requestId = crypto.randomUUID();
 	let upstream: Response;
@@ -52,6 +63,8 @@ export async function POST(request: NextRequest) {
 					encoding,
 					speed_ratio: speedRatio,
 					volume_ratio: 1.0,
+					// non-Chinese targets must name their language or BigTTS 400s
+					...(language ? { explicit_language: language } : {}),
 				},
 				request: {
 					reqid: requestId,

@@ -21,7 +21,12 @@ import {
 	MIN_NATURAL_RATE,
 } from "@/dub/timing";
 import { packDubUnits, type DubUnit } from "@/dub/units";
-import { languageByCode } from "@/dub/languages";
+import {
+	languageByCode,
+	ttsExplicitLanguage,
+	ttsSupported,
+	ttsSupportedLabels,
+} from "@/dub/languages";
 import type { DubCredentials } from "@/dub/credentials";
 import type { DubSettings, Segment } from "@/dub/types";
 import type { StepReport, SynthesizedClip } from "@/dub/course/engine/types";
@@ -41,6 +46,16 @@ export async function synthesizeLesson({
 	onStep?: (args: StepReport) => void;
 	signal?: AbortSignal;
 }): Promise<SynthesizedClip[]> {
+	// 豆包 BigTTS only speaks 8 languages — fail fast with guidance instead of
+	// letting every unit 400 (e.g. Korean used to die as "TTS 失败过多 23/23").
+	if (!ttsSupported(settings.targetLang)) {
+		throw new Error(
+			`豆包 TTS 暂不支持「${languageByCode(settings.targetLang).label}」语音合成` +
+				`（支持：${ttsSupportedLabels()}）。可改用支持的目标语言，` +
+				`或仅生成翻译字幕（翻译不受限制）`,
+		);
+	}
+
 	const units = packDubUnits({ segments, settings });
 	if (units.length === 0) {
 		throw new Error("没有可配音的句子（请先翻译）");
@@ -71,6 +86,7 @@ export async function synthesizeLesson({
 				voiceType: settings.voiceId,
 				creds,
 				speedRatio: Number(nativeRatio.toFixed(2)),
+				language: ttsExplicitLanguage(settings.targetLang),
 			});
 		let bytes: ArrayBuffer;
 		try {

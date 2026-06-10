@@ -31,7 +31,10 @@ export function LangSelect({
 			{includeAuto ? <option value={AUTO_LANG}>自动检测</option> : null}
 			{LANGUAGES.map((l) => (
 				<option key={l.code} value={l.code}>
+					{/* 豆包 BigTTS can't voice every language — flag subtitle-only ones
+					    right in the picker (source picker has no such limit) */}
 					{l.label}
+					{!includeAuto && !l.tts ? "（仅字幕，豆包不支持配音）" : ""}
 				</option>
 			))}
 		</select>

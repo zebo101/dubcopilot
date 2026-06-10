@@ -1,17 +1,20 @@
 import type { DubCredentials } from "@/dub/credentials";
 import type { Segment } from "@/dub/types";
 
-/** Synthesize one line of Chinese text to mp3 bytes via the豆包 TTS proxy. */
+/** Synthesize one line of text to mp3 bytes via the豆包 TTS proxy. */
 export async function synthesizeSegment({
 	text,
 	voiceType,
 	creds,
 	speedRatio = 1,
+	language,
 }: {
 	text: string;
 	voiceType: string;
 	creds: DubCredentials;
 	speedRatio?: number;
+	/** BigTTS explicit_language for non-Chinese targets; omit for Chinese */
+	language?: string;
 }): Promise<ArrayBuffer> {
 	const res = await fetch("/api/dub/tts", {
 		method: "POST",
@@ -25,6 +28,7 @@ export async function synthesizeSegment({
 			text,
 			encoding: "mp3",
 			speedRatio,
+			...(language ? { language } : {}),
 		}),
 	});
 	if (!res.ok) {

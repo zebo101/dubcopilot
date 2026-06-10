@@ -16,6 +16,13 @@ export interface DubLanguage {
 	tagAliases: string[];
 	/** short export-file suffix: `${stem}_${suffix}.mp4` */
 	suffix: string;
+	/**
+	 * 豆包 BigTTS synthesis support. BigTTS speaks only 中/英/日/西/葡/泰/越/印尼
+	 * — absent means the language can be translated/subtitled but NOT voiced.
+	 * `explicit` is the `audio.explicit_language` request value; null means the
+	 * default Chinese pipeline (no parameter sent — keeps zh behavior bit-equal).
+	 */
+	tts?: { explicit: string | null };
 }
 
 /** sourceLang sentinel — let Whisper detect the language itself. */
@@ -30,6 +37,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.19,
 		tagAliases: ["zh", "zh-cn", "zh-hans", "cn", "chs", "chi", "chinese"],
 		suffix: "zh",
+		tts: { explicit: null },
 	},
 	{
 		code: "zh-Hant",
@@ -37,6 +45,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.19,
 		tagAliases: ["zh-tw", "zh-hant", "zh-hk", "cht", "tc"],
 		suffix: "zh-tw",
+		tts: { explicit: null },
 	},
 	{
 		code: "en",
@@ -44,6 +53,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: LATIN_RATE,
 		tagAliases: ["en", "eng", "english", "en-us", "en-gb"],
 		suffix: "en",
+		tts: { explicit: "en" },
 	},
 	{
 		code: "ja",
@@ -51,6 +61,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.115,
 		tagAliases: ["ja", "jp", "jpn", "japanese"],
 		suffix: "ja",
+		tts: { explicit: "ja" },
 	},
 	{
 		code: "ko",
@@ -65,6 +76,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.075,
 		tagAliases: ["es", "spa", "spanish", "es-es", "es-mx", "es-419"],
 		suffix: "es",
+		tts: { explicit: "es-mx" },
 	},
 	{
 		code: "fr",
@@ -93,6 +105,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.075,
 		tagAliases: ["pt", "por", "portuguese", "pt-br", "pt-pt"],
 		suffix: "pt",
+		tts: { explicit: "pt-br" },
 	},
 	{
 		code: "nl",
@@ -184,6 +197,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.105,
 		tagAliases: ["th", "tha", "thai"],
 		suffix: "th",
+		tts: { explicit: "th" },
 	},
 	{
 		code: "vi",
@@ -191,6 +205,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: 0.09,
 		tagAliases: ["vi", "vie", "vietnamese"],
 		suffix: "vi",
+		tts: { explicit: "vi" },
 	},
 	{
 		code: "id",
@@ -198,6 +213,7 @@ export const LANGUAGES: DubLanguage[] = [
 		secondsPerChar: LATIN_RATE,
 		tagAliases: ["id", "ind", "indonesian"],
 		suffix: "id",
+		tts: { explicit: "id" },
 	},
 	{
 		code: "ms",
@@ -245,4 +261,21 @@ export function stripLangTag(stem: string): string {
 export function toWhisperLanguage(sourceLang: string): string {
 	if (sourceLang === AUTO_LANG) return "auto";
 	return sourceLang.split("-")[0].toLowerCase();
+}
+
+/** Whether 豆包 BigTTS can actually voice this language. */
+export function ttsSupported(code: string): boolean {
+	return languageByCode(code).tts !== undefined;
+}
+
+/** `audio.explicit_language` value for the TTS request; undefined = omit. */
+export function ttsExplicitLanguage(code: string): string | undefined {
+	return languageByCode(code).tts?.explicit ?? undefined;
+}
+
+/** Labels of all voiceable languages, for error/hint copy. */
+export function ttsSupportedLabels(): string {
+	return LANGUAGES.filter((l) => l.tts)
+		.map((l) => l.label)
+		.join("、");
 }

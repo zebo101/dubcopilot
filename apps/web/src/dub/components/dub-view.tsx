@@ -29,7 +29,11 @@ import type {
 	TranscriptionLanguage,
 	TranscriptionModelId,
 } from "@/transcription/types";
-import { languageByCode, toWhisperLanguage } from "@/dub/languages";
+import {
+	languageByCode,
+	toWhisperLanguage,
+	ttsSupported,
+} from "@/dub/languages";
 import { LangSelect } from "@/dub/components/lang-select";
 import { useCourseStore } from "@/dub/course/store";
 import { OriginalAudioQuickControl } from "@/dub/components/dub-settings-panel";
@@ -138,7 +142,13 @@ function SetupView() {
 							onChange={(v) => setSetting({ key: "targetLang", value: v })}
 						/>
 					</div>
-					{!settings.targetLang.startsWith("zh") ? (
+					{!ttsSupported(settings.targetLang) ? (
+						<p className="text-[10px] leading-relaxed text-amber-600 dark:text-amber-500">
+							⚠ 豆包 TTS 不支持{languageByCode(settings.targetLang).label}
+							语音合成（支持中/英/日/西/葡/泰/越/印尼）——只能生成翻译字幕，
+							无法生成配音。
+						</p>
+					) : !settings.targetLang.startsWith("zh") ? (
 						<p className="text-muted-foreground text-[10px] leading-relaxed">
 							预设音色为中文音色——配{languageByCode(settings.targetLang).label}
 							建议在右侧「配音设置 → 配音音色」添加该语言的豆包 voice_type。
