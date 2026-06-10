@@ -14,6 +14,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
+import { useEditor } from "@/editor/use-editor";
 import { useDubStore } from "@/dub/store";
 import { useDubCredentials, hasTtsKey } from "@/dub/credentials";
 import { VOICES } from "@/dub/data";
@@ -182,9 +183,40 @@ export function CredentialsSection() {
 }
 
 export function DubSettingsPanel() {
+	const editor = useEditor();
 	const settings = useDubStore((s) => s.settings);
 	const setSetting = useDubStore((s) => s.setSetting);
 	const phase = useDubStore((s) => s.phase);
+
+	// 原声处理 acts LIVE on the open project's main video track — 复核时拖动
+	// 滑杆立刻能听到效果，不必等下一次「② 合成应用」。Volume tweaks skip the
+	// undo stack (pushHistory:false) so dragging doesn't spam history.
+	const applyOriginalAudioLive = ({
+		mode,
+		volume,
+	}: {
+		mode: "mute" | "background";
+		volume: number;
+	}) => {
+		const scene = editor.scenes.getActiveSceneOrNull();
+		const main = scene?.tracks.main;
+		if (!main) return;
+		if (mode === "mute") {
+			if (!main.muted) editor.timeline.toggleTrackMute({ trackId: main.id });
+			return;
+		}
+		if (main.muted) editor.timeline.toggleTrackMute({ trackId: main.id });
+		if (main.elements.length > 0) {
+			editor.timeline.updateElements({
+				updates: main.elements.map((el) => ({
+					trackId: main.id,
+					elementId: el.id,
+					patch: { params: { ...el.params, volume } },
+				})),
+				pushHistory: false,
+			});
+		}
+	};
 
 	return (
 		<div className="space-y-5 p-4">
@@ -241,15 +273,26 @@ export function DubSettingsPanel() {
 				) : null}
 			</div>
 
-			{/* original audio */}
+			{/* original audio — changes apply LIVE to the open project */}
 			<div className="space-y-2">
-				<div className="text-muted-foreground text-xs font-medium">原声处理</div>
+				<div className="text-muted-foreground text-xs font-medium">
+					原声处理
+					<span className="text-muted-foreground/70 ml-1 text-[10px]">
+						（实时生效，可边播边调）
+					</span>
+				</div>
 				<div className="bg-muted inline-flex rounded-md p-0.5">
 					{(["mute", "background"] as const).map((mode) => (
 						<button
 							type="button"
 							key={mode}
-							onClick={() => setSetting({ key: "originalAudio", value: mode })}
+							onClick={() => {
+								setSetting({ key: "originalAudio", value: mode });
+								applyOriginalAudioLive({
+									mode,
+									volume: settings.backgroundVolume,
+								});
+							}}
 							className={cn(
 								"rounded px-3 py-1 text-xs transition-colors",
 								settings.originalAudio === mode
@@ -273,12 +316,11 @@ export function DubSettingsPanel() {
 							max={0.5}
 							step={0.01}
 							value={settings.backgroundVolume}
-							onChange={(e) =>
-								setSetting({
-									key: "backgroundVolume",
-									value: Number(e.target.value),
-								})
-							}
+							onChange={(e) => {
+								const volume = Number(e.target.value);
+								setSetting({ key: "backgroundVolume", value: volume });
+								applyOriginalAudioLive({ mode: "background", volume });
+							}}
 							className="w-full"
 						/>
 					</div>
