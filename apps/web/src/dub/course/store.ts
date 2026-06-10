@@ -39,9 +39,15 @@ interface CourseStore {
 	output: "sibling" | "new";
 	selection: string[];
 	batchRunning: boolean;
+	/** cooperative pause — the scheduler gates new stage entries on this */
+	paused: boolean;
+	/** render+write each lesson right after it's generated */
+	autoExport: boolean;
 	hydrated: boolean;
 	/** course restored from IDB but the folder permission needs a user gesture */
 	needsPermission: boolean;
+	/** review hand-off: inject this video into the editor after it loads */
+	pendingInjection: { projectId: string; mediaId: string; file: File } | null;
 
 	exporting: boolean;
 	exportDone: number;
@@ -63,6 +69,11 @@ interface CourseStore {
 	removeLessons: (args: { ids: string[] }) => void;
 	updateLesson: (args: { id: string; patch: Partial<CourseLesson> }) => void;
 	setBatchRunning: (args: { running: boolean }) => void;
+	setPaused: (args: { paused: boolean }) => void;
+	setAutoExport: (args: { autoExport: boolean }) => void;
+	setPendingInjection: (args: {
+		injection: { projectId: string; mediaId: string; file: File } | null;
+	}) => void;
 	setExport: (args: {
 		exporting?: boolean;
 		done?: number;
@@ -166,8 +177,11 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	output: "sibling",
 	selection: [],
 	batchRunning: false,
+	paused: false,
+	autoExport: false,
 	hydrated: false,
 	needsPermission: false,
+	pendingInjection: null,
 	exporting: false,
 	exportDone: 0,
 	exportTotal: 0,
@@ -253,6 +267,9 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	},
 
 	setBatchRunning: ({ running }) => set({ batchRunning: running }),
+	setPaused: ({ paused }) => set({ paused }),
+	setAutoExport: ({ autoExport }) => set({ autoExport }),
+	setPendingInjection: ({ injection }) => set({ pendingInjection: injection }),
 
 	setExport: ({ exporting, done, total, current }) =>
 		set((s) => ({

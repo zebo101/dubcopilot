@@ -325,7 +325,7 @@ export function BatchCenter() {
 					<Button
 						size="sm"
 						disabled={batchRunning || counts.queued === 0}
-						onClick={() => void runCourseBatch({ editor })}
+						onClick={() => void runCourseBatch({})}
 					>
 						{batchRunning ? (
 							<>
@@ -493,7 +493,7 @@ export function BatchCenter() {
 							selected={selection.includes(lesson.id)}
 							onToggle={() => useCourseStore.getState().toggleSelect({ id: lesson.id })}
 							onOpen={() => openLesson(lesson)}
-							onRun={() => void runCourseBatch({ editor, onlyIds: [lesson.id] })}
+							onRun={() => void runCourseBatch({ onlyIds: [lesson.id] })}
 						/>
 					))
 				)}
@@ -508,7 +508,7 @@ export function BatchCenter() {
 						variant="outline"
 						className="h-7 text-xs"
 						disabled={batchRunning}
-						onClick={() => void runCourseBatch({ editor, onlyIds: selection })}
+						onClick={() => void runCourseBatch({ onlyIds: selection })}
 					>
 						<HugeiconsIcon icon={RefreshIcon} className="size-3" /> 重新生成所选
 					</Button>
