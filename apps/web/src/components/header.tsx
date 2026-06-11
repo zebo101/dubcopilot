@@ -26,7 +26,7 @@ export function Header() {
 								<Image
 									src={DEFAULT_LOGO_URL}
 									alt="dubcopilot"
-									className="invert dark:invert-0"
+									className="rounded-md"
 									width={32}
 									height={32}
 								/>

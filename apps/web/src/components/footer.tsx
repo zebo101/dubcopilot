@@ -20,7 +20,7 @@ export function Footer() {
 								alt="dubcopilot"
 								width={24}
 								height={24}
-								className="invert dark:invert-0"
+								className="rounded-sm"
 							/>
 							<span className="text-lg font-bold">dubcopilot</span>
 						</div>
