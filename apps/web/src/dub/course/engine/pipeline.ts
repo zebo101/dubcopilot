@@ -2,7 +2,7 @@
 // semaphore so lessons overlap across stages (A exporting while B in TTS
 // while C transcribing). Entirely headless: the live editor is never touched.
 
-import { Semaphore } from "@/dub/course/engine/semaphore";
+import { AbortError, Semaphore } from "@/dub/course/engine/semaphore";
 import { prepareLesson } from "@/dub/course/engine/stages/prepare";
 import { transcribeLesson } from "@/dub/course/engine/stages/transcribe";
 import { synthesizeLesson } from "@/dub/course/engine/stages/synthesize";
@@ -87,7 +87,7 @@ export async function runLesson({
 
 		// ---- prepare ----
 		await hooks.gate();
-		if (!hooks.stillWanted()) throw new Error("已停止");
+		if (!hooks.stillWanted()) throw new AbortError("已停止");
 		const prep = await sems.prepare.withPermit(
 			() =>
 				prepareLesson({
@@ -100,7 +100,7 @@ export async function runLesson({
 
 		// ---- segments: subtitle fast-path or ASR ----
 		await hooks.gate();
-		if (!hooks.stillWanted()) throw new Error("已停止");
+		if (!hooks.stillWanted()) throw new AbortError("已停止");
 		let segments: Segment[];
 		if (prep.subtitle) {
 			segments = segmentsFromCues({ cues: prep.subtitle.cues });
@@ -133,7 +133,7 @@ export async function runLesson({
 
 		// ---- translate (untranslated lines only) + TTS, network-bound ----
 		await hooks.gate();
-		if (!hooks.stillWanted()) throw new Error("已停止");
+		if (!hooks.stillWanted()) throw new AbortError("已停止");
 		const clips = await sems.network.withPermit(async () => {
 			if (segments.some((s) => !s.translated.trim())) {
 				if (!hasTranslateKey(creds)) {
@@ -163,7 +163,7 @@ export async function runLesson({
 
 		// ---- assemble: plain-data project, saved to storage ----
 		await hooks.gate();
-		if (!hooks.stillWanted()) throw new Error("已停止");
+		if (!hooks.stillWanted()) throw new AbortError("已停止");
 		const { projectId, videoMediaId } = await sems.assemble.withPermit(
 			() =>
 				assembleLesson({

@@ -2,7 +2,11 @@
 // engine/scheduler.ts (concurrent, headless). Kept so existing imports
 // (`runCourseBatch`) stay stable.
 
-import { runCourse, stopCourseRun } from "@/dub/course/engine/scheduler";
+import {
+	runCourse,
+	stopCourseRun,
+	stopLesson,
+} from "@/dub/course/engine/scheduler";
 
 export async function runCourseBatch({
 	onlyIds,
@@ -10,4 +14,4 @@ export async function runCourseBatch({
 	return runCourse({ onlyIds });
 }
 
-export { stopCourseRun };
+export { stopCourseRun, stopLesson };

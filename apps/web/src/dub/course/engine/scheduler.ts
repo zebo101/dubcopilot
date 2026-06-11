@@ -27,11 +27,22 @@ function overallPct({ stage, report }: { stage: string; report: StepReport }): n
 }
 
 let abortCtrl: AbortController | null = null;
+// per-lesson cancellation — stopping one lesson must not touch its siblings
+const lessonAborts = new Map<string, AbortController>();
 
 export function stopCourseRun(): void {
 	abortCtrl?.abort();
 	useCourseStore.getState().setBatchRunning({ running: false });
 	useCourseStore.getState().setPaused({ paused: false });
+}
+
+/** Stop ONE running/queued lesson — it unwinds at the next stage boundary
+ * (or instantly while waiting on a semaphore) and goes back to 排队. */
+export function stopLesson({ id }: { id: string }): boolean {
+	const ctrl = lessonAborts.get(id);
+	if (!ctrl) return false;
+	ctrl.abort();
+	return true;
 }
 
 /** Resolves while not paused; polls the store gate cheaply when paused. */
@@ -85,6 +96,11 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 		const s = useCourseStore.getState();
 		const lesson = s.course?.lessons.find((l) => l.id === lessonId);
 		if (!lesson) return; // removed while queued (IMP-6)
+
+		// global stop OR this lesson's own 停止 button
+		const lessonCtrl = new AbortController();
+		lessonAborts.set(lessonId, lessonCtrl);
+		const lessonSignal = AbortSignal.any([signal, lessonCtrl.signal]);
 		const videoHandle = s.videoHandles[lessonId];
 		if (!videoHandle) {
 			s.updateLesson({
@@ -130,10 +146,10 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 				creds,
 				autoExport: autoExport && outDir !== null,
 				hooks: {
-					signal,
+					signal: lessonSignal,
 					gate: pauseGate,
 					stillWanted: () =>
-						!signal.aborted &&
+						!lessonSignal.aborted &&
 						!!useCourseStore.getState().course?.lessons.some((l) => l.id === lessonId),
 					onProgress: ({ stage, report }) =>
 						useCourseStore.getState().updateLesson({
@@ -172,7 +188,7 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 				},
 			});
 		} catch (error) {
-			const stopped = error instanceof AbortError || signal.aborted;
+			const stopped = error instanceof AbortError || lessonSignal.aborted;
 			useCourseStore.getState().updateLesson({
 				id: lessonId,
 				patch: {
@@ -185,6 +201,8 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 							: "处理失败",
 				},
 			});
+		} finally {
+			lessonAborts.delete(lessonId);
 		}
 	};
 
@@ -195,5 +213,6 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 		useCourseStore.getState().setPaused({ paused: false });
 		void useCourseStore.getState().persistNow();
 		abortCtrl = null;
+		lessonAborts.clear();
 	}
 }

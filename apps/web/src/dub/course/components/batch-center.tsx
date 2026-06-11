@@ -29,7 +29,11 @@ import { VoicePicker } from "@/dub/components/voice-picker";
 import { warnVoiceLanguageMismatch } from "@/dub/voice-lang-check";
 import { useDubStore } from "@/dub/store";
 import { useCourseStore } from "@/dub/course/store";
-import { runCourseBatch, stopCourseRun } from "@/dub/course/runner";
+import {
+	runCourseBatch,
+	stopCourseRun,
+	stopLesson,
+} from "@/dub/course/runner";
 import {
 	exportCourseToFolder,
 	exportCourseToZip,
@@ -87,6 +91,7 @@ function LessonRow({
 	onOpen,
 	onRun,
 	onApprove,
+	onStop,
 }: {
 	lesson: CourseLesson;
 	selected: boolean;
@@ -94,6 +99,7 @@ function LessonRow({
 	onOpen: () => void;
 	onRun: () => void;
 	onApprove: () => void;
+	onStop: () => void;
 }) {
 	const flagged = (lesson.spedCount ?? 0) > 0 || (lesson.overflowCount ?? 0) > 0;
 	const targetLang = useDubStore((s) => s.settings.targetLang);
@@ -179,6 +185,18 @@ function LessonRow({
 					</Button>
 				) : (
 					<>
+						{lesson.status === "processing" && (
+							<Button
+								size="sm"
+								variant="outline"
+								className="text-destructive h-7 text-xs"
+								onClick={onStop}
+								title="停止这节课（其余课时不受影响，本课回到排队可重新生成）"
+							>
+								<HugeiconsIcon icon={Cancel01Icon} className="size-3" />
+								停止
+							</Button>
+						)}
 						{lesson.status === "review" && (
 							<Button
 								size="sm"
@@ -690,6 +708,11 @@ export function BatchCenter() {
 									patch: { status: "done" },
 								});
 								toast.success(`「${lesson.title}」已标记复核通过`);
+							}}
+							onStop={() => {
+								if (stopLesson({ id: lesson.id })) {
+									toast(`「${lesson.title}」正在停止，将回到排队`);
+								}
 							}}
 						/>
 					))
