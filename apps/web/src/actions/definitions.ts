@@ -152,6 +152,13 @@ export const ACTIONS = {
 
 export type TAction = keyof typeof ACTIONS;
 
+/** Type guard: checks whether a string is a valid bindable action. */
+export function isActionWithOptionalArgs(
+	value: string,
+): value is TActionWithOptionalArgs {
+	return Object.prototype.hasOwnProperty.call(ACTIONS, value);
+}
+
 const ACTION_DEFAULT_SHORTCUTS = [
 	["toggle-play", ["space", "k"]],
 	["seek-forward", ["l"]],
