@@ -93,15 +93,15 @@ export function Hero(props: HeroProps) {
     >
       <div className="container mx-auto px-6">
         <div className="relative z-20 flex flex-col gap-5">
-          <h1 className="md:leading-tighter max-w-3xl text-5xl leading-[1.05] tracking-tight text-balance md:text-7xl lg:text-7xl">
+          <h1 className="md:leading-tighter mx-auto max-w-3xl text-center text-4xl leading-[1.2] tracking-tight text-balance sm:text-5xl md:mx-0 md:text-left md:text-7xl lg:text-7xl">
             {heading}
           </h1>
-          <div className="max-w-2xl">
-            <p className="text-center text-xl font-medium text-muted-foreground md:text-left">
+          <div className="mx-auto max-w-2xl md:mx-0">
+            <p className="text-center text-base leading-relaxed font-medium text-muted-foreground md:text-left md:text-xl">
               {description}
             </p>
           </div>
-          <div className="flex flex-col items-center gap-3 py-4 md:flex-row">
+          <div className="flex flex-row flex-wrap items-center justify-center gap-3 py-4 md:justify-start">
             {buttons?.primary && (
               <Button size="lg" asChild>
                 <Link href={buttons.primary.url}>{buttons.primary.text}</Link>

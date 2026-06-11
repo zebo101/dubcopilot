@@ -36,7 +36,7 @@ export function Header() {
 
 	return (
 		<header className="bg-background shadow-background/85 sticky top-0 z-10 shadow-[0_30px_35px_15px_rgba(0,0,0,1)]">
-			<div className="relative flex w-full items-center justify-between px-6 pt-4 pb-2">
+			<div className="container relative mx-auto flex items-center justify-between px-6 pt-4 pb-2">
 				<div className="relative z-10 flex items-center gap-6">
 					<ContextMenu>
 						<ContextMenuTrigger asChild>
