@@ -1,6 +1,6 @@
 {
-	"name": "OpenCut",
-	"description": "A simple but powerful video editor that gets the job done. In your browser.",
+	"name": "dubcopilot",
+	"description": "AI video dubbing tool — transcribe, translate, and dub your videos in the browser.",
 	"display": "standalone",
 	"start_url": "/",
 	"icons": [

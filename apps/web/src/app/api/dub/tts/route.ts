@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 			},
 			body: JSON.stringify({
 				app: { appid: resourceId, cluster },
-				user: { uid: "opencut-dub" },
+				user: { uid: "dubcopilot-dub" },
 				audio: {
 					voice_type: voiceType,
 					encoding,

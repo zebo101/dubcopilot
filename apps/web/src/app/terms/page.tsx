@@ -7,16 +7,15 @@ import {
 	AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
-import { SOCIAL_LINKS } from "@/site/social";
 
 export const metadata: Metadata = {
-	title: "Terms of Service - OpenCut",
+	title: "Terms of Service - dubcopilot",
 	description:
-		"OpenCut's Terms of Service. Fair, transparent terms for our free and open-source video editor.",
+		"dubcopilot's Terms of Service. Fair, transparent terms for our AI video dubbing tool.",
 	openGraph: {
-		title: "Terms of Service - OpenCut",
+		title: "Terms of Service - dubcopilot",
 		description:
-			"OpenCut's Terms of Service. Fair, transparent terms for our free and open-source video editor.",
+			"dubcopilot's Terms of Service. Fair, transparent terms for our AI video dubbing tool.",
 		type: "website",
 	},
 };
@@ -25,7 +24,7 @@ export default function TermsPage() {
 	return (
 		<BasePage
 			title="Terms of service"
-			description="Fair and transparent terms for our free, open-source video editor. Contact us if you have any questions."
+			description="Fair and transparent terms for our AI video dubbing tool. Contact us if you have any questions."
 		>
 			<Accordion type="single" collapsible className="w-full">
 				<AccordionItem
@@ -41,15 +40,17 @@ export default function TermsPage() {
 						</h3>
 						<ol className="list-decimal space-y-2 pl-6">
 							<li>
-								Everything runs locally in your browser - nothing is ever
-								uploaded to our servers
+								Editing runs locally in your browser - nothing is uploaded to
+								our servers
 							</li>
-							<li>
-								We never claim ownership of your content
-							</li>
+							<li>We never claim ownership of your content</li>
 							<li>
 								Free for personal and commercial use with no watermarks or
 								restrictions
+							</li>
+							<li>
+								AI dubbing uses the provider you configure with your own API
+								key - their terms apply to those requests
 							</li>
 							<li>
 								You&apos;re responsible for how you use it - don&apos;t break
@@ -60,20 +61,16 @@ export default function TermsPage() {
 								perfect uptime
 							</li>
 							<li>
-								Open source means you can review our code and self-host if
-								needed
-							</li>
-							<li>
 								No account required - your exported videos are always yours
 							</li>
 						</ol>
 						<p className="mt-4">
 							Questions? Email us at{" "}
 							<a
-								href="mailto:oss@opencut.app"
+								href="mailto:support@dubcopilot.com"
 								className="text-primary hover:underline"
 							>
-								oss@opencut.app
+								support@dubcopilot.com
 							</a>
 						</p>
 					</AccordionContent>
@@ -87,82 +84,77 @@ export default function TermsPage() {
 					processing happens locally on your device. We never see, store, or
 					have access to your files. We make no claims to ownership, licensing,
 					or rights over your videos, projects, or any content you create using
-					OpenCut.
+					dubcopilot.
 				</p>
 				<ul className="list-disc space-y-2 pl-6">
-					<li>
-						Your content never leaves your device
-					</li>
+					<li>Your content is never stored on our servers</li>
 					<li>You retain all intellectual property rights to your content</li>
 					<li>You can export and use your content however you choose</li>
-					<li>No watermarks, no licensing restrictions from OpenCut</li>
+					<li>No watermarks, no licensing restrictions from dubcopilot</li>
 				</ul>
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-2xl font-semibold">How You Can Use OpenCut</h2>
-				<p>OpenCut is free for personal and commercial use. You can:</p>
+				<h2 className="text-2xl font-semibold">How You Can Use dubcopilot</h2>
+				<p>dubcopilot is free for personal and commercial use. You can:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>
-						Create videos for personal, educational, or commercial purposes
+						Create dubbed videos for personal, educational, or commercial
+						purposes
 					</li>
-					<li>Use OpenCut for client work and paid projects</li>
-					<li>Share and distribute videos created with OpenCut</li>
-					<li>
-						Modify and distribute the OpenCut software (under MIT license)
-					</li>
+					<li>Use dubcopilot for client work and paid projects</li>
+					<li>Share and distribute videos created with dubcopilot</li>
 				</ul>
 				<p>
-					You&apos;re responsible for how you use OpenCut and the content you
-					create. Don&apos;t use it for anything illegal in your jurisdiction.
+					You&apos;re responsible for how you use dubcopilot and the content
+					you create. Make sure you have the rights to the videos you dub, and
+					don&apos;t use it for anything illegal in your jurisdiction.
 				</p>
 			</section>
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">AI Features</h2>
 				<p>
-					AI features like auto captions run entirely in your browser using
-					on-device models. No content is uploaded to any server. These features
-					are optional - you can use OpenCut without them.
+					AI dubbing features (transcription, translation, and voice synthesis)
+					send the relevant audio or text directly from your browser to the AI
+					provider you configure, using your own API key. Those requests are
+					governed by your provider&apos;s terms of service and pricing. We are
+					not a party to that relationship and are not responsible for the
+					provider&apos;s output, availability, or costs.
 				</p>
 			</section>
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Service</h2>
 				<p>
-					OpenCut does not currently require an account. The service is provided
-					&quot;as is&quot; without warranties. While we strive for
+					dubcopilot does not currently require an account. The service is
+					provided &quot;as is&quot; without warranties. While we strive for
 					reliability, we can&apos;t guarantee uninterrupted service.
 				</p>
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-2xl font-semibold">Open Source Benefits</h2>
-				<p>Because OpenCut is open source, you have additional rights:</p>
-				<ul className="list-disc space-y-2 pl-6">
-					<li>Review our code to see exactly how we handle your data</li>
-					<li>Self-host OpenCut on your own servers</li>
-					<li>Modify the software to suit your needs</li>
-					<li>Contribute improvements back to the community</li>
-				</ul>
+				<h2 className="text-2xl font-semibold">Attribution</h2>
 				<p>
-					View our source code and license on{" "}
+					dubcopilot is built on the open-source{" "}
 					<a
-						href={SOCIAL_LINKS.github}
+						href="https://github.com/OpenCut-app/OpenCut"
 						target="_blank"
 						rel="noopener noreferrer"
 						className="text-primary hover:underline"
 					>
-						GitHub
-					</a>
-					.
+						OpenCut
+					</a>{" "}
+					project (MIT license). The original license and copyright notices are
+					preserved in our source distribution.
 				</p>
 			</section>
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Limitations and Liability</h2>
 				<p>
-					OpenCut is provided free of charge. To the extent permitted by law:
+					dubcopilot is provided free of charge. To the extent permitted by
+					law:
 				</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>We&apos;re not liable for any loss of data or content</li>
@@ -182,18 +174,16 @@ export default function TermsPage() {
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Service Changes</h2>
-				<p>We may update OpenCut and these terms:</p>
+				<p>We may update dubcopilot and these terms:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>We&apos;ll notify you of significant changes to these terms</li>
 					<li>Continued use means you accept any updates</li>
-					<li>You can always self-host an older version if you prefer</li>
-					<li>Major changes will be discussed with the community on GitHub</li>
 				</ul>
 			</section>
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Stopping Use</h2>
-				<p>You can stop using OpenCut at any time:</p>
+				<p>You can stop using dubcopilot at any time:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>Clear your browser data to remove local projects</li>
 				</ul>
@@ -203,42 +193,23 @@ export default function TermsPage() {
 				<h2 className="text-2xl font-semibold">Contact Us</h2>
 				<p>Questions about these terms or need to report an issue?</p>
 				<p>
-					Contact us through our{" "}
+					Email us at{" "}
 					<a
-						href={`${SOCIAL_LINKS.github}/issues`}
-						target="_blank"
-						rel="noopener noreferrer"
+						href="mailto:support@dubcopilot.com"
 						className="text-primary hover:underline"
 					>
-						GitHub repository
-					</a>
-					, email us at{" "}
-					<a
-						href="mailto:oss@opencut.app"
-						className="text-primary hover:underline"
-					>
-						oss@opencut.app
-					</a>
-					, or reach out on{" "}
-					<a
-						href={SOCIAL_LINKS.x}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="text-primary hover:underline"
-					>
-						X (Twitter)
+						support@dubcopilot.com
 					</a>
 					.
 				</p>
 				<p>
 					These terms are governed by applicable law in your jurisdiction. We
-					prefer to resolve disputes through friendly discussion in our
-					open-source community.
+					prefer to resolve disputes through friendly discussion.
 				</p>
 			</section>
 			<Separator />
 			<p className="text-muted-foreground text-sm">
-				Last updated: March 15, 2026
+				Last updated: June 11, 2026
 			</p>
 		</BasePage>
 	);

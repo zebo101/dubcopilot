@@ -1,4 +1,4 @@
-// Stage: assemble — build the lesson's OpenCut project as PLAIN DATA and save
+// Stage: assemble — build the lesson's editor project as PLAIN DATA and save
 // it via storageService, never touching the live editor (the old runner's
 // loadProject hijack destroyed the user's open session — review CRIT-3).
 // Zero-copy: the source video is referenced by mediaId only; its bytes stay on

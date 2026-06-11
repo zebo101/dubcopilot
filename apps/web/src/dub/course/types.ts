@@ -37,7 +37,7 @@ export interface CourseLesson {
 	/** lines that overflow even at max speed (red flag → review). */
 	overflowCount?: number;
 	failReason?: string | null;
-	/** id of the generated OpenCut project once the lesson is processed. */
+	/** id of the generated editor project once the lesson is processed. */
 	projectId?: string;
 	/** mediaId the project's video element references (zero-copy injection). */
 	videoMediaId?: string;
