@@ -126,6 +126,10 @@ export function Hero(props: HeroProps) {
                   <EditorMock />
                   <div
                     aria-hidden
+                    className="pointer-events-none absolute inset-0 bg-background/[0.08] dark:hidden"
+                  />
+                  <div
+                    aria-hidden
                     className="pointer-events-none absolute inset-0 hidden bg-linear-to-r from-transparent from-80% to-background dark:block"
                   />
                 </div>
@@ -140,7 +144,7 @@ export function Hero(props: HeroProps) {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-30 bg-linear-to-b from-transparent from-[52%] via-background/10 via-[80%] to-background dark:hidden"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-48 bg-linear-to-b from-transparent via-background/60 to-background dark:hidden"
       />
       <div
         aria-hidden
