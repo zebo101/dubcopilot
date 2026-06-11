@@ -2,8 +2,6 @@
 
 import { ArrowRightIcon } from "lucide-react";
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import { SOCIAL_LINKS } from "@/site/social";
 import { useLocalStorage } from "@/services/storage/use-local-storage";
 import { Button } from "../ui/button";
 import { Dialog, DialogBody, DialogContent, DialogTitle } from "../ui/dialog";
@@ -28,13 +26,11 @@ export function Onboarding() {
 	const getStepTitle = () => {
 		switch (step) {
 			case 0:
-				return "Welcome to OpenCut Beta! 🎉";
+				return "Welcome to dubcopilot! 🎉";
 			case 1:
-				return "⚠️ This is a super early beta!";
-			case 2:
-				return "🦋 Have fun testing!";
+				return "🎙️ How it works";
 			default:
-				return "OpenCut Onboarding";
+				return "dubcopilot Onboarding";
 		}
 	};
 
@@ -44,8 +40,8 @@ export function Onboarding() {
 				return (
 					<div className="space-y-5">
 						<div className="space-y-3">
-							<Title title="Welcome to OpenCut Beta! 🎉" />
-							<Description description="You're among the first to try OpenCut - the fully open source CapCut alternative." />
+							<Title title={getStepTitle()} />
+							<Description description="dubcopilot turns your videos into localized versions with AI-generated dubbing and subtitles." />
 						</div>
 						<NextButton onClick={handleNext}>Next</NextButton>
 					</div>
@@ -55,21 +51,8 @@ export function Onboarding() {
 					<div className="space-y-5">
 						<div className="space-y-3">
 							<Title title={getStepTitle()} />
-							<Description description="There's still a ton of things to do to make this editor amazing." />
-							<Description description="A lot of features are still missing. We're working hard to build them out!" />
-							<Description description="If you're curious, check out our roadmap [here](https://opencut.app/roadmap)" />
-						</div>
-						<NextButton onClick={handleNext}>Next</NextButton>
-					</div>
-				);
-			case 2:
-				return (
-					<div className="space-y-5">
-						<div className="space-y-3">
-							<Title title={getStepTitle()} />
-							<Description
-								description={`Join our [Discord](${SOCIAL_LINKS.discord}), chat with cool people and share feedback to help make OpenCut the best editor ever.`}
-							/>
+							<Description description="Upload a video, let it transcribe and translate automatically, then export the dubbed result with subtitles." />
+							<Description description="For a whole course, use the batch center to process all videos in one go." />
 						</div>
 						<NextButton onClick={handleClose}>Finish</NextButton>
 					</div>
@@ -96,27 +79,7 @@ function Title({ title }: { title: string }) {
 }
 
 function Description({ description }: { description: string }) {
-	return (
-		<div className="text-muted-foreground">
-			<ReactMarkdown
-				components={{
-					p: ({ children }) => <p className="mb-0">{children}</p>,
-					a: ({ href, children }) => (
-						<a
-							href={href}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-foreground hover:text-foreground/80 underline"
-						>
-							{children}
-						</a>
-					),
-				}}
-			>
-				{description}
-			</ReactMarkdown>
-		</div>
-	);
+	return <p className="text-muted-foreground mb-0">{description}</p>;
 }
 
 function NextButton({

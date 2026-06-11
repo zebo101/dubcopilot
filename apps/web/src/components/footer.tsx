@@ -1,35 +1,11 @@
 import Link from "next/link";
-import { RiDiscordFill, RiTwitterXLine } from "react-icons/ri";
-import { FaGithub } from "react-icons/fa6";
 import Image from "next/image";
-import { DEFAULT_LOGO_URL } from "@/site/brand";
-import { SOCIAL_LINKS } from "@/site/social";
-import { capitalizeFirstLetter } from "@/utils/string";
+import { DEFAULT_LOGO_URL, SITE_INFO } from "@/site/brand";
 
-type Category = "resources" | "company";
-
-interface FooterLink {
-	label: string;
-	href: string;
-}
-
-type CategoryLinks = Record<Category, FooterLink[]>;
-
-const links: CategoryLinks = {
-	resources: [
-		{ label: "Roadmap", href: "/roadmap" },
-		{ label: "Changelog", href: "/changelog" },
-		{ label: "Blog", href: "/blog" },
-		{ label: "Privacy", href: "/privacy" },
-		{ label: "Terms of use", href: "/terms" },
-	],
-	company: [
-		{ label: "Contributors", href: "/contributors" },
-		{ label: "Sponsors", href: "/sponsors" },
-		{ label: "Brand", href: "/brand" },
-		{ label: "About", href: `${SOCIAL_LINKS.github}/blob/main/README.md` },
-	],
-};
+const links = [
+	{ label: "Privacy", href: "/privacy" },
+	{ label: "Terms of use", href: "/terms" },
+];
 
 export function Footer() {
 	return (
@@ -41,80 +17,54 @@ export function Footer() {
 						<div className="mb-4 flex items-center justify-start gap-2">
 							<Image
 								src={DEFAULT_LOGO_URL}
-								alt="OpenCut"
+								alt="dubcopilot"
 								width={24}
 								height={24}
 								className="invert dark:invert-0"
 							/>
-							<span className="text-lg font-bold">OpenCut</span>
+							<span className="text-lg font-bold">dubcopilot</span>
 						</div>
 						<p className="text-muted-foreground mb-5 text-sm md:text-left">
-							The privacy-first video editor that feels simple to use.
+							{SITE_INFO.description}
 						</p>
-						<div className="flex justify-start gap-3">
-							<Link
-								href={SOCIAL_LINKS.github}
-								className="text-muted-foreground hover:text-foreground transition-colors"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<FaGithub className="size-5" />
-							</Link>
-							<Link
-								href={SOCIAL_LINKS.x}
-								className="text-muted-foreground hover:text-foreground transition-colors"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<RiTwitterXLine className="size-5" />
-							</Link>
-							<Link
-								href={SOCIAL_LINKS.discord}
-								className="text-muted-foreground hover:text-foreground transition-colors"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<RiDiscordFill className="size-5" />
-							</Link>
-						</div>
 					</div>
 
 					<div className="flex items-start justify-start gap-12 py-2">
-						{(Object.keys(links) as Category[]).map((category) => (
-							<div key={category} className="flex flex-col gap-2">
-								<h3 className="text-foreground font-semibold">
-									{capitalizeFirstLetter({ string: category })}
-								</h3>
-								<ul className="space-y-2 text-sm">
-									{links[category].map((link) => (
-										<li key={link.href}>
-											<Link
-												href={link.href}
-												className="text-muted-foreground hover:text-foreground transition-colors"
-												target={
-													link.href.startsWith("http") ? "_blank" : undefined
-												}
-												rel={
-													link.href.startsWith("http")
-														? "noopener noreferrer"
-														: undefined
-												}
-											>
-												{link.label}
-											</Link>
-										</li>
-									))}
-								</ul>
-							</div>
-						))}
+						<div className="flex flex-col gap-2">
+							<h3 className="text-foreground font-semibold">Resources</h3>
+							<ul className="space-y-2 text-sm">
+								{links.map((link) => (
+									<li key={link.href}>
+										<Link
+											href={link.href}
+											className="text-muted-foreground hover:text-foreground transition-colors"
+										>
+											{link.label}
+										</Link>
+									</li>
+								))}
+							</ul>
+						</div>
 					</div>
 				</div>
 
 				{/* Bottom Section */}
 				<div className="flex flex-col items-start justify-between gap-4 pt-2 md:flex-row">
-					<div className="text-muted-foreground flex items-center gap-4 text-sm">
+					<div className="text-muted-foreground flex flex-col gap-1 text-sm">
 						<span>
-							© {new Date().getFullYear()} OpenCut, All Rights Reserved
+							© {new Date().getFullYear()} dubcopilot, All Rights Reserved
+						</span>
+						<span>
+							Built on the open-source{" "}
+							<a
+								href="https://github.com/OpenCut-app/OpenCut"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="hover:text-foreground underline transition-colors"
+							>
+								OpenCut
+							</a>{" "}
+							project.
 						</span>
 					</div>
 				</div>

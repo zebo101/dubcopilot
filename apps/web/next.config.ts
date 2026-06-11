@@ -1,7 +1,6 @@
 import { resolve } from "node:path";
 import type { NextConfig } from "next";
 import { withBotId } from "botid/next/config";
-import { withContentCollections } from "@content-collections/next";
 
 const nextConfig: NextConfig = {
 	turbopack: {
@@ -24,10 +23,6 @@ const nextConfig: NextConfig = {
 			{
 				protocol: "https",
 				hostname: "images.unsplash.com",
-			},
-			{
-				protocol: "https",
-				hostname: "images.marblecms.com",
 			},
 			{
 				protocol: "https",
@@ -57,4 +52,4 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default withContentCollections(withBotId(nextConfig));
+export default withBotId(nextConfig);
