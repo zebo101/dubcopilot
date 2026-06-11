@@ -39,7 +39,9 @@ function SectionHeading({
 }) {
   return (
     <div className="mx-auto mb-12 flex max-w-2xl flex-col items-center gap-3 text-center">
-      <h2 className="text-3xl font-bold tracking-tight lg:text-4xl">{title}</h2>
+      <h2 className="font-hero-display text-3xl font-bold tracking-tight lg:text-4xl">
+        {title}
+      </h2>
       {description ? (
         <p className="text-muted-foreground lg:text-lg">{description}</p>
       ) : null}
@@ -455,7 +457,7 @@ export function FinalCta() {
   return (
     <section className="bg-muted/30 py-16 lg:py-24">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-5 px-4 text-center">
-        <h2 className="text-3xl font-bold tracking-tight lg:text-4xl">
+        <h2 className="font-hero-display text-3xl font-bold tracking-tight lg:text-4xl">
           现在开始你的第一个 AI 配音视频
         </h2>
         <p className="text-muted-foreground lg:text-lg">

@@ -8,6 +8,8 @@ import { BotIdClient } from "botid/client";
 import {
 	Inter,
 	JetBrains_Mono,
+	Noto_Sans_SC,
+	Noto_Serif_SC,
 	Outfit,
 	Playfair_Display,
 } from "next/font/google";
@@ -21,6 +23,14 @@ const playfair = Playfair_Display({
 const jetbrainsMono = JetBrains_Mono({
 	subsets: ["latin"],
 	variable: "--font-jetbrains-mono",
+});
+const notoSansSC = Noto_Sans_SC({
+	subsets: ["latin"],
+	variable: "--font-noto-sans-sc",
+});
+const notoSerifSC = Noto_Serif_SC({
+	subsets: ["latin"],
+	variable: "--font-noto-serif-sc",
 });
 
 export const metadata = baseMetaData;
@@ -52,7 +62,7 @@ export default function RootLayout({
 				)}
 			</head>
 			<body
-				className={`${siteFont.className} ${outfit.variable} ${playfair.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+				className={`${siteFont.className} ${outfit.variable} ${playfair.variable} ${jetbrainsMono.variable} ${notoSansSC.variable} ${notoSerifSC.variable} font-sans antialiased`}
 			>
 				<ThemeProvider
 					attribute="class"

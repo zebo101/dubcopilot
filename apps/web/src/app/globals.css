@@ -290,12 +290,14 @@
   }
 }
 
-/* 落地页字体组合：Outfit（正文）/ Playfair Display（展示标题）/ JetBrains Mono（等宽）。
-   三款均无中文字形，中文回退系统黑体。 */
+/* 落地页字体组合：
+   正文 = Outfit（拉丁）+ Noto Sans SC 思源黑体（中文）
+   展示标题 = Playfair Display（拉丁衬线）+ Noto Serif SC 思源宋体（中文）
+   等宽 = JetBrains Mono */
 .font-landing {
   font-family:
-    var(--font-outfit), "PingFang SC", "Microsoft YaHei", system-ui,
-    sans-serif;
+    var(--font-outfit), var(--font-noto-sans-sc), "PingFang SC",
+    "Microsoft YaHei", system-ui, sans-serif;
 }
 .font-landing :where(.font-mono) {
   font-family:
@@ -303,6 +305,6 @@
 }
 .font-hero-display {
   font-family:
-    var(--font-playfair), var(--font-outfit), "PingFang SC", "Microsoft YaHei",
-    system-ui, sans-serif;
+    var(--font-playfair), var(--font-noto-serif-sc), "Songti SC", "SimSun",
+    serif;
 }
