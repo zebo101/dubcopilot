@@ -64,10 +64,12 @@ export interface DubSettings {
 	overlapGuardMs: number;
 	/** all dubbing audio keeps pitch when sped up */
 	maintainPitch: boolean;
-	/** browser Whisper model used to transcribe the source audio (local mode).
+	/** browser Whisper model used to transcribe the source audio (transcription
+	 * is always local — subtitled videos skip it entirely).
 	 * Smaller = much faster (download + inference) at some accuracy cost. */
 	transcribeModel: TranscriptionModelId;
-	/** where transcription runs: local browser Whisper (free/private/slow) or
-	 * cloud Groq Whisper (fast, needs a key, uploads audio). */
-	transcribeProvider: "local" | "cloud";
+	/** batch/headless export format — same options as the editor's Export panel */
+	exportFormat: "mp4" | "webm";
+	/** batch/headless export quality — same options as the editor's Export panel */
+	exportQuality: "low" | "medium" | "high" | "very_high";
 }

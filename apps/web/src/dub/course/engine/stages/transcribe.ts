@@ -1,7 +1,7 @@
 // Stage: transcribe (only for lessons WITHOUT a subtitle sidecar). Fully
 // headless: composes a throwaway single-video timeline in memory, extracts its
 // audio with the pure extractTimelineAudio, then runs the shared
-// transcribe-core (local Whisper or the user's Groq endpoint).
+// transcribe-core (local browser Whisper — nothing is uploaded).
 
 import { buildDefaultScene } from "@/timeline/scenes";
 import { extractTimelineAudio } from "@/media/mediabunny";
@@ -18,7 +18,6 @@ import type {
 	TranscriptionLanguage,
 	TranscriptionModelId,
 } from "@/transcription/types";
-import type { DubCredentials } from "@/dub/credentials";
 import { transcribeSamples } from "@/dub/transcribe-core";
 import { AUTO_LANG, toWhisperLanguage } from "@/dub/languages";
 import type { Segment } from "@/dub/types";
@@ -27,19 +26,15 @@ import type { LessonMeta, StepReport } from "@/dub/course/engine/types";
 export async function transcribeLesson({
 	videoFile,
 	meta,
-	provider,
 	modelId,
 	sourceLang = AUTO_LANG,
-	creds,
 	onStep,
 }: {
 	videoFile: File;
 	meta: LessonMeta;
-	provider: "local" | "cloud";
 	modelId: TranscriptionModelId;
 	/** "auto" = let Whisper detect; otherwise a code from dub/languages.ts */
 	sourceLang?: string;
-	creds: DubCredentials;
 	onStep?: (args: StepReport) => void;
 }): Promise<Segment[]> {
 	if (!meta.hasAudio) return [];
@@ -86,13 +81,10 @@ export async function transcribeLesson({
 
 	return transcribeSamples({
 		samples,
-		sampleRate: DEFAULT_TRANSCRIPTION_SAMPLE_RATE,
-		provider,
 		modelId,
 		// Whisper accepts any ISO 639-1 code; the app-level union is just the UI
 		// list, so the widened value is narrowed here.
 		language: toWhisperLanguage(sourceLang) as TranscriptionLanguage,
-		creds,
 		onStep,
 	});
 }

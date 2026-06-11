@@ -6,29 +6,23 @@ import type {
 	TranscriptionLanguage,
 	TranscriptionModelId,
 } from "@/transcription/types";
-import type { DubCredentials } from "@/dub/credentials";
 import { transcribeSamples } from "@/dub/transcribe-core";
 import type { Segment } from "@/dub/types";
 
 /**
  * In-editor transcription of the ACTIVE timeline's audio. Thin shell over the
- * shared transcribe-core (also used headless by the course engine). Backends:
- * "cloud" = the user's Groq Whisper endpoint (seconds); "local" = browser
- * Whisper (free + private, slower). No mock data anywhere.
+ * shared transcribe-core (also used headless by the course engine). Local
+ * browser Whisper only (free + private). No mock data anywhere.
  */
 export async function generateDubSegments({
 	editor,
-	provider,
 	modelId,
 	language = "en",
-	creds,
 	onStep,
 }: {
 	editor: EditorCore;
-	provider: "local" | "cloud";
 	modelId: TranscriptionModelId;
 	language?: TranscriptionLanguage;
-	creds: DubCredentials;
 	onStep: (args: { step: string; pct: number }) => void;
 }): Promise<Segment[]> {
 	const scene = editor.scenes.getActiveSceneOrNull();
@@ -50,11 +44,8 @@ export async function generateDubSegments({
 
 	return transcribeSamples({
 		samples,
-		sampleRate: DEFAULT_TRANSCRIPTION_SAMPLE_RATE,
-		provider,
 		modelId,
 		language,
-		creds,
 		onStep,
 	});
 }

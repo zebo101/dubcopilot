@@ -6,8 +6,6 @@ import type {
 	TranscriptionLanguage,
 	TranscriptionModelId,
 } from "@/transcription/types";
-import type { DubCredentials } from "@/dub/credentials";
-import { transcribeViaGroq } from "@/dub/transcribe-cloud";
 import { sanitizeSegments } from "@/dub/sanitize";
 import { extendSlots } from "@/dub/timing";
 import type { Segment } from "@/dub/types";
@@ -46,61 +44,44 @@ export function segmentsFromRaw({ raw }: { raw: RawSegment[] }): Segment[] {
 	return extendSlots({ segments });
 }
 
-/** Transcribe decoded 16 kHz samples via the chosen backend → dub segments. */
+/** Transcribe decoded 16 kHz samples with local browser Whisper → dub
+ * segments. Always local (free, nothing uploaded) — videos that come with a
+ * subtitle sidecar skip transcription entirely. */
 export async function transcribeSamples({
 	samples,
-	sampleRate,
-	provider,
 	modelId,
 	language = "en",
-	creds,
 	onStep,
 }: {
 	samples: Float32Array;
-	sampleRate: number;
-	provider: "local" | "cloud";
 	modelId: TranscriptionModelId;
 	language?: TranscriptionLanguage;
-	creds: DubCredentials;
 	onStep?: (args: { step: string; pct: number }) => void;
 }): Promise<Segment[]> {
-	let raw: RawSegment[];
-	if (provider === "cloud") {
-		onStep?.({ step: "云端转写中（上传音频，几秒即可）…", pct: 40 });
-		const result = await transcribeViaGroq({
-			samples,
-			sampleRate,
-			language,
-			creds,
-		});
-		raw = result.segments;
-	} else {
-		onStep?.({ step: "加载语音识别模型（首次会下载，请稍候）…", pct: 25 });
-		let downloading = true;
-		const result = await transcriptionService.transcribe({
-			audioData: samples,
-			language,
-			modelId,
-			onProgress: (p) => {
-				if (p.status === "transcribing") {
-					downloading = false;
-					onStep?.({
-						step: "识别语音中（视频较长时需数分钟，请勿切换标签页）…",
-						pct: 95,
-					});
-					return;
-				}
-				if (!downloading) return;
-				const rawP = p.progress ?? 0;
-				const frac = rawP > 1 ? rawP / 100 : rawP;
+	onStep?.({ step: "加载语音识别模型（首次会下载，请稍候）…", pct: 25 });
+	let downloading = true;
+	const result = await transcriptionService.transcribe({
+		audioData: samples,
+		language,
+		modelId,
+		onProgress: (p) => {
+			if (p.status === "transcribing") {
+				downloading = false;
 				onStep?.({
-					step: p.message ?? "加载模型…",
-					pct: Math.min(90, 25 + Math.round(frac * 65)),
+					step: "识别语音中（视频较长时需数分钟，请勿切换标签页）…",
+					pct: 95,
 				});
-			},
-		});
-		raw = result.segments;
-	}
+				return;
+			}
+			if (!downloading) return;
+			const rawP = p.progress ?? 0;
+			const frac = rawP > 1 ? rawP / 100 : rawP;
+			onStep?.({
+				step: p.message ?? "加载模型…",
+				pct: Math.min(90, 25 + Math.round(frac * 65)),
+			});
+		},
+	});
 	onStep?.({ step: "整理逐句…", pct: 98 });
-	return segmentsFromRaw({ raw });
+	return segmentsFromRaw({ raw: result.segments });
 }

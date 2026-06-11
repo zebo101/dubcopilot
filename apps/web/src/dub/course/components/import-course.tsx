@@ -177,6 +177,12 @@ function ScanStep() {
 					]}
 					onChange={(v) => useCourseStore.getState().setMissingPolicy({ policy: v })}
 				/>
+				{scan.missing > 0 && (
+					<p className="text-muted-foreground text-[10px] leading-relaxed">
+						转写在浏览器本地跑、整门课会比较慢——想更快，把带时间戳的同名字幕
+						（lesson.srt / lesson_en.vtt）放进课程目录后重新导入，即可跳过转写直接翻译。
+					</p>
+				)}
 			</div>
 			<div className="space-y-2">
 				<div className="text-muted-foreground text-xs">导出位置（Phase 4）</div>

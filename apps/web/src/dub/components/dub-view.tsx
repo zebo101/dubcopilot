@@ -64,23 +64,15 @@ function SetupView() {
 
 	const onGenerate = async () => {
 		const creds = useDubCredentials.getState();
-		if (settings.transcribeProvider === "cloud" && !creds.groqApiKey.trim()) {
-			toast.error(
-				"云端转写需要 Groq API Key —— 请在「语音 / 翻译 凭据」填写，或切到本地转写",
-			);
-			return;
-		}
 		setPhase("processing");
 		setProc({ step: "准备中…", pct: 0 });
 		try {
 			const segs = await generateDubSegments({
 				editor,
-				provider: settings.transcribeProvider,
 				modelId: settings.transcribeModel,
 				language: toWhisperLanguage(
 					settings.sourceLang,
 				) as TranscriptionLanguage,
-				creds,
 				onStep: (a) => setProc(a),
 			});
 			if (segs.length === 0) {
@@ -161,57 +153,32 @@ function SetupView() {
 					) : null}
 				</div>
 
-				{/* transcription backend — speed vs privacy */}
+				{/* transcription — always local browser Whisper; subtitles skip it */}
 				<div className="space-y-2">
 					<div className="text-muted-foreground text-xs font-medium">
-						转写方式
+						转写（本地 Whisper）
 					</div>
-					<div className="bg-muted inline-flex rounded-md p-0.5">
-						{(["cloud", "local"] as const).map((mode) => (
-							<button
-								type="button"
-								key={mode}
-								onClick={() =>
-									setSetting({ key: "transcribeProvider", value: mode })
-								}
-								className={cn(
-									"rounded px-3 py-1 text-xs transition-colors",
-									settings.transcribeProvider === mode
-										? "bg-background shadow-sm"
-										: "text-muted-foreground",
-								)}
-							>
-								{mode === "cloud" ? "云端 Groq（快）" : "本地（免费/慢）"}
-							</button>
+					<select
+						value={settings.transcribeModel}
+						onChange={(e) =>
+							setSetting({
+								key: "transcribeModel",
+								value: e.target.value as TranscriptionModelId,
+							})
+						}
+						className="border-border bg-background w-full rounded-md border px-2.5 py-1.5 text-sm"
+					>
+						{TRANSCRIPTION_MODELS.map((m) => (
+							<option key={m.id} value={m.id}>
+								{m.name} — {m.description}
+							</option>
 						))}
-					</div>
-					{settings.transcribeProvider === "cloud" ? (
-						<p className="text-muted-foreground text-[10px] leading-relaxed">
-							用你的 Groq Key 在云端跑 whisper-large-v3-turbo，7 分钟视频几秒出结果（音频会上传到 Groq）。在下方「语音 / 翻译 凭据」填 Groq Key。
-						</p>
-					) : (
-						<div className="space-y-2">
-							<select
-								value={settings.transcribeModel}
-								onChange={(e) =>
-									setSetting({
-										key: "transcribeModel",
-										value: e.target.value as TranscriptionModelId,
-									})
-								}
-								className="border-border bg-background w-full rounded-md border px-2.5 py-1.5 text-sm"
-							>
-								{TRANSCRIPTION_MODELS.map((m) => (
-									<option key={m.id} value={m.id}>
-										{m.name} — {m.description}
-									</option>
-								))}
-							</select>
-							<p className="text-muted-foreground text-[10px] leading-relaxed">
-								浏览器本地识别、不上传：有 WebGPU 时约 1–2 分钟，否则走 CPU 会很慢。先用 Tiny 跑通。
-							</p>
-						</div>
-					)}
+					</select>
+					<p className="text-muted-foreground text-[10px] leading-relaxed">
+						浏览器本地识别、不上传：有 WebGPU 时约 1–2 分钟，否则走 CPU 会很慢。
+						想跳过这一步：提前给视频准备同名的带时间戳字幕（如 lesson.srt /
+						lesson_en.vtt），导入后会直接翻译配音、不再转写。
+					</p>
 				</div>
 
 				{/* everything else (voice / original audio / subtitles / speed /

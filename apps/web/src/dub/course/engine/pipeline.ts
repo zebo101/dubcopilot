@@ -11,11 +11,7 @@ import { renderLessonHeadless } from "@/dub/course/engine/stages/export";
 import { segmentsFromCues, applyTranslationMap } from "@/dub/course/segments";
 import { languageByCode } from "@/dub/languages";
 import { translateSegments } from "@/dub/translate";
-import {
-	hasGroqKey,
-	hasTranslateKey,
-	type DubCredentials,
-} from "@/dub/credentials";
+import { hasTranslateKey, type DubCredentials } from "@/dub/credentials";
 import type { DubSettings, Segment } from "@/dub/types";
 import type { CourseLesson } from "@/dub/course/types";
 import type { StepReport, SynthesizedClip } from "@/dub/course/engine/types";
@@ -119,26 +115,13 @@ export async function runLesson({
 				});
 			}
 		} else {
-			// cloud ASR without a Groq key would 400 — local Whisper needs no key,
-			// so fall back instead of failing the lesson (the editor view has the
-			// same guard interactively; headless must decide on its own)
-			let provider = settings.transcribeProvider;
-			if (provider === "cloud" && !hasGroqKey(creds)) {
-				provider = "local";
-				step("转写")({
-					step: "未配置 Groq Key，已自动改用本地转写…",
-					pct: 2,
-				});
-			}
 			segments = await sems.asr.withPermit(
 				() =>
 					transcribeLesson({
 						videoFile: prep.videoFile,
 						meta: prep.meta,
-						provider,
 						modelId: settings.transcribeModel,
 						sourceLang: settings.sourceLang,
-						creds,
 						onStep: step("转写"),
 					}),
 				hooks.signal,

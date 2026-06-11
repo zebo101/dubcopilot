@@ -139,26 +139,6 @@ export function CredentialsSection() {
 							onChange={(v) => cred.setField({ key: "deepseekModel", value: v })}
 						/>
 					</div>
-					<div className="space-y-2">
-						<div className="text-[11px] font-medium">Groq 云端转写</div>
-						<CredField
-							label="API Key（云端转写用）"
-							type="password"
-							placeholder="gsk_..."
-							value={cred.groqApiKey}
-							onChange={(v) => cred.setField({ key: "groqApiKey", value: v })}
-						/>
-						<CredField
-							label="Base URL"
-							value={cred.groqBaseUrl}
-							onChange={(v) => cred.setField({ key: "groqBaseUrl", value: v })}
-						/>
-						<CredField
-							label="模型"
-							value={cred.groqModel}
-							onChange={(v) => cred.setField({ key: "groqModel", value: v })}
-						/>
-					</div>
 					<div className="flex items-center gap-2 pt-1">
 						<Button
 							size="sm"

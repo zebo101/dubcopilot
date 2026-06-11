@@ -25,9 +25,8 @@ const DEFAULT_SETTINGS: DubSettings = {
 	// matters because browser Whisper has no per-chunk progress. Users who want
 	// higher accuracy can bump this to Small/Medium in the setup panel.
 	transcribeModel: "whisper-tiny",
-	// Default to local: for course-scale work (hundreds of hours) audio must not
-	// be uploaded. Cloud (Groq) stays available for one-off short clips.
-	transcribeProvider: "local",
+	exportFormat: "mp4",
+	exportQuality: "high",
 };
 
 interface DubStore {
