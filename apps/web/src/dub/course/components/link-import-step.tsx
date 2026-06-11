@@ -220,9 +220,13 @@ export function LinkImportStep() {
 		const handle = await pickCourseDirectory();
 		if (!handle) return;
 		setDirHandle(handle);
-		const list: DownloadTask[] = selected.map((item, i) => ({
+		// number by position in the RESOLVED list, not the selected subset —
+		// re-importing with already-done items unchecked must keep the same
+		// "NNN - " stems or the resume skip stops matching
+		const indexByKey = new Map(items.map((it, i) => [it.key, i + 1]));
+		const list: DownloadTask[] = selected.map((item) => ({
 			item,
-			index: i + 1,
+			index: indexByKey.get(item.key) ?? 1,
 			status: "pending",
 			pct: 0,
 			downloadedBytes: 0,
