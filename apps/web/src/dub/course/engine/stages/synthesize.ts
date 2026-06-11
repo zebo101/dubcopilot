@@ -88,19 +88,26 @@ export async function synthesizeLesson({
 				speedRatio: Number(nativeRatio.toFixed(2)),
 				language: ttsExplicitLanguage(settings.targetLang),
 			});
-		let bytes: ArrayBuffer;
-		try {
-			bytes = await attempt();
-		} catch {
-			// one retry — transient TTS hiccups are common at 8-way concurrency
+		// 3 tries with backoff — transient hiccups are common at 8-way
+		// concurrency, and cross-border links (大陆 ↔ 海外服务器) routinely
+		// stall one request while the rest sail through
+		let bytes: ArrayBuffer | null = null;
+		let lastError: unknown = null;
+		for (let tryNo = 0; tryNo < 3 && bytes === null; tryNo++) {
+			if (tryNo > 0) {
+				await new Promise((r) => setTimeout(r, 800 * tryNo * tryNo));
+			}
 			try {
 				bytes = await attempt();
 			} catch (error) {
-				failures.push(
-					`${unit.id}: ${error instanceof Error ? error.message : "TTS 失败"}`,
-				);
-				return;
+				lastError = error;
 			}
+		}
+		if (bytes === null) {
+			failures.push(
+				`${unit.id}: ${lastError instanceof Error ? lastError.message : "TTS 失败"}`,
+			);
+			return;
 		}
 
 		let realDuration = unit.span;

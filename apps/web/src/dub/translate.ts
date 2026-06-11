@@ -18,17 +18,28 @@ async function requestBatch({
 	creds: DubCredentials;
 	targetLabel: string;
 }): Promise<{ id: string; text: string }[]> {
-	const res = await fetch("/api/dub/translate", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			apiKey: creds.deepseekApiKey,
-			baseUrl: creds.deepseekBaseUrl,
-			model: creds.deepseekModel,
-			targetLabel,
-			items,
-		}),
-	});
+	let res: Response;
+	try {
+		res = await fetch("/api/dub/translate", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				apiKey: creds.deepseekApiKey,
+				baseUrl: creds.deepseekBaseUrl,
+				model: creds.deepseekModel,
+				targetLabel,
+				items,
+			}),
+			// a 10-item batch finishes well under 2 min — only a STALLED
+			// connection trips this; the retry rounds then re-request those ids
+			signal: AbortSignal.timeout(120_000),
+		});
+	} catch (error) {
+		if (error instanceof DOMException && error.name === "TimeoutError") {
+			throw new Error("翻译请求超时（网络不稳定，将自动补译）");
+		}
+		throw error;
+	}
 	if (!res.ok) {
 		const err = (await res.json().catch(() => ({}))) as { error?: string };
 		throw new Error(err.error ?? `翻译请求失败 (${res.status})`);
