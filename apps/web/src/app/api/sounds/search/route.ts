@@ -1,7 +1,24 @@
 import { webEnv } from "@/env/web";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { checkRateLimit } from "@/auth/rate-limit";
+
+// Self-hosted single instance — a per-IP in-memory sliding window replaces
+// the old Upstash Redis rate limiter (the whole auth/db/redis stack is gone).
+const RATE_LIMIT = 100; // requests per minute per IP
+const WINDOW_MS = 60_000;
+const hits = new Map<string, number[]>();
+
+function checkRateLimit({ request }: { request: Request }): {
+	limited: boolean;
+} {
+	const ip = request.headers.get("x-forwarded-for") ?? "anonymous";
+	const now = Date.now();
+	const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+	recent.push(now);
+	hits.set(ip, recent);
+	if (hits.size > 10_000) hits.clear(); // unbounded-growth backstop
+	return { limited: recent.length > RATE_LIMIT };
+}
 
 const searchParamsSchema = z.object({
 	q: z.string().max(500, "Query too long").optional(),
@@ -149,7 +166,7 @@ function transformFreesoundResult(
 
 export async function GET(request: NextRequest) {
 	try {
-		const { limited } = await checkRateLimit({ request });
+		const { limited } = checkRateLimit({ request });
 		if (limited) {
 			return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 		}
