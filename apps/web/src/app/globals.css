@@ -289,3 +289,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* 落地页字体组合：Outfit（正文）/ Playfair Display（展示标题）/ JetBrains Mono（等宽）。
+   三款均无中文字形，中文回退系统黑体。 */
+.font-landing {
+  font-family:
+    var(--font-outfit), "PingFang SC", "Microsoft YaHei", system-ui,
+    sans-serif;
+}
+.font-landing :where(.font-mono) {
+  font-family:
+    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.font-hero-display {
+  font-family:
+    var(--font-playfair), var(--font-outfit), "PingFang SC", "Microsoft YaHei",
+    system-ui, sans-serif;
+}

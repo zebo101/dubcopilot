@@ -87,13 +87,13 @@ export function Hero(props: HeroProps) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        "relative h-svh max-h-[1200px] min-h-[600px] w-full overflow-hidden bg-background pt-32 font-sans text-foreground md:pt-40",
+        "relative h-svh max-h-[1200px] min-h-[600px] w-full overflow-hidden bg-background pt-32 text-foreground md:pt-40",
         className,
       )}
     >
       <div className="container mx-auto px-6">
         <div className="relative z-20 flex flex-col gap-5">
-          <h1 className="md:leading-tighter mx-auto max-w-3xl text-center text-4xl leading-[1.2] tracking-tight text-balance sm:text-5xl md:mx-0 md:text-left md:text-7xl lg:text-7xl">
+          <h1 className="md:leading-tighter font-hero-display mx-auto max-w-3xl text-center text-4xl leading-[1.2] tracking-tight text-balance sm:text-5xl md:mx-0 md:text-left md:text-7xl lg:text-7xl">
             {heading}
           </h1>
           <div className="mx-auto max-w-2xl md:mx-0">

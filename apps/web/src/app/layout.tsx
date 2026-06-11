@@ -5,9 +5,23 @@ import { Toaster } from "../components/ui/sonner";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { baseMetaData } from "./metadata";
 import { BotIdClient } from "botid/client";
-import { Inter } from "next/font/google";
+import {
+	Inter,
+	JetBrains_Mono,
+	Outfit,
+	Playfair_Display,
+} from "next/font/google";
 
 const siteFont = Inter({ subsets: ["latin"] });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const playfair = Playfair_Display({
+	subsets: ["latin"],
+	variable: "--font-playfair",
+});
+const jetbrainsMono = JetBrains_Mono({
+	subsets: ["latin"],
+	variable: "--font-jetbrains-mono",
+});
 
 export const metadata = baseMetaData;
 
@@ -37,7 +51,9 @@ export default function RootLayout({
 					</>
 				)}
 			</head>
-			<body className={`${siteFont.className} font-sans antialiased`}>
+			<body
+				className={`${siteFont.className} ${outfit.variable} ${playfair.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+			>
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"

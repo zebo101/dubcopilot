@@ -78,7 +78,7 @@ const jsonLd = {
 
 export default function Home() {
   return (
-    <div>
+    <div className="font-landing">
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger -- JSON-LD structured data
