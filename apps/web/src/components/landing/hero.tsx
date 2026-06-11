@@ -140,7 +140,7 @@ export function Hero(props: HeroProps) {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-56 bg-linear-to-b from-transparent to-background dark:hidden"
+        className="pointer-events-none absolute inset-0 z-30 bg-linear-to-b from-transparent from-[52%] via-background/30 via-[80%] to-background dark:hidden"
       />
       <div
         aria-hidden
