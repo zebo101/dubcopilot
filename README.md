@@ -1,122 +1,78 @@
+<div align="center">
+
 # dubcopilot
 
-AI 视频配音工具——上传视频，自动转写翻译，一键合成中文配音并导出带字幕的成片。面向整门课程（100+ 视频）的批量本地化场景。
+**AI 视频配音工具** —— 上传整门课程，自动转写、翻译、合成配音，一键导出带字幕的成片。
 
-官网：[dubcopilot.com](https://dubcopilot.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Website](https://img.shields.io/badge/官网-dubcopilot.com-black)](https://dubcopilot.com)
 
-> 本项目基于开源视频编辑器 [OpenCut](https://github.com/OpenCut-app/OpenCut)（MIT 协议）二次开发，原始版权声明保留于 [LICENSE](LICENSE)。
+[功能特性](#功能特性) · [本地开发](#本地开发) · [自托管部署](#自托管部署) · [项目结构](#项目结构)
 
-## Project Structure
+</div>
 
-- `apps/web/`: Next.js web application（含 `src/dub/` 配音模块与 `/course` 批量中心）
-- `apps/desktop/`: Native desktop app built with GPUI (in progress)
-- `rust/`: Platform-agnostic core: GPU compositor, effects, masks, and WASM bindings
-- `docs/`: Architecture and subsystem documentation
+---
 
-## Getting Started
+## 功能特性
 
-### Prerequisites
+- **批量课程本地化** — `/course` 批量中心一次导入 100+ 节课，转写 → 翻译 → 配音 → 导出全自动流水线，支持断点续跑
+- **多种导入方式** — 本地文件夹直读（不上传、写回同目录）、YouTube 视频/播放列表、Google Drive / OneDrive 分享链接、视频直链
+- **本地转写** — 浏览器内 Whisper（WebGPU 加速），音频不离开设备；自带字幕的视频直接跳过转写
+- **多语言翻译** — DeepSeek 驱动，源语言自动检测，目标语言覆盖中/英/日/西等可配音语种
+- **自然配音** — 豆包（火山引擎）BigTTS，任意 voice_type 自定义音色，语速自适应贴合原时长
+- **灵活导出** — 写回课程目录 `_localized/` 或打包 ZIP，字幕可软挂或烧录进画面
+- **隐私优先** — 无账号、无数据库：项目数据与 API 密钥全部保存在你自己的浏览器里
 
-- [Bun](https://bun.sh/docs/installation)
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+> 基于开源视频编辑器 [OpenCut](https://github.com/OpenCut-app/OpenCut)（MIT）二次开发，保留完整的时间轴精修能力；原始版权声明见 [LICENSE](LICENSE)。
 
-> **Note:** Docker is optional but recommended for running the local database and Redis. If you only want to work on frontend features, you can skip it.
+## 本地开发
 
-### Setup
-
-1. Clone the repository
-
-2. Copy the environment file:
-
-   ```bash
-   # Unix/Linux/Mac
-   cp apps/web/.env.example apps/web/.env.local
-
-   # Windows PowerShell
-   Copy-Item apps/web/.env.example apps/web/.env.local
-   ```
-
-3. Start the database and Redis:
-
-   ```bash
-   docker compose up -d db redis serverless-redis-http
-   ```
-
-4. Install dependencies and start the dev server:
-
-   ```bash
-   bun install
-   bun dev:web
-   ```
-
-The application will be available at [http://localhost:3000](http://localhost:3000).
-
-The `.env.example` has sensible defaults that match the Docker Compose config — it should work out of the box.
-
-### Desktop setup
-
-Desktop is opt-in. If you're only working on the web app, skip this entirely. See [`apps/desktop/README.md`](apps/desktop/README.md).
-
-### Local WASM development
-
-Only needed if you're editing `rust/wasm` and want the web app to use your local build instead of the published package.
-
-**Prerequisites** — install these once before anything else:
+只需要 [Bun](https://bun.sh)——没有数据库、没有 Redis，克隆即跑：
 
 ```bash
-# Rust toolchain
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# build the WASM package
-cargo install wasm-pack
-
-# reruns the build on file changes, used by bun dev:wasm
-cargo install cargo-watch
+bun install
+bun dev:web        # → http://localhost:3000
 ```
 
-1. Build the package once from the repo root:
+DeepSeek / 豆包 TTS 的 API Key 在应用内「配音设置 → 语音/翻译凭据」里填写，仅保存在浏览器 localStorage，不经过任何服务器存储。
 
-   ```bash
-   bun run build:wasm
-   ```
+## 自托管部署
 
-2. Register the generated package for linking:
-
-   ```bash
-   cd rust/wasm/pkg
-   bun link
-   ```
-
-3. Link `apps/web` to the local package:
-
-   ```bash
-   cd apps/web
-   bun link opencut-wasm
-   ```
-
-4. Rebuild on changes while you work:
-
-   ```bash
-   bun dev:wasm
-   ```
-
-To switch `apps/web` back to the published package, run:
+仓库自带单容器 `docker-compose.yml`：
 
 ```bash
-cd apps/web
-bun add opencut-wasm
+docker network create dokploy-network          # 仅首次；Dokploy 服务器自带此网络
+NEXT_PUBLIC_SITE_URL=https://your.domain \
+  docker compose up -d --build
 ```
 
-### Self-Hosting with Docker
+- `NEXT_PUBLIC_SITE_URL` 是**构建参数**（编译期写进前端产物），更换域名后需要重新 build
+- 推荐用 [Dokploy](https://dokploy.com) 部署：新建 **Compose** 类型服务 → Compose Path `./docker-compose.yml` → Domains 绑定 `web` 服务 + 容器端口 `3000` + Let's Encrypt
+- 可选环境变量 `FREESOUND_CLIENT_ID` / `FREESOUND_API_KEY`：只有「音效」搜索用到，不配也能正常运行
 
-To run everything (including a production build of the app) in Docker:
+## 项目结构
+
+```
+apps/web/        Next.js 应用（src/dub/ 配音模块、/course 批量中心）
+apps/desktop/    GPUI 桌面端（进行中）
+rust/            GPU 合成器 / 特效 / WASM 绑定（发布为 opencut-wasm）
+docs/            架构与子系统文档（editor/ · plans/ · specs/）
+```
+
+## WASM 本地开发
+
+仅当你要改 `rust/wasm` 并让 web 端用本地构建（而非已发布的 `opencut-wasm` 包）时需要：
 
 ```bash
-docker compose up -d
+# 一次性环境：rustup + wasm-pack + cargo-watch（见 rust/scripts/setup-rust）
+bun run build:wasm                 # 构建到 rust/wasm/pkg
+cd rust/wasm/pkg && bun link       # 注册本地包
+cd apps/web && bun link opencut-wasm
+bun dev:wasm                       # 文件变更自动重建
 ```
 
-The app will be available at [http://localhost:3100](http://localhost:3100).
+切回已发布包：`cd apps/web && bun add opencut-wasm`。
 
 ## License
 
-[MIT LICENSE](LICENSE)
+[MIT](LICENSE)
