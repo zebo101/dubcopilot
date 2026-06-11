@@ -19,6 +19,9 @@ bun.lockb
 # Twiggy
 .cursor/
 
+# Claude Code local tooling
+.claude/
+
 .open-next
 
 target/
