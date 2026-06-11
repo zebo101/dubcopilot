@@ -33,6 +33,7 @@ import {
 	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
+	AiVoiceIcon,
 	Calendar04Icon,
 	GridViewIcon,
 	LeftToRightListDashIcon,
@@ -184,6 +185,7 @@ function ProjectsHeader() {
 
 				<div className="flex items-center gap-3 md:gap-4">
 					<SearchBar className="hidden md:block" />
+					<BatchDubButton />
 					<NewProjectButton />
 				</div>
 			</div>
@@ -501,6 +503,22 @@ function SortDropdown({ children }: { children: React.ReactNode }) {
 				</DropdownMenuCheckboxItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
+	);
+}
+
+function BatchDubButton() {
+	const router = useRouter();
+	return (
+		<Button
+			size="lg"
+			variant="outline"
+			className="flex px-5 md:px-6"
+			onClick={() => router.push("/course")}
+		>
+			<HugeiconsIcon icon={AiVoiceIcon} className="size-4" />
+			<span className="text-sm font-medium hidden md:block">批量配音中心</span>
+			<span className="text-sm font-medium block md:hidden">配音</span>
+		</Button>
 	);
 }
 
