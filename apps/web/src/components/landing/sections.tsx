@@ -76,7 +76,7 @@ const STEPS = [
     icon: <Upload className="size-5" />,
     title: "上传视频，自动语音转写",
     description:
-      "把外语课程视频拖进 dubcopilot，AI 语音识别自动生成逐句字幕和时间轴，无需手动听写。",
+      "把外语视频拖进 dubcopilot，AI 语音识别自动生成逐句字幕和时间轴，无需手动听写。",
   },
   {
     icon: <Languages className="size-5" />,
@@ -305,7 +305,7 @@ export function UseCases() {
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
           title="dubcopilot 适用场景"
-          description="只要是「外语视频 + 想要中文配音」的场景，dubcopilot 都能帮你省下大量时间。"
+          description="只要是「外语视频 + 想要中文配音」，不管是单个视频还是整个内容库，dubcopilot 都能帮你省下大量时间。"
         />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {USE_CASES.map((u) => (
@@ -348,7 +348,7 @@ export function Compare() {
       <div className="mx-auto w-full max-w-4xl px-4">
         <SectionHeading
           title="AI 配音 vs 传统人工配音"
-          description="对于课程类内容，AI 视频配音在成本和效率上是数量级的差距。"
+          description="对于讲解类视频和成规模的内容库，AI 视频配音在成本和效率上是数量级的差距。"
         />
         <div className="overflow-x-auto rounded-2xl border">
           <table className="w-full text-sm">

@@ -15,9 +15,10 @@ import { Footer } from "@/components/footer";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/site/brand";
 
-const TITLE = "dubcopilot - AI 视频配音工具 | 视频翻译、字幕生成、整门课程批量配音";
+const TITLE =
+  "dubcopilot - AI 视频配音工具 | 视频翻译、字幕生成、批量配音、一键导出成片";
 const DESCRIPTION =
-  "dubcopilot 是一款免费的 AI 视频配音工具：上传外语课程视频，自动完成语音转写与字幕翻译，豆包 TTS 一键合成自然中文配音，带字幕导出成片。支持整门课程上百个视频批量本地化，数据全程保存在本地浏览器，使用自己的 API 密钥，成本透明、无水印，是课程引进与视频翻译配音的高效之选。";
+  "dubcopilot 是一款免费的 AI 视频配音工具：上传外语视频，自动完成语音转写与字幕翻译，豆包 TTS 一键合成自然中文配音，带字幕导出成片。无论单个视频还是整门课程，上百个视频也能批量本地化；数据全程保存在本地浏览器，使用自己的 API 密钥，成本透明、无水印，是视频翻译配音的高效之选。";
 
 export const metadata: Metadata = {
   title: TITLE,

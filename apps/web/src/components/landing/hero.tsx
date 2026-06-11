@@ -26,11 +26,11 @@ export function Hero({ className }: { className?: string }) {
         {/* heading */}
         <div className="mx-auto flex max-w-2xl flex-col items-center justify-center gap-4">
           <h1 className="text-center text-5xl font-bold tracking-tight lg:text-6xl">
-            AI 视频配音，让课程跨越语言边界
+            AI 视频配音，跨越语言边界
           </h1>
           <p className="px-10 text-center text-muted-foreground lg:text-lg">
             上传视频，自动语音转写、AI
-            字幕翻译，豆包 TTS 合成自然中文配音，整门课程批量处理，带字幕一键导出成片。
+            字幕翻译，豆包 TTS 合成自然中文配音，带字幕一键导出成片，整门课程也能批量处理。
           </p>
           <Link href="/projects">
             <button className="mt-2 flex items-center gap-1.5 rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-80">
