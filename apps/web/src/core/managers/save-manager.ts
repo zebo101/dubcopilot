@@ -85,7 +85,9 @@ export class SaveManager {
 		if (this.isSaving) return;
 		if (!this.hasPendingSave) return;
 
-		const activeProject = this.editor.project.getActive();
+		// headless flows (batch dub center) emit scene/timeline events with no
+		// active project — skip instead of letting getActive() throw
+		const activeProject = this.editor.project.getActiveOrNull();
 		if (!activeProject) return;
 		if (this.editor.project.getIsLoading()) return;
 		if (this.editor.project.getMigrationState().isMigrating) return;
