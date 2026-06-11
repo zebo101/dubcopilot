@@ -42,22 +42,21 @@ export function MobileGate({ children }: MobileGateProps) {
 				onClick={handleGoBack}
 			>
 				<HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" />
-				<span className=" text-sm">Go back</span>
+				<span className=" text-sm">返回</span>
 			</Button>
 
 			<div className="flex flex-1 flex-col justify-center gap-5 px-7">
 				<div className="flex flex-col gap-3">
 					<h1 className="text-foreground text-3xl font-bold tracking-tight">
-						Desktop only (for now)
+						请在电脑上使用
 					</h1>
 					<p className="text-muted-foreground text-sm leading-relaxed">
-						dubcopilot isn't optimized for mobile or iPad yet. Things will
-						break and the layout will be a mess. Come back on a desktop for the
-						real experience.
+						dubcopilot 还没有针对手机和 iPad
+						做适配，页面会错位、功能也可能异常。请在电脑浏览器中打开，获得完整体验。
 					</p>
 				</div>
 				<div className="flex items-center gap-3">
-					<Button onClick={handleContinue}>Take a look anyway</Button>
+					<Button onClick={handleContinue}>仍要看看</Button>
 				</div>
 			</div>
 		</div>

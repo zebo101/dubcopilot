@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { AiVoiceIcon, Folder03Icon, Loading03Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { MobileGate } from "@/components/editor/mobile-gate";
 import { useCourseStore } from "@/dub/course/store";
 import { BatchCenter } from "@/dub/course/components/batch-center";
 import { ImportCourse } from "@/dub/course/components/import-course";
@@ -47,19 +48,19 @@ export default function CoursePage() {
 		void hydrate();
 	}, [hydrate]);
 
-	if (!hydrated) {
-		return (
-			<div className="bg-background flex h-screen w-screen items-center justify-center gap-2 text-sm">
-				<HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />
-				恢复课程进度…
-			</div>
-		);
-	}
-
 	return (
-		<>
-			{course ? <BatchCenter /> : <EmptyLanding />}
-			{view === "import" && <ImportCourse />}
-		</>
+		<MobileGate>
+			{!hydrated ? (
+				<div className="bg-background flex h-screen w-screen items-center justify-center gap-2 text-sm">
+					<HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />
+					恢复课程进度…
+				</div>
+			) : (
+				<>
+					{course ? <BatchCenter /> : <EmptyLanding />}
+					{view === "import" && <ImportCourse />}
+				</>
+			)}
+		</MobileGate>
 	);
 }
