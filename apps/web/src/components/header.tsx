@@ -116,42 +116,68 @@ export function Header() {
 						isMenuOpen && "pointer-events-auto opacity-100",
 					)}
 				>
-					{/* 遮罩：近不透明底 + 毛玻璃，点击空白处关闭 */}
+					{/* 遮罩：浅色暗化 + 轻毛玻璃，点击空白处关闭 */}
 					<button
 						type="button"
 						aria-label="Close menu"
-						className="bg-background/90 absolute inset-0 backdrop-blur-xl"
+						className="absolute inset-0 bg-black/20 backdrop-blur-sm dark:bg-black/40"
 						onClick={closeMenu}
 					/>
-					<div className="relative flex h-full flex-col px-6 pt-20 pb-8">
-						<div className="absolute top-4 right-5">
-							<Button
-								variant="text"
-								size="icon"
-								className="flex items-center justify-center p-0"
-								onClick={closeMenu}
-							>
-								<HugeiconsIcon icon={Cancel01Icon} size={24} />
-							</Button>
+					{/* 下拉面板：实际内容高度 */}
+					<div
+						className={cn(
+							"bg-background absolute inset-x-0 top-0 rounded-b-2xl border-b shadow-lg",
+							"-translate-y-2 transition-transform duration-200",
+							isMenuOpen && "translate-y-0",
+						)}
+					>
+						<div className="flex items-center justify-between px-6 pt-4">
+							<div className="flex items-center gap-2">
+								<Image
+									src={DEFAULT_LOGO_URL}
+									alt="dubcopilot"
+									className="rounded-md"
+									width={24}
+									height={24}
+								/>
+								<span className="text-sm font-bold">dubcopilot</span>
+							</div>
+							<div className="flex items-center gap-1">
+								<ThemeToggle
+									className="size-8"
+									iconClassName="!size-[1rem]"
+									onToggle={(e) => {
+										e.stopPropagation();
+									}}
+								/>
+								<Button
+									variant="text"
+									size="icon"
+									className="flex items-center justify-center p-0"
+									onClick={closeMenu}
+								>
+									<HugeiconsIcon icon={Cancel01Icon} size={20} />
+								</Button>
+							</div>
 						</div>
-						<nav className="flex flex-col">
+						<nav className="flex flex-col px-6 pt-2">
 							{links.map((link, index) => (
 								<motion.div
 									key={link.href}
-									initial={{ y: 8, opacity: 0 }}
+									initial={{ y: 6, opacity: 0 }}
 									animate={{
-										y: isMenuOpen ? 0 : 8,
+										y: isMenuOpen ? 0 : 6,
 										opacity: isMenuOpen ? 1 : 0,
 									}}
 									transition={{
-										duration: 0.3,
-										delay: isMenuOpen ? index * 0.05 : 0,
+										duration: 0.25,
+										delay: isMenuOpen ? index * 0.04 : 0,
 										ease: [0.25, 0.46, 0.45, 0.94],
 									}}
 								>
 									<Link
 										href={link.href}
-										className="text-foreground/90 border-border/50 block border-b py-4 text-lg font-medium"
+										className="text-foreground/90 border-border/50 block border-b py-3.5 text-base font-medium"
 										onClick={closeMenu}
 									>
 										{link.label}
@@ -159,34 +185,14 @@ export function Header() {
 								</motion.div>
 							))}
 						</nav>
-						<motion.div
-							initial={{ y: 8, opacity: 0 }}
-							animate={{
-								y: isMenuOpen ? 0 : 8,
-								opacity: isMenuOpen ? 1 : 0,
-							}}
-							transition={{
-								duration: 0.3,
-								delay: isMenuOpen ? links.length * 0.05 : 0,
-								ease: [0.25, 0.46, 0.45, 0.94],
-							}}
-							className="pt-6"
-						>
+						<div className="px-6 pt-4 pb-6">
 							<Link href="/projects" onClick={closeMenu}>
 								<Button className="w-full text-sm">
 									Projects
 									<ArrowRight className="size-4" />
 								</Button>
 							</Link>
-						</motion.div>
-						<ThemeToggle
-							className="absolute right-6 bottom-8 size-10"
-							iconClassName="!size-[1.2rem]"
-							onToggle={(e) => {
-								e.preventDefault();
-								e.stopPropagation();
-							}}
-						/>
+						</div>
 					</div>
 				</div>
 			</div>
