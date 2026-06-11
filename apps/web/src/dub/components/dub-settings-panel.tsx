@@ -15,9 +15,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { useEditor } from "@/editor/use-editor";
+import type { EditorCore } from "@/core";
+import type { VideoTrack } from "@/timeline";
 import { useDubStore } from "@/dub/store";
 import { useDubCredentials, hasTtsKey } from "@/dub/credentials";
 import { linearToDb } from "@/dub/original-audio";
+import { DUB_AUDIO_TRACK_PREFIX } from "@/dub/adapter";
 import { VoicePicker } from "@/dub/components/voice-picker";
 import { LangSelect } from "@/dub/components/lang-select";
 import { languageByCode } from "@/dub/languages";
@@ -182,6 +185,57 @@ const VOLUME_GEARS: { label: string; value: number | "mute" }[] = [
 ];
 
 /**
+ * Apply 原声处理 LIVE to every source track of the open project: the main
+ * track, overlay VIDEO tracks (a video imported via the Media panel often
+ * lands there — main-only handling left it uncontrollable), and non-dub audio
+ * tracks (mute toggle only, mirroring what ② apply does). Volume tweaks skip
+ * the undo stack so dragging doesn't spam history.
+ */
+function applyOriginalAudioToOpenProject({
+	editor,
+	mode,
+	volume,
+}: {
+	editor: EditorCore;
+	mode: "mute" | "background";
+	volume: number;
+}): void {
+	const scene = editor.scenes.getActiveSceneOrNull();
+	if (!scene) return;
+	const muted = mode === "mute";
+
+	const videoTracks: VideoTrack[] = [
+		scene.tracks.main,
+		...scene.tracks.overlay.filter(
+			(t): t is VideoTrack => t.type === "video",
+		),
+	];
+	for (const track of videoTracks) {
+		if (track.muted !== muted) {
+			editor.timeline.toggleTrackMute({ trackId: track.id });
+		}
+		if (!muted && track.elements.length > 0) {
+			editor.timeline.updateElements({
+				updates: track.elements.map((el) => ({
+					trackId: track.id,
+					elementId: el.id,
+					// params.volume is in dB — raw 0–1 ratios are inaudible no-ops
+					patch: { params: { ...el.params, volume: linearToDb(volume) } },
+				})),
+				pushHistory: false,
+			});
+		}
+	}
+
+	for (const track of scene.tracks.audio) {
+		if (track.name?.startsWith(DUB_AUDIO_TRACK_PREFIX)) continue;
+		if (track.muted !== muted) {
+			editor.timeline.toggleTrackMute({ trackId: track.id });
+		}
+	}
+}
+
+/**
  * Compact original-audio gear row, usable from ANY panel (the right-side
  * 配音设置 disappears whenever a timeline element is selected — this lives in
  * the left review column too, so the control is always reachable).
@@ -192,28 +246,18 @@ export function OriginalAudioQuickControl() {
 	const setSetting = useDubStore((s) => s.setSetting);
 
 	const apply = (value: number | "mute") => {
-		const scene = editor.scenes.getActiveSceneOrNull();
-		const main = scene?.tracks.main;
 		if (value === "mute") {
 			setSetting({ key: "originalAudio", value: "mute" });
-			if (main && !main.muted)
-				editor.timeline.toggleTrackMute({ trackId: main.id });
+			applyOriginalAudioToOpenProject({ editor, mode: "mute", volume: 0 });
 			return;
 		}
 		setSetting({ key: "originalAudio", value: "background" });
 		setSetting({ key: "backgroundVolume", value });
-		if (!main) return;
-		if (main.muted) editor.timeline.toggleTrackMute({ trackId: main.id });
-		if (main.elements.length > 0) {
-			editor.timeline.updateElements({
-				updates: main.elements.map((el) => ({
-					trackId: main.id,
-					elementId: el.id,
-					patch: { params: { ...el.params, volume: linearToDb(value) } },
-				})),
-				pushHistory: false,
-			});
-		}
+		applyOriginalAudioToOpenProject({
+			editor,
+			mode: "background",
+			volume: value,
+		});
 	};
 
 	const isActive = (value: number | "mute") =>
@@ -250,37 +294,6 @@ export function DubSettingsPanel() {
 	const setSetting = useDubStore((s) => s.setSetting);
 	const phase = useDubStore((s) => s.phase);
 
-	// 原声处理 acts LIVE on the open project's main video track — 复核时拖动
-	// 滑杆立刻能听到效果，不必等下一次「② 合成应用」。Volume tweaks skip the
-	// undo stack (pushHistory:false) so dragging doesn't spam history.
-	const applyOriginalAudioLive = ({
-		mode,
-		volume,
-	}: {
-		mode: "mute" | "background";
-		volume: number;
-	}) => {
-		const scene = editor.scenes.getActiveSceneOrNull();
-		const main = scene?.tracks.main;
-		if (!main) return;
-		if (mode === "mute") {
-			if (!main.muted) editor.timeline.toggleTrackMute({ trackId: main.id });
-			return;
-		}
-		if (main.muted) editor.timeline.toggleTrackMute({ trackId: main.id });
-		if (main.elements.length > 0) {
-			editor.timeline.updateElements({
-				updates: main.elements.map((el) => ({
-					trackId: main.id,
-					elementId: el.id,
-					// params.volume is in dB — raw 0–1 ratios are inaudible no-ops
-					patch: { params: { ...el.params, volume: linearToDb(volume) } },
-				})),
-				pushHistory: false,
-			});
-		}
-	};
-
 	// Every timeline update restarts the audio engine (it re-collects clips and
 	// reschedules from the playhead) — applying on EVERY slider tick during a
 	// drag caused a restart storm and audible stutter. Debounce the volume
@@ -290,7 +303,7 @@ export function DubSettingsPanel() {
 		if (volumeDebounce.current) clearTimeout(volumeDebounce.current);
 		volumeDebounce.current = setTimeout(() => {
 			volumeDebounce.current = null;
-			applyOriginalAudioLive({ mode: "background", volume });
+			applyOriginalAudioToOpenProject({ editor, mode: "background", volume });
 		}, 150);
 	};
 
@@ -357,7 +370,8 @@ export function DubSettingsPanel() {
 							key={mode}
 							onClick={() => {
 								setSetting({ key: "originalAudio", value: mode });
-								applyOriginalAudioLive({
+								applyOriginalAudioToOpenProject({
+									editor,
 									mode,
 									volume: settings.backgroundVolume,
 								});

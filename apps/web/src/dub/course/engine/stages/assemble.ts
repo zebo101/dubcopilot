@@ -79,7 +79,10 @@ export async function assembleLesson({
 		trimEnd: mediaTimeFromSeconds({ seconds: 0 }),
 		params: buildDefaultParamValues(getBuiltInElementParams({ type: "video" })),
 	});
-	scene.tracks.main = applyOriginalAudio({ main: scene.tracks.main, settings });
+	scene.tracks.main = applyOriginalAudio({
+		track: scene.tracks.main,
+		settings,
+	});
 
 	// --- dub audio track: persist each TTS clip, then reference it ---
 	const audioParams = buildDefaultParamValues(

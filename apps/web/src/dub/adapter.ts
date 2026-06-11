@@ -182,8 +182,12 @@ export async function applyDubToTimeline({
 	}
 
 	const after: SceneTracks = {
-		overlay: nextOverlay,
-		main: applyOriginalAudio({ main: before.main, settings }),
+		// source video may sit on an overlay track too (Media-panel import) —
+		// 原声处理 must reach it, not just the main track
+		overlay: nextOverlay.map((t) =>
+			t.type === "video" ? applyOriginalAudio({ track: t, settings }) : t,
+		),
+		main: applyOriginalAudio({ track: before.main, settings }),
 		audio: nextAudio,
 	};
 
