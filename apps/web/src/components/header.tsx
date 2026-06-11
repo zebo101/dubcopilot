@@ -8,6 +8,7 @@ import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { ThemeToggle } from "./theme-toggle";
 import {
+	Cancel01Icon,
 	Copy01Icon,
 	Download01Icon,
 	Menu02Icon,
@@ -35,7 +36,7 @@ export function Header() {
 	const closeMenu = () => setIsMenuOpen(false);
 
 	return (
-		<header className="bg-background shadow-background/85 sticky top-0 z-10 shadow-[0_30px_35px_15px_rgba(0,0,0,1)]">
+		<header className="bg-background shadow-background/85 sticky top-0 z-50 shadow-[0_30px_35px_15px_rgba(0,0,0,1)]">
 			<div className="container relative mx-auto flex items-center justify-between px-6 pt-4 pb-2">
 				<div className="relative z-10 flex items-center gap-6">
 					<ContextMenu>
@@ -110,57 +111,76 @@ export function Header() {
 				</div>
 				<div
 					className={cn(
-						"bg-background/20 pointer-events-none fixed inset-0 opacity-0 backdrop-blur-3xl",
-						"transition-opacity duration-150",
+						"pointer-events-none fixed inset-0 z-50 opacity-0 md:hidden",
+						"transition-opacity duration-200",
 						isMenuOpen && "pointer-events-auto opacity-100",
 					)}
 				>
-					<div className="relative h-full">
-						<button
-							type="button"
-							aria-label="Close menu"
-							className="absolute inset-0"
-							onClick={closeMenu}
-							onKeyDown={(event) => {
-								if (
-									event.key === "Enter" ||
-									event.key === " " ||
-									event.key === "Escape"
-								) {
-									event.preventDefault();
-									closeMenu();
-								}
-							}}
-						/>
-						<nav className="flex flex-col gap-3 px-6 pt-[5rem]">
-							{[...links, { label: "Projects", href: "/projects" }].map(
-								(link, index) => (
-									<motion.div
-										key={link.href}
-										initial={{ scale: 0.98, opacity: 0 }}
-										animate={{
-											scale: isMenuOpen ? 1 : 0.98,
-											opacity: isMenuOpen ? 1 : 0,
-										}}
-										transition={{
-											duration: 0.4,
-											delay: isMenuOpen ? index * 0.1 : 0,
-											ease: [0.25, 0.46, 0.45, 0.94],
-										}}
+					{/* 遮罩：近不透明底 + 毛玻璃，点击空白处关闭 */}
+					<button
+						type="button"
+						aria-label="Close menu"
+						className="bg-background/90 absolute inset-0 backdrop-blur-xl"
+						onClick={closeMenu}
+					/>
+					<div className="relative flex h-full flex-col px-6 pt-20 pb-8">
+						<div className="absolute top-4 right-5">
+							<Button
+								variant="text"
+								size="icon"
+								className="flex items-center justify-center p-0"
+								onClick={closeMenu}
+							>
+								<HugeiconsIcon icon={Cancel01Icon} size={24} />
+							</Button>
+						</div>
+						<nav className="flex flex-col">
+							{links.map((link, index) => (
+								<motion.div
+									key={link.href}
+									initial={{ y: 8, opacity: 0 }}
+									animate={{
+										y: isMenuOpen ? 0 : 8,
+										opacity: isMenuOpen ? 1 : 0,
+									}}
+									transition={{
+										duration: 0.3,
+										delay: isMenuOpen ? index * 0.05 : 0,
+										ease: [0.25, 0.46, 0.45, 0.94],
+									}}
+								>
+									<Link
+										href={link.href}
+										className="text-foreground/90 border-border/50 block border-b py-4 text-lg font-medium"
+										onClick={closeMenu}
 									>
-										<Link
-											href={link.href}
-											className="text-2xl font-semibold"
-											onClick={() => setIsMenuOpen(false)}
-										>
-											{link.label}
-										</Link>
-									</motion.div>
-								),
-							)}
+										{link.label}
+									</Link>
+								</motion.div>
+							))}
 						</nav>
+						<motion.div
+							initial={{ y: 8, opacity: 0 }}
+							animate={{
+								y: isMenuOpen ? 0 : 8,
+								opacity: isMenuOpen ? 1 : 0,
+							}}
+							transition={{
+								duration: 0.3,
+								delay: isMenuOpen ? links.length * 0.05 : 0,
+								ease: [0.25, 0.46, 0.45, 0.94],
+							}}
+							className="pt-6"
+						>
+							<Link href="/projects" onClick={closeMenu}>
+								<Button className="w-full text-sm">
+									Projects
+									<ArrowRight className="size-4" />
+								</Button>
+							</Link>
+						</motion.div>
 						<ThemeToggle
-							className="absolute right-8 bottom-8 size-10"
+							className="absolute right-6 bottom-8 size-10"
 							iconClassName="!size-[1.2rem]"
 							onToggle={(e) => {
 								e.preventDefault();
