@@ -94,7 +94,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section className="py-16 lg:py-24">
+    <section id="how-it-works" className="scroll-mt-16 py-16 lg:py-24">
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
           title="三步完成视频翻译配音"
@@ -166,7 +166,7 @@ const FEATURES = [
 
 export function Features() {
   return (
-    <section className="bg-muted/30 py-16 lg:py-24">
+    <section id="features" className="scroll-mt-16 bg-muted/30 py-16 lg:py-24">
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
           title="开箱即用的 AI 视频配音能力"
@@ -207,7 +207,7 @@ const COURSE_POINTS = [
 
 export function CourseBatch() {
   return (
-    <section className="py-16 lg:py-24">
+    <section id="course-batch" className="scroll-mt-16 py-16 lg:py-24">
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
           title="整门课程，批量本地化"
@@ -301,7 +301,7 @@ const USE_CASES = [
 
 export function UseCases() {
   return (
-    <section className="py-16 lg:py-24">
+    <section id="use-cases" className="scroll-mt-16 py-16 lg:py-24">
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
           title="dubcopilot 适用场景"
@@ -424,7 +424,7 @@ export const FAQ_ITEMS = [
 
 export function Faq() {
   return (
-    <section className="py-16 lg:py-24">
+    <section id="faq" className="scroll-mt-16 py-16 lg:py-24">
       <div className="mx-auto w-full max-w-3xl px-4">
         <SectionHeading
           title="关于 dubcopilot 的常见问题"
