@@ -9,7 +9,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # loopback only — host access for db:push, never exposed publicly
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dubcopilot"]
       interval: 30s
@@ -21,7 +22,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -32,7 +33,7 @@ services:
   serverless-redis-http:
     image: hiett/serverless-redis-http:latest
     ports:
-      - "8079:80"
+      - "127.0.0.1:8079:80"
     environment:
       SRH_MODE: env
       SRH_TOKEN: example_token
@@ -54,16 +55,18 @@ services:
       args:
         - FREESOUND_CLIENT_ID=${FREESOUND_CLIENT_ID}
         - FREESOUND_API_KEY=${FREESOUND_API_KEY}
+        # baked into the client bundle — set to the real public URL when deploying
+        - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3100}
     restart: unless-stopped
     ports:
       - "3100:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://dubcopilot:dubcopilot@db:5432/dubcopilot
-      - BETTER_AUTH_SECRET=your-production-secret-key-here
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-change-me-generate-a-long-random-string}
       - UPSTASH_REDIS_REST_URL=http://serverless-redis-http:80
       - UPSTASH_REDIS_REST_TOKEN=example_token
-      - NEXT_PUBLIC_SITE_URL=http://localhost:3100
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3100}
       - FREESOUND_CLIENT_ID=${FREESOUND_CLIENT_ID}
       - FREESOUND_API_KEY=${FREESOUND_API_KEY}
     depends_on:

@@ -6,6 +6,9 @@ WORKDIR /app
 
 ARG FREESOUND_CLIENT_ID
 ARG FREESOUND_API_KEY
+# NEXT_PUBLIC_* is inlined into the CLIENT bundle at build time — the deployed
+# site's real URL must be passed here, a runtime env var is too late
+ARG NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 
 COPY package.json package.json
 COPY bun.lock bun.lock
@@ -24,7 +27,7 @@ ENV DATABASE_URL="postgresql://dubcopilot:dubcopilot@localhost:5432/dubcopilot"
 ENV BETTER_AUTH_SECRET="build-time-secret"
 ENV UPSTASH_REDIS_REST_URL="http://localhost:8079"
 ENV UPSTASH_REDIS_REST_TOKEN="example_token"
-ENV NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 ENV FREESOUND_CLIENT_ID=$FREESOUND_CLIENT_ID
 ENV FREESOUND_API_KEY=$FREESOUND_API_KEY
