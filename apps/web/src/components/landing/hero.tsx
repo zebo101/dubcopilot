@@ -3,6 +3,8 @@
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { Download } from "lucide-react";
+import { GithubIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
@@ -38,8 +40,8 @@ const DEFAULTS = {
       url: "/projects",
     },
     secondary: {
-      text: "课程批量中心",
-      url: "/course",
+      text: "GitHub",
+      url: "https://github.com/zebo101/dubcopilot",
     },
   },
 } satisfies HeroProps;
@@ -105,13 +107,25 @@ export function Hero(props: HeroProps) {
                 <Link href={buttons.primary.url}>{buttons.primary.text}</Link>
               </Button>
             )}
-            {buttons?.secondary && (
-              <Button size="lg" variant="outline" asChild>
-                <Link href={buttons.secondary.url}>
-                  {buttons.secondary.text}
-                </Link>
-              </Button>
-            )}
+            {buttons?.secondary &&
+              (buttons.secondary.url.startsWith("http") ? (
+                <Button size="lg" variant="outline" asChild>
+                  <a
+                    href={buttons.secondary.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <HugeiconsIcon icon={GithubIcon} className="size-4" />
+                    {buttons.secondary.text}
+                  </a>
+                </Button>
+              ) : (
+                <Button size="lg" variant="outline" asChild>
+                  <Link href={buttons.secondary.url}>
+                    {buttons.secondary.text}
+                  </Link>
+                </Button>
+              ))}
           </div>
           <div
             className="pointer-events-none relative -mt-[8.75rem] w-full"
