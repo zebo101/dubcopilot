@@ -113,7 +113,8 @@ async function runYtDlp({
 			? [
 					"--write-subs",
 					"--sub-langs",
-					subLangs.join(","),
+					// "en.*" also catches en-US / en-orig variants
+					subLangs.map((l) => `${l}.*`).join(","),
 					"--convert-subs",
 					"vtt",
 				]

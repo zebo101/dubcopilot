@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { useCourseStore } from "@/dub/course/store";
 import { isFolderImportSupported } from "@/dub/course/scan";
+import { LinkImportStep } from "@/dub/course/components/link-import-step";
 import { useDubStore } from "@/dub/store";
 import { languageByCode } from "@/dub/languages";
 
@@ -86,17 +87,29 @@ function SourceStep() {
 				</div>
 			</button>
 
-			<div className="grid grid-cols-2 gap-3 opacity-50">
-				<div className="rounded-lg border p-3">
+			<div className="grid grid-cols-2 gap-3">
+				<button
+					type="button"
+					onClick={() => useCourseStore.getState().openLinkImport()}
+					className="hover:bg-muted rounded-lg border p-3 text-left transition-colors"
+				>
 					<HugeiconsIcon icon={CloudUploadIcon} className="size-5" />
 					<div className="mt-1 text-sm font-medium">从云盘导入</div>
-					<div className="text-muted-foreground text-[11px]">Google Drive / OneDrive / 网盘 · 敬请期待</div>
-				</div>
-				<div className="rounded-lg border p-3">
+					<div className="text-muted-foreground text-[11px]">
+						Google Drive / OneDrive 分享链接直下；国内网盘请用官方客户端同步后走本地导入
+					</div>
+				</button>
+				<button
+					type="button"
+					onClick={() => useCourseStore.getState().openLinkImport()}
+					className="hover:bg-muted rounded-lg border p-3 text-left transition-colors"
+				>
 					<HugeiconsIcon icon={Video01Icon} className="size-5" />
 					<div className="mt-1 text-sm font-medium">粘贴链接导入</div>
-					<div className="text-muted-foreground text-[11px]">YouTube / 直链 · 敬请期待</div>
-				</div>
+					<div className="text-muted-foreground text-[11px]">
+						YouTube 视频/播放列表、视频直链——下载到本地文件夹后同流处理
+					</div>
+				</button>
 			</div>
 
 			{!isFolderImportSupported() && (
@@ -237,7 +250,13 @@ export function ImportCourse() {
 						<HugeiconsIcon icon={Cancel01Icon} className="size-4" />
 					</button>
 				</div>
-				{importStep === "scan" ? <ScanStep /> : <SourceStep />}
+				{importStep === "scan" ? (
+					<ScanStep />
+				) : importStep === "link" ? (
+					<LinkImportStep />
+				) : (
+					<SourceStep />
+				)}
 			</div>
 		</div>
 	);

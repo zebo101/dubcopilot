@@ -23,7 +23,7 @@ const PERSIST_DEBOUNCE_MS = 2000;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
 type CourseView = "none" | "import" | "center";
-type ImportStep = "source" | "scan";
+type ImportStep = "source" | "link" | "scan";
 
 interface CourseStore {
 	course: Course | null;
@@ -60,6 +60,9 @@ interface CourseStore {
 	openImport: () => void;
 	closeImport: () => void;
 	backImportSource: () => void;
+	openLinkImport: () => void;
+	/** scan an already-acquired directory handle (link import hand-off) */
+	scanFolder: (args: { dirHandle: FileSystemDirectoryHandle }) => Promise<void>;
 	openCenter: () => void;
 	closeCourse: () => void;
 	setMissingPolicy: (args: { policy: MissingSubtitlePolicy }) => void;
@@ -199,6 +202,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	closeImport: () =>
 		set((s) => ({ view: s.course ? "center" : "none" })),
 	backImportSource: () => set({ importStep: "source", scanResult: null }),
+	openLinkImport: () => set({ importStep: "link" }),
 	openCenter: () => set({ view: "center" }),
 	closeCourse: () => set({ view: "none" }),
 	setMissingPolicy: ({ policy }) => set({ missingPolicy: policy }),
@@ -207,6 +211,10 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	pickFolder: async () => {
 		const dirHandle = await pickCourseDirectory();
 		if (!dirHandle) return;
+		await get().scanFolder({ dirHandle });
+	},
+
+	scanFolder: async ({ dirHandle }) => {
 		set({ scanning: true });
 		try {
 			const scanResult = await scanCourseDirectory({
