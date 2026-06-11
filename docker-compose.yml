@@ -23,8 +23,10 @@ services:
       - FREESOUND_CLIENT_ID=${FREESOUND_CLIENT_ID}
       - FREESOUND_API_KEY=${FREESOUND_API_KEY}
     healthcheck:
-      # busybox wget — curl doesn't exist in the alpine runner image
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      # busybox wget — curl doesn't exist in the alpine runner image;
+      # 用 127.0.0.1 而非 localhost：busybox wget 解析 localhost 会优先试 ::1，
+      # 而 Next 只监听 IPv4，被拒后不回退，导致永远 unhealthy
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
