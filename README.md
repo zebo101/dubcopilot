@@ -1,32 +1,16 @@
-# OpenCut (Legacy)
+# dubcopilot
 
-This is the original OpenCut codebase. It's archived and no longer maintained.
+AI 视频配音工具——上传视频，自动转写翻译，一键合成中文配音并导出带字幕的成片。面向整门课程（100+ 视频）的批量本地化场景。
 
-The rewrite is happening at [opencut-app/opencut](https://github.com/opencut-app/opencut).
+官网：[dubcopilot.com](https://dubcopilot.com)
 
-## Sponsors
-
-Thanks to [Vercel](https://vercel.com?utm_source=github-opencut&utm_campaign=oss) and [fal.ai](https://fal.ai?utm_source=github-opencut&utm_campaign=oss) for their support of open-source software.
-
-<a href="https://vercel.com/oss">
-  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
-</a>
-
-<a href="https://fal.ai">
-  <img alt="Powered by fal.ai" src="https://img.shields.io/badge/Powered%20by-fal.ai-000000?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCAxMEwxMy4wOSAxNS43NEwxMiAyMkwxMC45MSAxNS43NEw0IDEwTDEwLjkxIDguMjZMMTIgMloiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=" />
-</a>
-
-## Why?
-
-- **Privacy**: Your videos stay on your device
-- **Free features**: Most basic CapCut features are now paywalled 
-- **Simple**: People want editors that are easy to use - CapCut proved that
+> 本项目基于开源视频编辑器 [OpenCut](https://github.com/OpenCut-app/OpenCut)（MIT 协议）二次开发，原始版权声明保留于 [LICENSE](LICENSE)。
 
 ## Project Structure
 
-- `apps/web/`: Next.js web application
+- `apps/web/`: Next.js web application（含 `src/dub/` 配音模块与 `/course` 批量中心）
 - `apps/desktop/`: Native desktop app built with GPUI (in progress)
-- `rust/`: Platform-agnostic core: GPU compositor, effects, masks, and WASM bindings. We're actively migrating business logic here from TypeScript.
+- `rust/`: Platform-agnostic core: GPU compositor, effects, masks, and WASM bindings
 - `docs/`: Architecture and subsystem documentation
 
 ## Getting Started
@@ -40,7 +24,7 @@ Thanks to [Vercel](https://vercel.com?utm_source=github-opencut&utm_campaign=oss
 
 ### Setup
 
-1. Fork and clone the repository
+1. Clone the repository
 
 2. Copy the environment file:
 
@@ -71,9 +55,7 @@ The `.env.example` has sensible defaults that match the Docker Compose config �
 
 ### Desktop setup
 
-Desktop is opt-in. If you're only working on the web app, skip this entirely.
-
-If you want to get ready for `apps/desktop`, see [`apps/desktop/README.md`](apps/desktop/README.md). It's a two-step setup: Rust toolchain first, then desktop native dependencies.
+Desktop is opt-in. If you're only working on the web app, skip this entirely. See [`apps/desktop/README.md`](apps/desktop/README.md).
 
 ### Local WASM development
 
@@ -135,28 +117,6 @@ docker compose up -d
 
 The app will be available at [http://localhost:3100](http://localhost:3100).
 
-## Contributing
-
-We welcome contributions! While we're actively developing and refactoring certain areas, there are plenty of opportunities to contribute effectively.
-
-**🎯 Focus areas:** Timeline functionality, project management, performance, bug fixes, and UI improvements outside the preview panel.
-
-**⚠️ Avoid for now:** Preview panel enhancements (fonts, stickers, effects) and export functionality - we're refactoring these with a new binary rendering approach.
-
-See our [Contributing Guide](.github/CONTRIBUTING.md) for detailed setup instructions, development guidelines, and complete focus area guidance.
-
-**Quick start for contributors:**
-
-- Fork the repo and clone locally
-- Follow the setup instructions in CONTRIBUTING.md
-- Working on `apps/desktop`? See [`apps/desktop/README.md`](apps/desktop/README.md) for setup
-- Create a feature branch and submit a PR
-
 ## License
 
 [MIT LICENSE](LICENSE)
-
----
-
-![Star History Chart](https://api.star-history.com/svg?repos=opencut-app/opencut&type=Date)
-
