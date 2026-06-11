@@ -9,6 +9,8 @@ import {
 	ArrowRight01Icon,
 	Cancel01Icon,
 	Delete02Icon,
+	Download04Icon,
+	FolderUploadIcon,
 	InformationCircleIcon,
 	Loading03Icon,
 	PlayIcon,
@@ -430,23 +432,31 @@ export function BatchCenter() {
 					)}
 					{counts.done + counts.review > 0 && (
 						<>
-							<Button
-								variant="outline"
-								size="sm"
+							{/* Primary export — saves each lesson to <courseDir>/_localized/ */}
+							<button
+								type="button"
 								disabled={exporting || batchRunning}
 								onClick={() => void runExport("folder")}
-							>
-								{exportKind === "folder" ? (
-									<>
-										<HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />
-										导出中…
-									</>
-								) : (
-									<>
-										<HugeiconsIcon icon={UploadIcon} className="size-4" /> 导出到 _localized
-									</>
+								className={cn(
+									"flex items-center gap-1.5 rounded-md bg-[#38BDF8] px-[0.12rem] py-[0.12rem] text-white disabled:opacity-50 disabled:pointer-events-none",
 								)}
-							</Button>
+							>
+								<div className="relative flex items-center gap-1.5 rounded-[0.4rem] bg-linear-270 from-[#2567EC] to-[#37B6F7] px-3 py-1 shadow-[0_1px_3px_0px_rgba(0,0,0,0.55)]">
+									{exportKind === "folder" ? (
+										<>
+											<HugeiconsIcon icon={Loading03Icon} className="z-50 size-3.5 animate-spin" />
+											<span className="z-50 text-sm">导出中…</span>
+										</>
+									) : (
+										<>
+											<HugeiconsIcon icon={FolderUploadIcon} className="z-50 size-3.5" />
+											<span className="z-50 text-sm">存到原目录</span>
+										</>
+									)}
+									<div className="absolute inset-0 rounded-[0.4rem] bg-linear-to-t from-white/0 to-white/20" />
+								</div>
+							</button>
+							{/* Secondary export — ZIP download */}
 							<Button
 								variant="outline"
 								size="sm"
@@ -455,11 +465,14 @@ export function BatchCenter() {
 							>
 								{exportKind === "zip" ? (
 									<>
-										<HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />
+										<HugeiconsIcon icon={Loading03Icon} className="size-3.5 animate-spin" />
 										导出中…
 									</>
 								) : (
-									"导出 ZIP"
+									<>
+										<HugeiconsIcon icon={Download04Icon} className="size-3.5" />
+										打包 ZIP
+									</>
 								)}
 							</Button>
 						</>
@@ -565,6 +578,29 @@ export function BatchCenter() {
 					onClick={() => setSetting({ key: "subtitles", value: !settings.subtitles })}
 				>
 					字幕 · {settings.subtitles ? (settings.subtitleMode === "burn" ? "烧录" : "软") : "无"}
+				</button>
+				<button
+					type="button"
+					className="hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1"
+					onClick={() =>
+						setSetting({
+							key: "exportFormat",
+							value: settings.exportFormat === "mp4" ? "webm" : "mp4",
+						})
+					}
+				>
+					格式 · {settings.exportFormat === "mp4" ? "MP4" : "WebM"}
+				</button>
+				<button
+					type="button"
+					className="hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1"
+					onClick={() => {
+						const cycle = ["low", "medium", "high", "very_high"] as const;
+						const next = cycle[(cycle.indexOf(settings.exportQuality) + 1) % cycle.length];
+						setSetting({ key: "exportQuality", value: next });
+					}}
+				>
+					画质 · {{ low: "低", medium: "中", high: "高", very_high: "超高" }[settings.exportQuality]}
 				</button>
 				<button
 					type="button"

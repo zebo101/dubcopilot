@@ -1,9 +1,9 @@
-export const SITE_URL = "https://opencut.app";
+export const SITE_URL = "https://dubcopilot.com";
 
 export const SITE_INFO = {
-	title: "OpenCut",
+	title: "dubcopilot",
 	description:
-		"A simple but powerful video editor that gets the job done. In your browser.",
+		"AI 视频配音工具——上传视频，自动转写翻译，一键合成中文配音并导出带字幕的成片。",
 	url: SITE_URL,
 	openGraphImage: "/open-graph/default.jpg",
 	twitterImage: "/open-graph/default.jpg",

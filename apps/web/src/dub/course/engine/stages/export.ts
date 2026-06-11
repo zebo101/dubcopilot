@@ -17,18 +17,23 @@ import { calculateTotalDuration } from "@/timeline";
 import type { MediaAsset } from "@/media/types";
 import type { StepReport } from "@/dub/course/engine/types";
 import type { LessonMeta } from "@/dub/course/engine/types";
+import type { ExportFormat, ExportQuality } from "@/export";
 
 export async function renderLessonHeadless({
 	projectId,
 	videoMediaId,
 	videoFile,
 	meta,
+	format = "mp4",
+	quality = "high",
 	onStep,
 }: {
 	projectId: string;
 	videoMediaId: string;
 	videoFile: File;
 	meta: LessonMeta;
+	format?: ExportFormat;
+	quality?: ExportQuality;
 	onStep?: (args: StepReport) => void;
 }): Promise<ArrayBuffer> {
 	// the editor page initializes the wasm GPU context on mount — headless
@@ -87,8 +92,8 @@ export async function renderLessonHeadless({
 		width: canvasSize.width,
 		height: canvasSize.height,
 		fps: project.settings.fps,
-		format: "mp4",
-		quality: "high",
+		format,
+		quality,
 		shouldIncludeAudio: true,
 		audioBuffer: audioBuffer || undefined,
 	});

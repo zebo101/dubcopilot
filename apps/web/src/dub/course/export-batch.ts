@@ -33,7 +33,8 @@ export interface ExportProgress {
 
 function outputName({ lesson }: { lesson: CourseLesson }): string {
 	const { suffix } = languageByCode(useDubStore.getState().settings.targetLang);
-	return `${lesson.stem}_${suffix}.mp4`;
+	const { exportFormat } = useDubStore.getState().settings;
+	return `${lesson.stem}_${suffix}.${exportFormat}`;
 }
 
 /** Lessons that have a generated project and finished (done/review). */
@@ -49,7 +50,7 @@ function exportableLessons({ onlyIds }: { onlyIds?: string[] }): CourseLesson[] 
 	);
 }
 
-/** Probe + render one lesson headlessly; returns the encoded mp4. */
+/** Probe + render one lesson headlessly; returns the encoded buffer. */
 async function renderOne({
 	lesson,
 	onPct,
@@ -72,11 +73,14 @@ async function renderOne({
 		fps: probe.fps,
 		hasAudio: probe.hasAudio,
 	};
+	const { exportFormat, exportQuality } = useDubStore.getState().settings;
 	return renderLessonHeadless({
 		projectId: lesson.projectId!,
 		videoMediaId: lesson.videoMediaId!,
 		videoFile,
 		meta,
+		format: exportFormat,
+		quality: exportQuality,
 		onStep: ({ pct }) => onPct?.(pct),
 	});
 }

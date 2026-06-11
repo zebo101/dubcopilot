@@ -17,8 +17,8 @@ import {
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 export const TAB_KEYS = [
-	"media",
 	"dub",
+	"media",
 	"sounds",
 	"text",
 	"stickers",
@@ -40,7 +40,7 @@ const createHugeiconsIcon =
 export const tabs = {
 	media: {
 		icon: createHugeiconsIcon({ icon: Folder03Icon }),
-		label: "Media",
+		label: "媒体",
 	},
 	dub: {
 		icon: createHugeiconsIcon({ icon: AiVoiceIcon }),
@@ -48,35 +48,35 @@ export const tabs = {
 	},
 	sounds: {
 		icon: createHugeiconsIcon({ icon: HeadphonesIcon }),
-		label: "Sounds",
+		label: "音效",
 	},
 	text: {
 		icon: createHugeiconsIcon({ icon: TextIcon }),
-		label: "Text",
+		label: "文字",
 	},
 	stickers: {
 		icon: createHugeiconsIcon({ icon: Happy01Icon }),
-		label: "Stickers",
+		label: "贴纸",
 	},
 	effects: {
 		icon: createHugeiconsIcon({ icon: MagicWand05Icon }),
-		label: "Effects",
+		label: "效果",
 	},
 	transitions: {
 		icon: createHugeiconsIcon({ icon: ArrowRightDoubleIcon }),
-		label: "Transitions",
+		label: "转场",
 	},
 	captions: {
 		icon: createHugeiconsIcon({ icon: ClosedCaptionIcon }),
-		label: "Captions",
+		label: "字幕",
 	},
 	adjustment: {
 		icon: createHugeiconsIcon({ icon: SlidersHorizontalIcon }),
-		label: "Adjustment",
+		label: "调整",
 	},
 	settings: {
 		icon: createHugeiconsIcon({ icon: Settings01Icon }),
-		label: "Settings",
+		label: "设置",
 	},
 } satisfies Record<
 	Tab,
