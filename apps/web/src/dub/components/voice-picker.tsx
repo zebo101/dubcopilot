@@ -65,6 +65,7 @@ export function VoicePicker({
 	const customVoices = useCustomVoices((s) => s.voices);
 	const addVoice = useCustomVoices((s) => s.addVoice);
 	const removeVoice = useCustomVoices((s) => s.removeVoice);
+	const restoreDefaults = useCustomVoices((s) => s.restoreDefaults);
 
 	const [open, setOpen] = useState(false);
 	const [adding, setAdding] = useState(false);
@@ -268,14 +269,27 @@ export function VoicePicker({
 							})}
 						</div>
 						<div className="bg-border my-1 h-px" />
-						<button
-							type="button"
-							onClick={() => setAdding(true)}
-							className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors"
-						>
-							<HugeiconsIcon icon={PlusSignIcon} className="size-3.5" />
-							添加音色（任意豆包 voice_type）
-						</button>
+						<div className="flex items-center">
+							<button
+								type="button"
+								onClick={() => setAdding(true)}
+								className="text-muted-foreground hover:bg-muted hover:text-foreground flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors"
+							>
+								<HugeiconsIcon icon={PlusSignIcon} className="size-3.5" />
+								添加音色（任意豆包 voice_type）
+							</button>
+							<button
+								type="button"
+								title="把内置默认音色找回来（你添加的不受影响）"
+								onClick={() => {
+									restoreDefaults();
+									toast.success("已恢复默认音色列表");
+								}}
+								className="text-muted-foreground hover:bg-muted hover:text-foreground shrink-0 rounded px-2 py-1.5 text-[10px] transition-colors"
+							>
+								恢复默认
+							</button>
+						</div>
 					</>
 				)}
 			</PopoverContent>
