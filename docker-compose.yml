@@ -7,23 +7,29 @@ services:
         - FREESOUND_CLIENT_ID=${FREESOUND_CLIENT_ID}
         - FREESOUND_API_KEY=${FREESOUND_API_KEY}
         # baked into the client bundle — set to the real public URL when deploying
-        - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3100}
+        - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     restart: unless-stopped
-    ports:
-      - "3100:3000"
+    # Dokploy's Traefik reaches the container over the shared dokploy-network —
+    # no host port binding. For plain `docker compose up` self-hosting, create
+    # it once first: docker network create dokploy-network
+    expose:
+      - "3000"
+    networks:
+      - dokploy-network
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3100}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
       # optional — only the 音效 (Freesound) search uses these
       - FREESOUND_CLIENT_ID=${FREESOUND_CLIENT_ID}
       - FREESOUND_API_KEY=${FREESOUND_API_KEY}
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      # busybox wget — curl doesn't exist in the alpine runner image
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
 
 networks:
-  default:
-    name: dubcopilot-network
+  dokploy-network:
+    external: true
