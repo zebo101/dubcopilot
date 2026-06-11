@@ -337,7 +337,7 @@ export function BatchCenter() {
 	if (!course) return null;
 
 	return (
-		<div className="bg-background flex h-screen w-screen flex-col">
+		<div className="bg-background flex h-screen w-screen min-w-[1024px] flex-col">
 			{/* header */}
 			<header className="flex items-center gap-4 border-b px-4 py-3">
 				<Button variant="ghost" size="sm" onClick={() => router.push("/projects")}>
