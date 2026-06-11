@@ -1,6 +1,9 @@
 # Turborepo
 .turbo
 
+# auto-downloaded yt-dlp binary (link import)
+.bin/
+
 # Env vars
 .env*
 !.env.example
