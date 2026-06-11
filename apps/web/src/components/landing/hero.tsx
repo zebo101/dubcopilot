@@ -1,13 +1,15 @@
 "use client";
 
-import { Fragment, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 
 // ---------------------------------------------------------------------------
-// Hero — Hero307-style isometric dashboard with mouse parallax.
+// Hero — Hero307-style isometric showcase with mouse parallax.
+// The tilted panel is a mock of the dubcopilot editor (AI 配音工作台).
 // Follows the site theme: light + dark variants throughout.
 // ---------------------------------------------------------------------------
 
@@ -121,7 +123,7 @@ export function Hero(props: HeroProps) {
             >
               <div className="relative size-full [perspective-origin:100%_0] [perspective:4000px] [transform-style:preserve-3d]">
                 <div className="pointer-events-auto absolute inset-0 mx-auto mt-[11.25rem] h-[160rem] w-[120rem] [transform-origin:top_left] [transform:scale(.7)_rotateX(47deg)_rotateY(21deg)_rotate(330deg)] rounded-xl shadow-[-24px_-28px_48px_rgba(0,0,0,0.15)] md:mt-[17.5rem] md:[transform:translateX(2%)_scale(1.2)_rotateX(47deg)_rotateY(31deg)_rotate(324deg)] dark:shadow-[-24px_-28px_48px_rgba(0,0,0,0.45)]">
-                  <Dashboard />
+                  <EditorMock />
                   <div
                     aria-hidden
                     className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent from-80% to-background"
@@ -155,98 +157,10 @@ export function Hero(props: HeroProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Dashboard mock — dubcopilot 课程批量配音中心（明暗双主题）
+// EditorMock — dubcopilot 编辑器界面（AI 配音工作台，明暗双主题）
 // ---------------------------------------------------------------------------
 
-const NAV = [
-  { label: "总览", active: true },
-  { label: "转写" },
-  { label: "翻译" },
-  { label: "配音" },
-  { label: "导出" },
-];
-
-const METRICS = [
-  { label: "课时总数", value: "128", change: "全部已扫描入库" },
-  { label: "配音完成", value: "96", change: "本周 +12 节" },
-  { label: "处理中", value: "8", change: "流水线运行中" },
-  { label: "待复核", value: "14", change: "语速/溢出标记" },
-];
-
-const DUB_DATA = [
-  { month: "1月", value: 18 },
-  { month: "2月", value: 22 },
-  { month: "3月", value: 19 },
-  { month: "4月", value: 28 },
-  { month: "5月", value: 32 },
-  { month: "6月", value: 26 },
-  { month: "7月", value: 34 },
-  { month: "8月", value: 38 },
-  { month: "9月", value: 42 },
-  { month: "10月", value: 36 },
-  { month: "11月", value: 48 },
-  { month: "12月", value: 52 },
-];
-
-const RECENT_DONE = [
-  { badge: "12", name: "12-react-hooks.mp4", meta: "React 进阶 · 第三章", duration: "08:24" },
-  { badge: "07", name: "07-async-await.mp4", meta: "JS 异步编程 · 第二章", duration: "12:08" },
-  { badge: "21", name: "21-docker-compose.mp4", meta: "DevOps 实战 · 第五章", duration: "15:42" },
-  { badge: "03", name: "03-sql-joins.mp4", meta: "数据库基础 · 第一章", duration: "09:51" },
-  { badge: "16", name: "16-rust-ownership.mp4", meta: "Rust 入门 · 第四章", duration: "11:17" },
-];
-
-const SIDEBAR_ITEMS = [
-  { icon: "◫", label: "批量中心", active: true },
-  { icon: "⊞", label: "工程" },
-  { icon: "⊡", label: "课程库" },
-  { icon: "◇", label: "导出" },
-  { icon: "⚙", label: "设置" },
-];
-
-const TTS_DATA = [
-  12, 18, 14, 22, 19, 26, 24, 31, 28, 35, 32, 38, 36, 42, 39, 45, 41, 48, 44,
-  52, 49, 55, 51, 58,
-];
-
-const TASK_ROWS = [
-  { id: "TASK-128", lesson: "12-react-hooks.mp4", status: "已完成", stage: "配音合成", duration: "08:24", date: "2026-06-11" },
-  { id: "TASK-127", lesson: "11-react-context.mp4", status: "处理中", stage: "字幕翻译", duration: "10:03", date: "2026-06-11" },
-  { id: "TASK-126", lesson: "10-react-router.mp4", status: "已完成", stage: "配音合成", duration: "13:36", date: "2026-06-10" },
-  { id: "TASK-125", lesson: "09-react-state.mp4", status: "失败", stage: "语音转写", duration: "07:48", date: "2026-06-10" },
-  { id: "TASK-124", lesson: "08-react-props.mp4", status: "已完成", stage: "配音合成", duration: "09:15", date: "2026-06-09" },
-  { id: "TASK-123", lesson: "07-async-await.mp4", status: "已完成", stage: "配音合成", duration: "12:08", date: "2026-06-09" },
-  { id: "TASK-122", lesson: "06-promises.mp4", status: "处理中", stage: "配音合成", duration: "11:29", date: "2026-06-08" },
-  { id: "TASK-121", lesson: "05-event-loop.mp4", status: "已完成", stage: "配音合成", duration: "14:02", date: "2026-06-08" },
-];
-
-const ACTIVITY = [
-  { badge: "音", item: "12-react-hooks.mp4", action: "配音合成完成，已装配工程", time: "2 分钟前" },
-  { badge: "译", item: "11-react-context.mp4", action: "字幕翻译完成，进入配音队列", time: "8 分钟前" },
-  { badge: "转", item: "13-react-suspense.mp4", action: "语音转写完成，共 142 句", time: "14 分钟前" },
-  { badge: "标", item: "09-react-state.mp4", action: "3 句语速超限，已标记待复核", time: "22 分钟前" },
-  { badge: "出", item: "04-css-grid.mp4", action: "成片导出完成（带字幕）", time: "31 分钟前" },
-  { badge: "扫", item: "Rust 入门", action: "课程扫描完成，新增 24 节课时", time: "45 分钟前" },
-];
-
-const COURSE_PROGRESS = [
-  { course: "react-advanced", lessons: "32 节", done: "28", flagged: "2" },
-  { course: "js-async", lessons: "24 节", done: "24", flagged: "0" },
-  { course: "devops-in-action", lessons: "28 节", done: "21", flagged: "5" },
-  { course: "sql-fundamentals", lessons: "20 节", done: "15", flagged: "3" },
-  { course: "rust-beginners", lessons: "24 节", done: "8", flagged: "4" },
-];
-
-const VOICE_USAGE = [
-  { label: "知性女声", value: 42 },
-  { label: "沉稳男声", value: 18 },
-  { label: "活力女声", value: 14 },
-  { label: "纪录片男声", value: 11 },
-  { label: "温柔女声", value: 8 },
-  { label: "其他音色", value: 7 },
-];
-
-// 仪表盘双主题色组（浅色 → dark: 深色）
+// 双主题色组（浅色 → dark: 深色）
 const T = {
   panel: "border-neutral-200 dark:border-neutral-800",
   panelFaint: "border-neutral-200/60 dark:border-neutral-800/50",
@@ -255,634 +169,633 @@ const T = {
   inkFaint: "text-neutral-400 dark:text-neutral-600",
   fill: "bg-neutral-100 dark:bg-neutral-800",
   fillSoft: "bg-neutral-50 dark:bg-neutral-900",
-  dot: "bg-neutral-300 dark:bg-neutral-700",
-  bar: "bg-neutral-300 dark:bg-neutral-700",
-  barHover: "bg-neutral-700 dark:bg-neutral-300",
-  gauge: "bg-neutral-400 dark:bg-neutral-600",
-  gaugeStrong: "bg-neutral-500 dark:bg-neutral-400",
 };
 
-const Dashboard = () => {
-  const [hoveredMetric, setHoveredMetric] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState("总览");
-  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+const SEGMENTS = [
+  {
+    t: "0:00",
+    en: "And that's now it for this section.",
+    zh: "这一节的内容就是这些了。",
+  },
+  {
+    t: "0:04",
+    en: "In this section we had an in-depth look into Next.js using the app router.",
+    zh: "在这一节中，我们深入了解了使用 app router 的 Next.js。",
+  },
+  {
+    t: "0:11",
+    en: "And you learned how you can set up routes by using the file system…",
+    zh: "你还学会了如何通过文件系统（在 app 目录内）来设置路由。",
+  },
+  {
+    t: "0:22",
+    en: "You also learned about other special files like error.js…",
+    zh: "你还了解了其他特殊文件，比如处理错误的 error.js 和 loading.js。",
+  },
+  {
+    t: "0:39",
+    en: "…more granular control by using Suspense, which is what we t…",
+    zh: "学会了通过 Suspense 获得更细粒度的控制。",
+  },
+  {
+    t: "0:57",
+    en: "Individual meals where we don't know in advance how many…",
+    zh: "最重要的是，这些页面最终只是导出标准的 React 组件。",
+  },
+  {
+    t: "1:14",
+    en: "Using Next.js, they are server components executed on the server…",
+    zh: "使用 Next.js 时，它们是服务器组件，在服务器上执行并渲染。",
+  },
+];
+
+const FILTER_CHIPS = [
+  { label: "全部 24", active: true },
+  { label: "未译 0" },
+  { label: "超时 0" },
+  { label: "加速 2" },
+  { label: "已改 0" },
+];
+
+const VOICE_CHIPS = ["原声", "静音", "轻 5%", "标准 12%", "明显 25%"];
+
+const RAIL_ICONS = ["▤", "♫", "T", "☺", "✂", "≡", "⚙"];
+
+const TIMELINE_TICKS = [
+  "00:00",
+  "00:03",
+  "00:06",
+  "00:09",
+  "00:12",
+  "00:15",
+  "00:18",
+  "00:21",
+  "00:24",
+  "00:27",
+  "00:30",
+  "00:33",
+];
+
+// 字幕块（文本轨）：left/width 为时间轴百分比
+const TEXT_BLOCKS = [
+  { left: 0, width: 10.5, zh: "这一节的内容就是这些了。" },
+  { left: 11, width: 17, zh: "在这一节中，我们深入了解了使用 app router 的 Next.js。" },
+  { left: 28.5, width: 29, zh: "你还学会了如何通过文件系统（在 app 目录内）来设置路由，并使用像 page.js 和 layout.js 这样的特殊文件名。" },
+  { left: 58.5, width: 41, zh: "你还了解了其他特殊文件，比如用于处理错误的 error.js、用于处理未找到错误的 not-found.js、以及 loading.js 文件。" },
+];
+
+// 配音块（音频轨）
+const AUDIO_BLOCKS = [
+  { left: 0, width: 5.5, label: "配音 1" },
+  { left: 11, width: 14, label: "配音 2" },
+  { left: 28.5, width: 27, label: "配音 3" },
+  { left: 58.5, width: 33, label: "配音 4" },
+];
+
+// 确定性伪波形高度（0~1）
+const wave = (n: number, seed: number) =>
+  Array.from(
+    { length: n },
+    (_, i) => 0.25 + 0.7 * Math.abs(Math.sin(i * 1.7 + seed)),
+  );
+
+const EditorMock = () => {
+  const [selected, setSelected] = useState(1);
 
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-sm border bg-white shadow-2xl select-none dark:bg-neutral-900",
+        "overflow-hidden rounded-sm border bg-white text-left shadow-2xl select-none dark:bg-neutral-900",
         T.chrome,
       )}
     >
+      {/* 顶栏 */}
       <div
         className={cn(
-          "flex items-center justify-between border-b px-4 py-3",
+          "flex items-center justify-between border-b px-4 py-2.5",
           T.panel,
         )}
       >
-        <div className="flex items-center gap-2">
-          <span className={cn("size-2.5 rounded-full", T.dot)} />
-          <span className={cn("size-2.5 rounded-full", T.dot)} />
-          <span className={cn("size-2.5 rounded-full", T.dot)} />
-          <span className="ml-4 hidden font-mono text-xs text-neutral-500 sm:inline">
-            dubcopilot &middot; 课程批量中心
+        <div className="flex items-center gap-3">
+          <img
+            src="/logos/dubcopilot/svg/logo.svg"
+            alt="dubcopilot"
+            className="size-5 rounded"
+          />
+          <span
+            className={cn(
+              "rounded border px-2 py-0.5 text-xs font-medium",
+              T.panel,
+              T.ink,
+            )}
+          >
+            简体中文配音
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-neutral-500">
-          <span
-            className={cn("hidden rounded border px-2 py-0.5 sm:inline", T.chrome)}
-          >
-            ⌘K
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 rounded-md bg-blue-500 px-3 py-1 text-xs font-medium text-white">
+            <Download className="size-3" />
+            Export
           </span>
           <span className={cn("size-5 rounded-full border", T.chrome, T.fill)} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 text-left md:grid-cols-[160px_1fr]">
-        <aside className={cn("hidden border-r py-4 md:block", T.panel)}>
-          <div className="px-4 pb-4">
-            <div className="flex items-center gap-2">
-              <img
-                src="/logos/dubcopilot/svg/logo.svg"
-                alt="dubcopilot"
-                className="size-6 rounded"
-              />
-              <span className={cn("text-xs font-medium", T.ink)}>
-                dubcopilot
+      {/* 主区域：图标栏 / AI 配音面板 / 预览 / 配音设置 */}
+      <div className="grid grid-cols-[2.5rem_19rem_1fr_18rem]">
+        {/* 图标栏 */}
+        <div
+          className={cn(
+            "flex flex-col items-center gap-4 border-r py-4 text-sm text-neutral-400 dark:text-neutral-600",
+            T.panel,
+          )}
+        >
+          {RAIL_ICONS.map((icon, i) => (
+            <span
+              key={i}
+              className={cn(i === 0 && "text-blue-500 dark:text-blue-400")}
+            >
+              {icon}
+            </span>
+          ))}
+        </div>
+
+        {/* AI 配音面板 */}
+        <div className={cn("flex flex-col border-r", T.panel)}>
+          <div className="flex items-center justify-between px-3 pt-3">
+            <div className="flex items-center gap-1.5">
+              <span className={cn("text-xs font-semibold", T.ink)}>
+                AI 配音
+              </span>
+              <span className="rounded bg-blue-100 px-1 py-px font-mono text-[0.5rem] text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                BETA
               </span>
             </div>
+            <span
+              className={cn(
+                "rounded border px-2 py-0.5 text-[0.6rem] text-neutral-500",
+                T.panel,
+              )}
+            >
+              批量中心 →
+            </span>
           </div>
-          <nav className="space-y-0.5 text-sm">
-            {SIDEBAR_ITEMS.map((item) => (
-              <button
-                key={item.label}
-                type="button"
+          <div className="flex items-center gap-1 px-3 pt-2.5">
+            {FILTER_CHIPS.map((chip) => (
+              <span
+                key={chip.label}
                 className={cn(
-                  "flex w-full items-center gap-2.5 border-l-2 px-4 py-1.5 text-left text-xs transition-colors",
-                  item.active
-                    ? cn(
-                        "border-neutral-700 font-medium dark:border-neutral-300",
-                        T.fill,
-                        T.ink,
-                      )
-                    : "border-transparent text-neutral-500 hover:bg-neutral-100/60 hover:text-neutral-900 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-100",
+                  "rounded px-1.5 py-0.5 font-mono text-[0.55rem]",
+                  chip.active
+                    ? "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400"
+                    : "text-neutral-500",
                 )}
               >
-                <span className="text-[0.65rem] opacity-60">{item.icon}</span>
-                {item.label}
-              </button>
+                {chip.label}
+              </span>
             ))}
-          </nav>
-          <div className={cn("mt-6 border-t px-4 pt-4", T.panel)}>
-            <div className="text-xs text-neutral-500">本月 TTS 用量</div>
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className={cn("text-xs font-medium", T.ink)}>
-                53 万字符
-              </span>
-              <span className="font-mono text-[0.55rem] text-neutral-500">
-                · 自有密钥
-              </span>
+          </div>
+          <div className="px-3 pt-2.5">
+            <div
+              className={cn(
+                "rounded border px-2.5 py-1.5 text-[0.65rem] text-neutral-400 dark:text-neutral-600",
+                T.panel,
+                T.fillSoft,
+              )}
+            >
+              搜索译文 / 原文…
+            </div>
+          </div>
+
+          {/* 字幕段落列表 */}
+          <ul className="mt-2 flex-1">
+            {SEGMENTS.map((seg, i) => (
+              <li key={seg.t}>
+                <button
+                  type="button"
+                  onClick={() => setSelected(i)}
+                  className={cn(
+                    "flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors",
+                    selected === i
+                      ? "bg-blue-50 dark:bg-blue-950/40"
+                      : "hover:bg-neutral-50 dark:hover:bg-neutral-800/40",
+                  )}
+                >
+                  <span className="pt-px font-mono text-[0.55rem] text-neutral-400 dark:text-neutral-600">
+                    {seg.t}
+                  </span>
+                  <span className="flex-1">
+                    <span className="block truncate text-[0.6rem] text-neutral-400 dark:text-neutral-500">
+                      {seg.en}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 block text-[0.65rem] leading-snug",
+                        T.ink,
+                      )}
+                    >
+                      {seg.zh}
+                    </span>
+                  </span>
+                  <span className="pt-px text-[0.55rem] text-neutral-300 dark:text-neutral-700">
+                    ▷
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {/* 面板底部操作 */}
+          <div className={cn("border-t px-3 py-2.5", T.panel)}>
+            <div className="flex items-center gap-1">
+              {VOICE_CHIPS.map((chip, i) => (
+                <span
+                  key={chip}
+                  className={cn(
+                    "rounded border px-1.5 py-0.5 font-mono text-[0.5rem]",
+                    i === 3
+                      ? cn("font-medium", T.chrome, T.fill, T.ink)
+                      : cn("text-neutral-500", T.panel),
+                  )}
+                >
+                  {chip}
+                </span>
+              ))}
             </div>
             <div
-              className={cn("mt-2 h-1 overflow-hidden rounded-full", T.fill)}
+              className={cn(
+                "mt-2.5 rounded-md py-2 text-center text-[0.65rem] font-medium",
+                "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900",
+              )}
             >
-              <div
-                className={cn("h-full", T.gaugeStrong)}
-                style={{ width: "53%" }}
-              />
+              ▷ ② 合成配音并应用到时间轴
+            </div>
+            <div
+              className={cn(
+                "mt-1.5 rounded-md border py-1.5 text-center text-[0.6rem] text-neutral-500",
+                T.panel,
+              )}
+            >
+              ✓ 复核通过，返回批量中心
             </div>
           </div>
-        </aside>
+        </div>
 
-        <div className="p-4 md:p-5">
-          <div
-            className={cn("flex items-center gap-4 border-b pb-3", T.panel)}
-          >
-            {NAV.map((tab) => (
-              <button
-                key={tab.label}
-                type="button"
-                onClick={() => setActiveTab(tab.label)}
-                className={cn(
-                  "pb-1 text-xs transition-colors",
-                  activeTab === tab.label
-                    ? cn(
-                        "border-b border-neutral-700 dark:border-neutral-300",
-                        T.ink,
-                      )
-                    : "text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100",
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-            {METRICS.map((m, i) => (
-              <div
-                key={m.label}
-                onMouseEnter={() => setHoveredMetric(i)}
-                onMouseLeave={() => setHoveredMetric(null)}
-                className={cn(
-                  "cursor-default border p-2.5 transition-colors md:p-3",
-                  T.panel,
-                  hoveredMetric === i &&
-                    cn("border-neutral-300 dark:border-neutral-700", T.fillSoft),
-                )}
-              >
-                <div className="text-xs text-neutral-500">{m.label}</div>
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span
-                    className={cn(
-                      "font-display text-base tracking-tight md:text-xl",
-                      T.ink,
-                    )}
-                  >
-                    {m.value}
-                  </span>
-                </div>
-                <span className="mt-0.5 inline-block font-mono text-[0.55rem] text-neutral-500">
-                  {m.change}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-[1.4fr_1fr]">
-            <div className={cn("border p-3 md:p-4", T.panel)}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-neutral-500">
-                    配音课时 &middot; 2026
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-1.5">
-                    <span
-                      className={cn(
-                        "font-display text-2xl tracking-tight md:text-3xl",
-                        T.ink,
-                      )}
-                    >
-                      392 节
-                    </span>
-                    <span className="font-mono text-[0.55rem] text-neutral-500">
-                      较去年 +20.1%
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-neutral-500">
-                  <span
-                    className={cn("rounded border px-1.5 py-0.5", T.chrome, T.fill)}
-                  >
-                    按月
-                  </span>
-                  <span className={cn("rounded border px-1.5 py-0.5", T.panel)}>
-                    按周
-                  </span>
-                </div>
-              </div>
-              <div className={cn("mt-4 h-28 md:h-36", T.ink)}>
-                <BarChart
-                  data={DUB_DATA}
-                  hoveredBar={hoveredBar}
-                  onHover={setHoveredBar}
-                />
-              </div>
-            </div>
-
-            <div className={cn("border p-3 md:p-4", T.panel)}>
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-neutral-500">最近完成</div>
-                <span
-                  className={cn(
-                    "rounded border px-1.5 py-0.5 font-mono text-[0.55rem] text-neutral-500",
-                    T.panel,
-                    T.fillSoft,
-                  )}
-                >
-                  今日 {RECENT_DONE.length} 节
-                </span>
-              </div>
-              <ul className="mt-3 space-y-3">
-                {RECENT_DONE.map((lesson) => (
-                  <li
-                    key={lesson.name}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className={cn(
-                          "flex size-6 items-center justify-center rounded-full font-mono text-[0.55rem]",
-                          T.fill,
-                          T.ink,
-                        )}
-                      >
-                        {lesson.badge}
-                      </span>
-                      <div>
-                        <div
-                          className={cn(
-                            "text-xs leading-tight font-medium",
-                            T.ink,
-                          )}
-                        >
-                          {lesson.name}
-                        </div>
-                        <div className="font-mono text-[0.55rem] text-neutral-500">
-                          {lesson.meta}
-                        </div>
-                      </div>
-                    </div>
-                    <span
-                      className={cn(
-                        "font-mono text-xs tabular-nums",
-                        T.ink,
-                      )}
-                    >
-                      {lesson.duration}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-[1.4fr_1fr]">
-            <div className={cn("border p-3 md:p-4", T.panel)}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-neutral-500">
-                    TTS 合成 &middot; 近 24 小时
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-1.5">
-                    <span
-                      className={cn(
-                        "font-display text-2xl tracking-tight md:text-3xl",
-                        T.ink,
-                      )}
-                    >
-                      2.48 万
-                    </span>
-                    <span className="font-mono text-[0.55rem] text-neutral-500">
-                      字符
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-neutral-500">
-                  <span
-                    className={cn("rounded border px-1.5 py-0.5", T.chrome, T.fill)}
-                  >
-                    24h
-                  </span>
-                  <span className={cn("rounded border px-1.5 py-0.5", T.panel)}>
-                    7d
-                  </span>
-                  <span className={cn("rounded border px-1.5 py-0.5", T.panel)}>
-                    30d
-                  </span>
-                </div>
-              </div>
-              <div className={cn("mt-4 h-28 md:h-36", T.ink)}>
-                <AreaChart data={TTS_DATA} />
-              </div>
-            </div>
-
-            <div className={cn("border p-3 md:p-4", T.panel)}>
-              <div className="text-xs text-neutral-500">音色使用分布</div>
-              <ul className="mt-4 space-y-3">
-                {VOICE_USAGE.map((item) => (
-                  <li key={item.label}>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className={T.ink}>{item.label}</span>
-                      <span className="font-mono text-neutral-500">
-                        {item.value}%
-                      </span>
-                    </div>
+        {/* 视频预览（始终深色） */}
+        <div className="flex flex-col bg-neutral-950">
+          <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+            {/* 模拟视频画面：代码编辑器风格色块 */}
+            <div className="absolute inset-6 rounded border border-neutral-800 bg-neutral-900/80 p-4">
+              <div className="flex gap-3">
+                <div className="w-28 space-y-1.5">
+                  {[
+                    "app",
+                    "community",
+                    "meals",
+                    "[mealSlug]",
+                    "page.js",
+                    "share",
+                    "error.js",
+                    "layout.js",
+                  ].map((f, i) => (
                     <div
+                      key={f}
                       className={cn(
-                        "mt-1.5 h-1 overflow-hidden rounded-full",
-                        T.fill,
+                        "rounded px-1.5 py-0.5 font-mono text-[0.55rem]",
+                        i === 6
+                          ? "bg-neutral-700/60 text-neutral-200"
+                          : "text-neutral-500",
                       )}
+                      style={{ marginLeft: `${(i % 4) * 6}px` }}
                     >
+                      {f}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex-1 space-y-1.5 pt-1">
+                  {[88, 72, 95, 60, 80, 45, 90, 66, 75, 52].map((w, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-4 text-right font-mono text-[0.5rem] text-neutral-700">
+                        {i + 3}
+                      </span>
                       <div
-                        className={cn("h-full", T.gauge)}
-                        style={{ width: `${item.value}%` }}
+                        className={cn(
+                          "h-1.5 rounded-full",
+                          i % 3 === 0
+                            ? "bg-blue-400/30"
+                            : i % 3 === 1
+                              ? "bg-emerald-400/25"
+                              : "bg-neutral-600/40",
+                        )}
+                        style={{ width: `${w * 0.8}%` }}
                       />
                     </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className={cn("mt-4 border p-3 md:p-4", T.panel)}>
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-neutral-500">课程进度</div>
-              <span className="text-xs text-neutral-500">近 30 天</span>
-            </div>
-            <div className="mt-3 overflow-hidden">
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 gap-y-0 text-xs">
-                <div
-                  className={cn("border-b py-2 text-xs text-neutral-500", T.panel)}
-                >
-                  课程
+                  ))}
                 </div>
-                <div
-                  className={cn(
-                    "border-b py-2 text-right text-xs text-neutral-500",
-                    T.panel,
-                  )}
-                >
-                  课时
-                </div>
-                <div
-                  className={cn(
-                    "border-b py-2 text-right text-xs text-neutral-500",
-                    T.panel,
-                  )}
-                >
-                  已完成
-                </div>
-                <div
-                  className={cn(
-                    "border-b py-2 text-right text-xs text-neutral-500",
-                    T.panel,
-                  )}
-                >
-                  待复核
-                </div>
-                {COURSE_PROGRESS.map((row) => (
-                  <Fragment key={row.course}>
-                    <div
-                      className={cn(
-                        "border-b py-2.5 font-mono text-[0.65rem]",
-                        T.panelFaint,
-                        T.ink,
-                      )}
-                    >
-                      {row.course}
-                    </div>
-                    <div
-                      className={cn(
-                        "border-b py-2.5 text-right font-mono text-[0.65rem] tabular-nums",
-                        T.panelFaint,
-                        T.ink,
-                      )}
-                    >
-                      {row.lessons}
-                    </div>
-                    <div
-                      className={cn(
-                        "border-b py-2.5 text-right font-mono text-[0.65rem] text-neutral-500 tabular-nums",
-                        T.panelFaint,
-                      )}
-                    >
-                      {row.done}
-                    </div>
-                    <div
-                      className={cn(
-                        "border-b py-2.5 text-right font-mono text-[0.65rem] text-neutral-500 tabular-nums",
-                        T.panelFaint,
-                      )}
-                    >
-                      {row.flagged}
-                    </div>
-                  </Fragment>
-                ))}
               </div>
             </div>
-          </div>
-
-          <div className={cn("mt-4 border p-3 md:p-4", T.panel)}>
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-neutral-500">配音任务记录</div>
-              <span
-                className={cn(
-                  "rounded border px-1.5 py-0.5 font-mono text-[0.55rem] text-neutral-500",
-                  T.panel,
-                  T.fillSoft,
-                )}
-              >
-                {TASK_ROWS.length} 条
+            {/* 字幕浮层 */}
+            <div className="absolute inset-x-0 bottom-8 z-10 px-10 text-center">
+              <span className="inline-block rounded bg-black/70 px-3 py-1.5 text-sm font-medium text-white">
+                {SEGMENTS[selected]?.zh}
               </span>
             </div>
-            <div className="mt-3 overflow-hidden">
-              <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-x-4 gap-y-0 text-xs">
-                <div
-                  className={cn("border-b py-2 text-xs text-neutral-500", T.panel)}
-                >
-                  任务
-                </div>
-                <div
-                  className={cn("border-b py-2 text-xs text-neutral-500", T.panel)}
-                >
-                  课时
-                </div>
-                <div
-                  className={cn("border-b py-2 text-xs text-neutral-500", T.panel)}
-                >
-                  状态
-                </div>
-                <div
-                  className={cn("border-b py-2 text-xs text-neutral-500", T.panel)}
-                >
-                  阶段
-                </div>
-                <div
+          </div>
+          {/* 播放控制条 */}
+          <div className="flex items-center justify-between border-t border-neutral-800 px-4 py-2">
+            <span className="font-mono text-[0.6rem] text-neutral-400">
+              00:00:08:06 <span className="text-neutral-600">/ 00:04:25:25</span>
+            </span>
+            <span className="text-xs text-neutral-300">⏸</span>
+            <div className="flex items-center gap-2 text-[0.6rem] text-neutral-400">
+              <span className="rounded border border-neutral-700 px-1.5 py-0.5">
+                Fit ▾
+              </span>
+              <span>⛶</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 配音设置 */}
+        <div className={cn("flex flex-col gap-3 border-l p-3.5", T.panel)}>
+          <div>
+            <div className={cn("text-xs font-semibold", T.ink)}>配音设置</div>
+            <div className="mt-1 text-[0.55rem] leading-relaxed text-neutral-400 dark:text-neutral-600">
+              任何阶段都可调整——改完点左侧「合成配音并应用」生效
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              "flex items-center justify-between rounded border px-2.5 py-1.5",
+              T.panel,
+            )}
+          >
+            <span className={cn("text-[0.65rem]", T.ink)}>语音 / 翻译凭据</span>
+            <span className="rounded bg-emerald-100 px-1.5 py-px font-mono text-[0.5rem] text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+              已配置
+            </span>
+          </div>
+
+          <div>
+            <div className="text-[0.6rem] text-neutral-500">翻译方向</div>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "flex-1 rounded border px-2 py-1 text-[0.65rem]",
+                  T.panel,
+                  T.ink,
+                )}
+              >
+                自动检测 ▾
+              </span>
+              <span className="text-[0.6rem] text-neutral-400">→</span>
+              <span
+                className={cn(
+                  "flex-1 rounded border px-2 py-1 text-[0.65rem]",
+                  T.panel,
+                  T.ink,
+                )}
+              >
+                简体中文 ▾
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[0.6rem] text-neutral-500">配音音色</div>
+            <div
+              className={cn(
+                "mt-1.5 flex items-center gap-2 rounded border px-2.5 py-2",
+                T.panel,
+              )}
+            >
+              <span className="flex size-6 items-center justify-center rounded-full bg-blue-100 text-[0.6rem] text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                刘
+              </span>
+              <span className="flex-1">
+                <span className={cn("block text-[0.65rem] font-medium", T.ink)}>
+                  刘飞
+                </span>
+                <span className="block text-[0.55rem] text-neutral-500">
+                  男声 · 沉稳磁性
+                </span>
+              </span>
+              <span className="text-[0.6rem] text-neutral-400">▾</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[0.6rem] text-neutral-500">原声处理</div>
+            <div className="mt-1.5 flex items-center gap-1">
+              {VOICE_CHIPS.map((chip, i) => (
+                <span
+                  key={chip}
                   className={cn(
-                    "border-b py-2 text-right text-xs text-neutral-500",
-                    T.panel,
+                    "rounded border px-1.5 py-0.5 font-mono text-[0.5rem]",
+                    i === 3
+                      ? cn("font-medium", T.chrome, T.fill, T.ink)
+                      : cn("text-neutral-500", T.panel),
                   )}
                 >
-                  时长
-                </div>
-                <div
-                  className={cn(
-                    "border-b py-2 text-right text-xs text-neutral-500",
-                    T.panel,
-                  )}
+                  {chip}
+                </span>
+              ))}
+            </div>
+            <div className="mt-1.5 flex items-center gap-1">
+              <span
+                className={cn(
+                  "rounded border px-1.5 py-0.5 font-mono text-[0.5rem] font-medium",
+                  T.chrome,
+                  T.fill,
+                  T.ink,
+                )}
+              >
+                静音原声
+              </span>
+              <span
+                className={cn(
+                  "rounded border px-1.5 py-0.5 font-mono text-[0.5rem] text-neutral-500",
+                  T.panel,
+                )}
+              >
+                保留为背景
+              </span>
+            </div>
+          </div>
+
+          <MockSlider label="背景音量" value="39%" pct={39} />
+
+          <div>
+            <div className="flex items-center justify-between">
+              <span className={cn("text-[0.65rem]", T.ink)}>
+                同时生成简体中文字幕
+              </span>
+              <MockCheck />
+            </div>
+            <div className="mt-1.5 flex items-center gap-1">
+              <span
+                className={cn(
+                  "rounded border px-1.5 py-0.5 font-mono text-[0.5rem] font-medium",
+                  T.chrome,
+                  T.fill,
+                  T.ink,
+                )}
+              >
+                软字幕（可关）
+              </span>
+              <span
+                className={cn(
+                  "rounded border px-1.5 py-0.5 font-mono text-[0.5rem] text-neutral-500",
+                  T.panel,
+                )}
+              >
+                烧录到画面
+              </span>
+            </div>
+          </div>
+
+          <div className={cn("rounded border p-2.5", T.panel)}>
+            <div className="flex items-center justify-between">
+              <span className={cn("text-[0.65rem] font-medium", T.ink)}>
+                语速与对齐
+              </span>
+              <MockCheck />
+            </div>
+            <div className="mt-1 text-[0.55rem] leading-relaxed text-neutral-400 dark:text-neutral-600">
+              语速自适应：译文偏长时自动加速，贴合原时长
+            </div>
+            <div className="mt-2.5 space-y-2.5">
+              <MockSlider label="原声最大语速" value="×1.35" pct={62} />
+              <MockSlider label="最大变速" value="×2.3" pct={78} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 时间轴 */}
+      <div className={cn("border-t", T.panel)}>
+        {/* 工具条 */}
+        <div
+          className={cn(
+            "flex items-center justify-between border-b px-3 py-1.5",
+            T.panel,
+          )}
+        >
+          <div className="flex items-center gap-3 text-[0.65rem] text-neutral-400 dark:text-neutral-600">
+            {["✂", "⊢", "⊣", "⧉", "✦", "🗑", "🔖"].map((icon, i) => (
+              <span key={i}>{icon}</span>
+            ))}
+          </div>
+          <span
+            className={cn(
+              "rounded border px-2 py-0.5 text-[0.6rem]",
+              T.panel,
+              T.ink,
+            )}
+          >
+            Main scene ▾
+          </span>
+          <div className="flex items-center gap-2 text-[0.65rem] text-neutral-400 dark:text-neutral-600">
+            <span className="text-blue-500 dark:text-blue-400">⊜</span>
+            <span>⇔</span>
+            <span>⊖</span>
+            <span className={cn("h-1 w-16 rounded-full", T.fill)}>
+              <span className="block h-full w-1/2 rounded-full bg-neutral-400 dark:bg-neutral-500" />
+            </span>
+            <span>⊕</span>
+          </div>
+        </div>
+
+        {/* 刻度尺 */}
+        <div className="relative">
+          <div
+            className={cn(
+              "flex border-b px-14 font-mono text-[0.55rem] text-neutral-400 dark:text-neutral-600",
+              T.panel,
+            )}
+          >
+            {TIMELINE_TICKS.map((tick) => (
+              <span key={tick} className="flex-1 py-1">
+                {tick}
+              </span>
+            ))}
+          </div>
+
+          {/* 播放头 */}
+          <div className="absolute top-0 bottom-0 left-[26%] z-10 w-px bg-blue-500">
+            <span className="absolute -top-0 -left-1 size-2 rounded-sm bg-blue-500" />
+          </div>
+
+          {/* 文本轨 */}
+          <div className="flex items-center gap-2 px-3 py-1.5">
+            <span className="w-9 text-center text-[0.6rem] text-neutral-400 dark:text-neutral-600">
+              ◎ T
+            </span>
+            <div className="relative h-7 flex-1">
+              {TEXT_BLOCKS.map((block) => (
+                <span
+                  key={block.left}
+                  className="absolute top-0 flex h-full items-center overflow-hidden rounded-sm bg-teal-600/80 px-1.5 dark:bg-teal-700/80"
+                  style={{ left: `${block.left}%`, width: `${block.width}%` }}
                 >
-                  日期
-                </div>
-                {TASK_ROWS.map((row) => (
-                  <Fragment key={row.id}>
-                    <div
-                      className={cn(
-                        "border-b py-2.5 font-mono text-[0.65rem] text-neutral-500",
-                        T.panelFaint,
-                      )}
-                    >
-                      {row.id}
-                    </div>
-                    <div
-                      className={cn("border-b py-2.5 text-xs", T.panelFaint, T.ink)}
-                    >
-                      {row.lesson}
-                    </div>
-                    <div className={cn("border-b py-2.5", T.panelFaint)}>
-                      <span
-                        className={cn(
-                          "rounded-full px-1.5 py-0.5 font-mono text-[0.55rem]",
-                          row.status === "已完成" &&
-                            "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
-                          row.status === "处理中" &&
-                            "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-                          row.status === "失败" &&
-                            "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
-                        )}
-                      >
-                        {row.status}
-                      </span>
-                    </div>
-                    <div
-                      className={cn(
-                        "border-b py-2.5 font-mono text-[0.65rem] text-neutral-500",
-                        T.panelFaint,
-                      )}
-                    >
-                      {row.stage}
-                    </div>
-                    <div
-                      className={cn(
-                        "border-b py-2.5 text-right font-mono text-[0.65rem] tabular-nums",
-                        T.panelFaint,
-                        T.ink,
-                      )}
-                    >
-                      {row.duration}
-                    </div>
-                    <div
-                      className={cn(
-                        "border-b py-2.5 text-right font-mono text-[0.65rem] text-neutral-500 tabular-nums",
-                        T.panelFaint,
-                      )}
-                    >
-                      {row.date}
-                    </div>
-                  </Fragment>
+                  <span className="truncate text-[0.55rem] text-white">
+                    {block.zh}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* 视频轨（始终深色缩略条） */}
+          <div className="flex items-center gap-2 px-3 py-1.5">
+            <span className="w-9 text-center text-[0.6rem] text-neutral-400 dark:text-neutral-600">
+              ♪ ◫
+            </span>
+            <div className="relative h-10 flex-1 overflow-hidden rounded-sm bg-neutral-900 dark:bg-neutral-950">
+              <span className="absolute top-1 left-2 z-10 font-mono text-[0.5rem] text-neutral-400">
+                049-module-summary.mp4
+              </span>
+              <div className="flex h-full">
+                {Array.from({ length: 24 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="h-full flex-1 border-r border-neutral-800"
+                    style={{
+                      background: `linear-gradient(180deg, hsla(${200 + (i % 5) * 8},25%,${18 + (i % 4) * 4}%,1), hsla(${220 + (i % 3) * 10},20%,${10 + (i % 3) * 4}%,1))`,
+                    }}
+                  />
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr]">
-            <div className={cn("border p-3 md:p-4", T.panel)}>
-              <div className="text-xs text-neutral-500">流水线动态</div>
-              <ul className="mt-3 space-y-0">
-                {ACTIVITY.map((item, i) => (
-                  <li
-                    key={i}
-                    className={cn(
-                      "flex items-start gap-3 border-b py-3 last:border-0",
-                      T.panelFaint,
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full font-mono text-[0.45rem]",
-                        T.fill,
-                        T.ink,
-                      )}
-                    >
-                      {item.badge}
-                    </span>
-                    <div className="flex-1">
-                      <div className="text-xs">
-                        <span className={cn("font-medium", T.ink)}>
-                          {item.item}
-                        </span>{" "}
-                        <span className="text-neutral-500">{item.action}</span>
-                      </div>
-                      <div
-                        className={cn(
-                          "mt-0.5 font-mono text-[0.55rem]",
-                          T.inkFaint,
-                        )}
-                      >
-                        {item.time}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="space-y-3">
-              <div className={cn("border p-3 md:p-4", T.panel)}>
-                <div className="text-xs text-neutral-500">语速达标率</div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span
-                    className={cn(
-                      "font-display text-3xl tracking-tight",
-                      T.ink,
-                    )}
-                  >
-                    96.8%
-                  </span>
-                  <span className="font-mono text-[0.55rem] text-neutral-500">
-                    较上周 +0.4%
-                  </span>
-                </div>
-                <div className="mt-3 grid grid-cols-7 gap-1">
-                  {[94.2, 95.1, 94.8, 96.4, 96.1, 95.7, 96.8].map((v, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1">
-                      <div
-                        className={cn(
-                          "relative h-12 w-full overflow-hidden rounded-[1px]",
-                          T.fill,
-                        )}
-                      >
-                        <div
-                          className={cn("absolute inset-x-0 bottom-0", T.gauge)}
-                          style={{ height: `${((v - 90) / 10) * 100}%` }}
-                        />
-                      </div>
-                      <span className={cn("text-[0.45rem]", T.inkFaint)}>
-                        {["一", "二", "三", "四", "五", "六", "日"][i]}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className={cn("border p-3 md:p-4", T.panel)}>
-                <div className="text-xs text-neutral-500">批量任务成功率</div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span
-                    className={cn(
-                      "font-display text-3xl tracking-tight",
-                      T.ink,
-                    )}
-                  >
-                    99.2%
-                  </span>
-                  <span className="font-mono text-[0.55rem] text-neutral-500">
-                    近 30 次运行
-                  </span>
-                </div>
-                <div className="mt-3 flex gap-0.5">
-                  {Array.from({ length: 30 }, (_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "h-4 flex-1 rounded-[1px]",
-                        i === 17
-                          ? T.gaugeStrong
-                          : "bg-neutral-200/60 dark:bg-neutral-800/60",
-                      )}
-                    />
-                  ))}
-                </div>
-                <div
-                  className={cn(
-                    "mt-1.5 flex justify-between text-[0.45rem]",
-                    T.inkFaint,
-                  )}
+          {/* 配音轨（紫色波形块） */}
+          <div className="flex items-center gap-2 px-3 py-1.5 pb-3">
+            <span className="w-9 text-center text-[0.6rem] text-neutral-400 dark:text-neutral-600">
+              ♪ ≣
+            </span>
+            <div className="relative h-10 flex-1">
+              {AUDIO_BLOCKS.map((block, b) => (
+                <span
+                  key={block.label}
+                  className="absolute top-0 flex h-full flex-col overflow-hidden rounded-sm bg-violet-500/90 px-1.5 pt-0.5 dark:bg-violet-600/90"
+                  style={{ left: `${block.left}%`, width: `${block.width}%` }}
                 >
-                  <span>30 天前</span>
-                  <span>今天</span>
-                </div>
-              </div>
+                  <span className="font-mono text-[0.45rem] text-violet-100">
+                    {block.label}
+                  </span>
+                  <span className="flex flex-1 items-center gap-px">
+                    {wave(28, b * 2.3).map((h, i) => (
+                      <span
+                        key={i}
+                        className="w-px flex-1 rounded-full bg-violet-200/90"
+                        style={{ height: `${h * 100}%` }}
+                      />
+                    ))}
+                  </span>
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -891,129 +804,37 @@ const Dashboard = () => {
   );
 };
 
-const BarChart = ({
-  data,
-  hoveredBar,
-  onHover,
+const MockSlider = ({
+  label,
+  value,
+  pct,
 }: {
-  data: typeof DUB_DATA;
-  hoveredBar: number | null;
-  onHover: (i: number | null) => void;
-}) => {
-  const max = Math.max(...data.map((d) => d.value));
-
-  return (
-    <div className="flex h-full items-end gap-1">
-      {data.map((d, i) => {
-        const height = `${(d.value / max) * 100}%`;
-        return (
-          <div
-            key={d.month}
-            className="group flex flex-1 flex-col items-center gap-1"
-            onMouseEnter={() => onHover(i)}
-            onMouseLeave={() => onHover(null)}
-          >
-            <div className="relative flex w-full flex-1 items-end">
-              {hoveredBar === i && (
-                <div
-                  className={cn(
-                    "absolute -top-5 left-1/2 -translate-x-1/2 rounded border px-1.5 py-0.5 font-mono text-[0.5rem] whitespace-nowrap shadow-lg",
-                    "border-neutral-300 bg-white text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100",
-                  )}
-                >
-                  {d.value} 节
-                </div>
-              )}
-              <div
-                className={cn(
-                  "w-full rounded-[1px] transition-all duration-200",
-                  hoveredBar === i ? T.barHover : T.bar,
-                )}
-                style={{ height }}
-              />
-            </div>
-            <span
-              className={cn(
-                "text-[0.45rem] transition-colors",
-                hoveredBar === i ? T.ink : T.inkFaint,
-              )}
-            >
-              {d.month}
-            </span>
-          </div>
-        );
-      })}
+  label: string;
+  value: string;
+  pct: number;
+}) => (
+  <div>
+    <div className="flex items-center justify-between">
+      <span className="text-[0.6rem] text-neutral-500">{label}</span>
+      <span className={cn("font-mono text-[0.6rem]", T.ink)}>{value}</span>
     </div>
-  );
-};
-
-const AreaChart = ({ data }: { data: number[] }) => {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const W = 100;
-  const H = 100;
-  const pt = (v: number, i: number) => {
-    const x = (i / (data.length - 1)) * W;
-    const y = H - ((v - min) / range) * 78 - 10;
-    return { x, y };
-  };
-  const points = data.map((v, i) => pt(v, i));
-  const lineStr = points.map((p) => `${p.x},${p.y}`).join(" ");
-  const tip = points[points.length - 1];
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      className="h-full w-full"
-      aria-hidden="true"
+    <div
+      className={cn("relative mt-1.5 h-1 rounded-full", T.fill)}
     >
-      <defs>
-        <linearGradient id="dash-area-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {[25, 50, 75].map((y) => (
-        <line
-          key={y}
-          x1={0}
-          x2={W}
-          y1={y}
-          y2={y}
-          stroke="currentColor"
-          strokeOpacity={0.08}
-          strokeDasharray="1 2"
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-      <polyline
-        points={`0,${H} ${lineStr} ${W},${H}`}
-        fill="url(#dash-area-fill)"
+      <span
+        className="absolute top-0 left-0 h-full rounded-full bg-blue-500"
+        style={{ width: `${pct}%` }}
       />
-      <polyline
-        points={lineStr}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        vectorEffect="non-scaling-stroke"
+      <span
+        className="absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full border-2 border-blue-500 bg-white dark:bg-neutral-900"
+        style={{ left: `calc(${pct}% - 5px)` }}
       />
-      <circle
-        cx={tip.x}
-        cy={tip.y}
-        r="1.2"
-        fill="currentColor"
-        vectorEffect="non-scaling-stroke"
-      />
-      <circle
-        cx={tip.x}
-        cy={tip.y}
-        r="2.5"
-        fill="currentColor"
-        fillOpacity="0.18"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-};
+    </div>
+  </div>
+);
+
+const MockCheck = () => (
+  <span className="flex size-3.5 items-center justify-center rounded-sm bg-blue-500 text-[0.5rem] text-white">
+    ✓
+  </span>
+);
