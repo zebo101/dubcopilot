@@ -122,7 +122,7 @@ export function Hero(props: HeroProps) {
               className="h-[60rem] w-full transition-transform duration-500 ease-out will-change-transform md:h-[85rem]"
             >
               <div className="relative size-full [perspective-origin:100%_0] [perspective:4000px] [transform-style:preserve-3d]">
-                <div className="pointer-events-auto absolute inset-0 mx-auto mt-[11.25rem] h-[160rem] w-[120rem] [transform-origin:top_left] [transform:scale(.7)_rotateX(47deg)_rotateY(21deg)_rotate(330deg)] rounded-xl shadow-[-24px_-28px_48px_rgba(0,0,0,0.15)] md:mt-[17.5rem] md:[transform:translateX(2%)_scale(1.2)_rotateX(47deg)_rotateY(31deg)_rotate(324deg)] dark:shadow-[-24px_-28px_48px_rgba(0,0,0,0.45)]">
+                <div className="pointer-events-auto absolute inset-0 mx-auto mt-[11.25rem] h-[160rem] w-[120rem] [transform-origin:top_left] [transform:scale(.7)_rotateX(47deg)_rotateY(21deg)_rotate(330deg)] rounded-xl shadow-[-40px_-48px_120px_rgba(71,85,105,0.06),32px_48px_120px_rgba(71,85,105,0.08)] md:mt-[17.5rem] md:[transform:translateX(2%)_scale(1.2)_rotateX(47deg)_rotateY(31deg)_rotate(324deg)] dark:shadow-[-24px_-28px_48px_rgba(0,0,0,0.45)]">
                   <EditorMock />
                   <div
                     aria-hidden
@@ -136,7 +136,7 @@ export function Hero(props: HeroProps) {
       </div>
       <div
         aria-hidden
-        className="pointer-events-none absolute top-[30%] left-0 z-10 h-[60%] w-[50%] bg-radial-[ellipse_at_30%_50%] from-foreground/10 to-transparent to-65%"
+        className="pointer-events-none absolute top-[30%] left-0 z-10 h-[60%] w-[50%] bg-radial-[ellipse_at_30%_50%] from-foreground/[0.03] to-transparent to-65% dark:from-foreground/10"
       />
       <div
         aria-hidden
@@ -148,9 +148,9 @@ export function Hero(props: HeroProps) {
         <div className="absolute top-0 left-0 h-[81.25rem] w-[15rem] origin-top-left translate-x-[180%] translate-y-[70%] rotate-[-45deg] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.04)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]" />
       </div>
       <div className="pointer-events-none absolute inset-0 dark:hidden">
-        <div className="absolute top-0 left-0 h-[81.25rem] w-[35rem] -translate-y-[21.875rem] rotate-[-45deg] rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,hsla(0,0%,15%,.05)_0,hsla(0,0%,45%,.015)_50%,hsla(0,0%,55%,0)_80%)]" />
-        <div className="absolute top-0 left-0 h-[81.25rem] w-[15rem] origin-top-left translate-x-[5%] translate-y-[-5%] rotate-[-45deg] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,15%,.04)_0,hsla(0,0%,55%,.015)_80%,transparent_100%)]" />
-        <div className="absolute top-0 left-0 h-[81.25rem] w-[15rem] origin-top-left translate-x-[180%] translate-y-[70%] rotate-[-45deg] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,15%,.03)_0,hsla(0,0%,55%,.015)_80%,transparent_100%)]" />
+        <div className="absolute top-0 left-0 h-[81.25rem] w-[35rem] -translate-y-[21.875rem] rotate-[-45deg] rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,hsla(215,35%,45%,.025)_0,hsla(215,30%,55%,.01)_50%,hsla(215,30%,60%,0)_80%)]" />
+        <div className="absolute top-0 left-0 h-[81.25rem] w-[15rem] origin-top-left translate-x-[5%] translate-y-[-5%] rotate-[-45deg] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(215,35%,45%,.02)_0,hsla(215,30%,60%,.008)_80%,transparent_100%)]" />
+        <div className="absolute top-0 left-0 h-[81.25rem] w-[15rem] origin-top-left translate-x-[180%] translate-y-[70%] rotate-[-45deg] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(215,35%,45%,.015)_0,hsla(215,30%,60%,.008)_80%,transparent_100%)]" />
       </div>
     </section>
   );
