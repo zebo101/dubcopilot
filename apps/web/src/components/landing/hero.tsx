@@ -126,10 +126,6 @@ export function Hero(props: HeroProps) {
                   <EditorMock />
                   <div
                     aria-hidden
-                    className="pointer-events-none absolute inset-0 bg-background/[0.08] dark:hidden"
-                  />
-                  <div
-                    aria-hidden
                     className="pointer-events-none absolute inset-0 hidden bg-linear-to-r from-transparent from-80% to-background dark:block"
                   />
                 </div>
@@ -449,11 +445,11 @@ const EditorMock = () => {
           </div>
         </div>
 
-        {/* 视频预览（始终深色） */}
-        <div className="flex flex-col bg-neutral-950">
+        {/* 视频预览（白天浅色课程录屏，深色模式保持暗色影院感） */}
+        <div className="flex flex-col bg-neutral-100 dark:bg-neutral-950">
           <div className="relative flex flex-1 items-center justify-center overflow-hidden">
             {/* 模拟视频画面：代码编辑器风格色块 */}
-            <div className="absolute inset-6 rounded border border-neutral-800 bg-neutral-900/80 p-4">
+            <div className="absolute inset-6 rounded border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900/80">
               <div className="flex gap-3">
                 <div className="w-28 space-y-1.5">
                   {[
@@ -471,8 +467,8 @@ const EditorMock = () => {
                       className={cn(
                         "rounded px-1.5 py-0.5 font-mono text-[0.55rem]",
                         i === 6
-                          ? "bg-neutral-700/60 text-neutral-200"
-                          : "text-neutral-500",
+                          ? "bg-neutral-200 text-neutral-700 dark:bg-neutral-700/60 dark:text-neutral-200"
+                          : "text-neutral-400 dark:text-neutral-500",
                       )}
                       style={{ marginLeft: `${(i % 4) * 6}px` }}
                     >
@@ -483,17 +479,17 @@ const EditorMock = () => {
                 <div className="flex-1 space-y-1.5 pt-1">
                   {[88, 72, 95, 60, 80, 45, 90, 66, 75, 52].map((w, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="w-4 text-right font-mono text-[0.5rem] text-neutral-700">
+                      <span className="w-4 text-right font-mono text-[0.5rem] text-neutral-300 dark:text-neutral-700">
                         {i + 3}
                       </span>
                       <div
                         className={cn(
                           "h-1.5 rounded-full",
                           i % 3 === 0
-                            ? "bg-blue-400/30"
+                            ? "bg-blue-500/35 dark:bg-blue-400/30"
                             : i % 3 === 1
-                              ? "bg-emerald-400/25"
-                              : "bg-neutral-600/40",
+                              ? "bg-emerald-500/30 dark:bg-emerald-400/25"
+                              : "bg-neutral-400/40 dark:bg-neutral-600/40",
                         )}
                         style={{ width: `${w * 0.8}%` }}
                       />
@@ -510,13 +506,18 @@ const EditorMock = () => {
             </div>
           </div>
           {/* 播放控制条 */}
-          <div className="flex items-center justify-between border-t border-neutral-800 px-4 py-2">
-            <span className="font-mono text-[0.6rem] text-neutral-400">
-              00:00:08:06 <span className="text-neutral-600">/ 00:04:25:25</span>
+          <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-2 dark:border-neutral-800">
+            <span className="font-mono text-[0.6rem] text-neutral-500 dark:text-neutral-400">
+              00:00:08:06{" "}
+              <span className="text-neutral-400 dark:text-neutral-600">
+                / 00:04:25:25
+              </span>
             </span>
-            <span className="text-xs text-neutral-300">⏸</span>
-            <div className="flex items-center gap-2 text-[0.6rem] text-neutral-400">
-              <span className="rounded border border-neutral-700 px-1.5 py-0.5">
+            <span className="text-xs text-neutral-600 dark:text-neutral-300">
+              ⏸
+            </span>
+            <div className="flex items-center gap-2 text-[0.6rem] text-neutral-500 dark:text-neutral-400">
+              <span className="rounded border border-neutral-300 px-1.5 py-0.5 dark:border-neutral-700">
                 Fit ▾
               </span>
               <span>⛶</span>
@@ -760,11 +761,22 @@ const EditorMock = () => {
             <span className="w-9 text-center text-[0.6rem] text-neutral-400 dark:text-neutral-600">
               ♪ ◫
             </span>
-            <div className="relative h-10 flex-1 overflow-hidden rounded-sm bg-neutral-900 dark:bg-neutral-950">
-              <span className="absolute top-1 left-2 z-10 font-mono text-[0.5rem] text-neutral-400">
+            <div className="relative h-10 flex-1 overflow-hidden rounded-sm bg-neutral-200 dark:bg-neutral-950">
+              <span className="absolute top-1 left-2 z-10 font-mono text-[0.5rem] text-neutral-600 dark:text-neutral-400">
                 049-module-summary.mp4
               </span>
-              <div className="flex h-full">
+              <div className="flex h-full dark:hidden">
+                {Array.from({ length: 24 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="h-full flex-1 border-r border-neutral-300"
+                    style={{
+                      background: `linear-gradient(180deg, hsla(${200 + (i % 5) * 8},35%,${88 - (i % 4) * 3}%,1), hsla(${220 + (i % 3) * 10},30%,${80 - (i % 3) * 3}%,1))`,
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="hidden h-full dark:flex">
                 {Array.from({ length: 24 }, (_, i) => (
                   <div
                     key={i}
