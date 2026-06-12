@@ -352,7 +352,7 @@ export function Compare() {
           title="AI 配音 vs 传统人工配音"
           description="对于讲解类视频和成规模的内容库，AI 视频配音在成本和效率上是数量级的差距。"
         />
-        <div className="overflow-x-auto rounded-2xl border">
+        <div className="overflow-x-auto border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50 text-left">
