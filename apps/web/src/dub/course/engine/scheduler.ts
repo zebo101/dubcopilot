@@ -146,6 +146,7 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 				settings,
 				creds,
 				autoExport: autoExport && outDir !== null,
+				folder: course.name,
 				hooks: {
 					signal: lessonSignal,
 					gate: pauseGate,

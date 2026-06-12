@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent, MouseEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { EditorCore } from "@/core";
 import { MigrationDialog } from "@/project/components/migration-dialog";
@@ -46,6 +46,7 @@ import {
 	Edit03Icon,
 	ArrowDown02Icon,
 	InformationCircleIcon,
+	Folder03Icon,
 } from "@hugeicons/core-free-icons";
 import { OcVideoIcon } from "@/components/icons";
 import { Label } from "@/components/ui/label";
@@ -61,9 +62,14 @@ import {
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteProjectDialog } from "@/project/components/delete-project-dialog";
+import { NewFolderDialog } from "@/project/components/new-folder-dialog";
 import { ProjectInfoDialog } from "@/project/components/project-info-dialog";
 import { RenameProjectDialog } from "@/project/components/rename-project-dialog";
 import { cn } from "@/utils/ui";
@@ -96,6 +102,38 @@ export default function ProjectsPage() {
 	const projectsToDisplay = useEditor((e) =>
 		e.project.getFilteredAndSortedProjects({ searchQuery, sortOption }),
 	);
+	const allProjects = useEditor((e) => e.project.getSavedProjects());
+
+	// 单层文件夹：null = 全部，"" = 未分类，其余为文件夹名
+	const [folderFilter, setFolderFilter] = useState<string | null>(null);
+	const folders = useMemo(() => {
+		const counts = new Map<string, number>();
+		for (const p of allProjects) {
+			if (p.folder) counts.set(p.folder, (counts.get(p.folder) ?? 0) + 1);
+		}
+		return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0], "zh"));
+	}, [allProjects]);
+	const uncategorized = allProjects.filter((p) => !p.folder).length;
+	const allFolderNames = folders.map(([name]) => name);
+
+	// 文件夹被清空消失时，过滤器自动回到「全部」
+	useEffect(() => {
+		if (
+			folderFilter !== null &&
+			folderFilter !== "" &&
+			!allFolderNames.includes(folderFilter)
+		) {
+			setFolderFilter(null);
+		}
+	}, [folderFilter, allFolderNames]);
+
+	const visibleProjects = projectsToDisplay.filter((p) =>
+		folderFilter === null
+			? true
+			: folderFilter === ""
+				? !p.folder
+				: p.folder === folderFilter,
+	);
 
 	useEffect(() => {
 		if (!editor.project.getIsInitialized()) {
@@ -108,11 +146,20 @@ export default function ProjectsPage() {
 			<MigrationDialog />
 			<StoragePersistenceDialog />
 			<ProjectsHeader />
-			<ProjectsToolbar projectIds={projectsToDisplay.map((p) => p.id)} />
+			<ProjectsToolbar projectIds={visibleProjects.map((p) => p.id)} />
+			{folders.length > 0 ? (
+				<FolderChips
+					folders={folders}
+					total={allProjects.length}
+					uncategorized={uncategorized}
+					value={folderFilter}
+					onChange={setFolderFilter}
+				/>
+			) : null}
 			<main className="mx-auto px-4 pt-2 pb-6 flex flex-col gap-4">
 				{isLoading || !isInitialized ? (
 					<ProjectsSkeleton />
-				) : projectsToDisplay.length === 0 ? (
+				) : visibleProjects.length === 0 ? (
 					<EmptyState />
 				) : (
 					<div
@@ -122,16 +169,58 @@ export default function ProjectsPage() {
 								: "flex flex-col"
 						}
 					>
-						{projectsToDisplay.map((project) => (
+						{visibleProjects.map((project) => (
 							<ProjectItem
 								key={project.id}
 								project={project}
-								allProjectIds={projectsToDisplay.map((p) => p.id)}
+								allProjectIds={visibleProjects.map((p) => p.id)}
+								allFolders={allFolderNames}
 							/>
 						))}
 					</div>
 				)}
 			</main>
+		</div>
+	);
+}
+
+function FolderChips({
+	folders,
+	total,
+	uncategorized,
+	value,
+	onChange,
+}: {
+	folders: [string, number][];
+	total: number;
+	uncategorized: number;
+	value: string | null;
+	onChange: (v: string | null) => void;
+}) {
+	const chip = (active: boolean) =>
+		cn(
+			"flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs",
+			active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted",
+		);
+	return (
+		<div className="flex items-center gap-1 overflow-x-auto px-6 pb-1">
+			<button type="button" className={chip(value === null)} onClick={() => onChange(null)}>
+				全部 ({total})
+			</button>
+			<button type="button" className={chip(value === "")} onClick={() => onChange("")}>
+				未分类 ({uncategorized})
+			</button>
+			{folders.map(([name, count]) => (
+				<button
+					type="button"
+					key={name}
+					className={chip(value === name)}
+					onClick={() => onChange(name)}
+				>
+					<HugeiconsIcon icon={Folder03Icon} className="size-3.5" />
+					{name} ({count})
+				</button>
+			))}
 		</div>
 	);
 }
@@ -546,9 +635,11 @@ function NewProjectButton() {
 function ProjectItem({
 	project,
 	allProjectIds,
+	allFolders,
 }: {
 	project: TProjectMetadata;
 	allProjectIds: string[];
+	allFolders: string[];
 }) {
 	const {
 		selectedProjectIds,
@@ -563,6 +654,7 @@ function ProjectItem({
 	const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
+	const [isNewFolderDialogOpen, setIsNewFolderDialogOpen] = useState(false);
 	const editor = useEditor();
 	const durationLabel = formatProjectDuration({ duration: project.duration });
 	const isMultiSelect = selectedProjectCount > 1;
@@ -578,6 +670,11 @@ function ProjectItem({
 		await deleteProjects({ editor, ids: [project.id] });
 		setIsDeleteDialogOpen(false);
 	};
+	const handleMoveToFolder = async (folder: string | undefined) => {
+		await editor.project.setProjectFolder({ id: project.id, folder });
+		toast.success(folder ? `已移动到「${folder}」` : "已移到未分类");
+	};
+	const handleNewFolderClick = () => setIsNewFolderDialogOpen(true);
 
 	const handleCheckboxChange = ({
 		checked,
@@ -689,10 +786,14 @@ function ProjectItem({
 					isOpen={isDropdownOpen}
 					onOpenChange={setIsDropdownOpen}
 					variant="list"
+					allFolders={allFolders}
+					currentFolder={project.folder}
 					onRenameClick={handleRename}
 					onDuplicateClick={handleDuplicate}
 					onDeleteClick={handleDeleteClick}
 					onInfoClick={handleInfoClick}
+					onMoveToFolder={handleMoveToFolder}
+					onNewFolderClick={handleNewFolderClick}
 				/>
 			)}
 		</div>
@@ -730,10 +831,14 @@ function ProjectItem({
 									<ProjectMenu
 										isOpen={isDropdownOpen}
 										onOpenChange={setIsDropdownOpen}
+										allFolders={allFolders}
+										currentFolder={project.folder}
 										onRenameClick={handleRename}
 										onDuplicateClick={handleDuplicate}
 										onDeleteClick={handleDeleteClick}
 										onInfoClick={handleInfoClick}
+										onMoveToFolder={handleMoveToFolder}
+										onNewFolderClick={handleNewFolderClick}
 									/>
 								)}
 							</>
@@ -771,6 +876,15 @@ function ProjectItem({
 				isOpen={isInfoDialogOpen}
 				onOpenChange={setIsInfoDialogOpen}
 				project={project}
+			/>
+
+			<NewFolderDialog
+				isOpen={isNewFolderDialogOpen}
+				onOpenChange={setIsNewFolderDialogOpen}
+				onConfirm={async (name) => {
+					await handleMoveToFolder(name);
+					setIsNewFolderDialogOpen(false);
+				}}
 			/>
 		</>
 	);
@@ -823,18 +937,26 @@ function ProjectMenu({
 	isOpen,
 	onOpenChange,
 	variant = "grid",
+	allFolders,
+	currentFolder,
 	onRenameClick,
 	onDuplicateClick,
 	onDeleteClick,
 	onInfoClick,
+	onMoveToFolder,
+	onNewFolderClick,
 }: {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 	variant?: "grid" | "list";
+	allFolders: string[];
+	currentFolder?: string;
 	onRenameClick: () => void;
 	onDuplicateClick: () => void;
 	onDeleteClick: () => void;
 	onInfoClick: () => void;
+	onMoveToFolder: (folder: string | undefined) => void;
+	onNewFolderClick: () => void;
 }) {
 	const handleMenuClick = ({
 		event,
@@ -923,6 +1045,48 @@ function ProjectMenu({
 					<HugeiconsIcon icon={InformationCircleIcon} />
 					详情
 				</DropdownMenuItem>
+				<DropdownMenuSub>
+					<DropdownMenuSubTrigger>
+						<HugeiconsIcon icon={Folder03Icon} />
+						移动到文件夹
+					</DropdownMenuSubTrigger>
+					<DropdownMenuSubContent>
+						{currentFolder ? (
+							<DropdownMenuItem
+								onClick={() => {
+									onMoveToFolder(undefined);
+									onOpenChange(false);
+								}}
+							>
+								未分类
+							</DropdownMenuItem>
+						) : null}
+						{allFolders
+							.filter((f) => f !== currentFolder)
+							.map((f) => (
+								<DropdownMenuItem
+									key={f}
+									onClick={() => {
+										onMoveToFolder(f);
+										onOpenChange(false);
+									}}
+								>
+									{f}
+								</DropdownMenuItem>
+							))}
+						{currentFolder || allFolders.some((f) => f !== currentFolder) ? (
+							<DropdownMenuSeparator />
+						) : null}
+						<DropdownMenuItem
+							onClick={() => {
+								onNewFolderClick();
+								onOpenChange(false);
+							}}
+						>
+							新建文件夹…
+						</DropdownMenuItem>
+					</DropdownMenuSubContent>
+				</DropdownMenuSub>
 				<DropdownMenuItem variant="destructive" onClick={handleDeleteClick}>
 					<HugeiconsIcon icon={Delete02Icon} />
 					删除

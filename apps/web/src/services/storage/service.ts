@@ -153,6 +153,7 @@ class StorageService {
 				duration,
 				createdAt: project.metadata.createdAt.toISOString(),
 				updatedAt: project.metadata.updatedAt.toISOString(),
+				folder: project.metadata.folder,
 			},
 			scenes: serializedScenes,
 			currentSceneId: project.currentSceneId,
@@ -213,6 +214,7 @@ class StorageService {
 				}),
 				createdAt: new Date(serializedProject.metadata.createdAt),
 				updatedAt: new Date(serializedProject.metadata.updatedAt),
+				folder: serializedProject.metadata.folder,
 			},
 			scenes,
 			currentSceneId: serializedProject.currentSceneId || "",
@@ -272,6 +274,7 @@ class StorageService {
 				}),
 				createdAt: new Date(serializedProject.metadata.createdAt),
 				updatedAt: new Date(serializedProject.metadata.updatedAt),
+				folder: serializedProject.metadata.folder,
 			});
 		}
 

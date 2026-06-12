@@ -24,6 +24,8 @@ export interface TProjectMetadata {
 	duration: MediaTime;
 	createdAt: Date;
 	updatedAt: Date;
+	/** 单层项目文件夹名；undefined = 未分类（旧项目零迁移） */
+	folder?: string;
 }
 
 export interface TProjectSettings {

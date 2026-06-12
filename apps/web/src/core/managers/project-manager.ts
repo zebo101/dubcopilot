@@ -357,6 +357,49 @@ export class ProjectManager {
 		}
 	}
 
+	/** Move a project into a single-level folder; undefined = 未分类. */
+	async setProjectFolder({
+		id,
+		folder,
+	}: {
+		id: string;
+		folder: string | undefined;
+	}): Promise<void> {
+		try {
+			const result = await storageService.loadProject({ id });
+			if (!result) {
+				toast.error("Project not found", {
+					description: "Please try again",
+				});
+				return;
+			}
+
+			const updatedProject: TProject = {
+				...result.project,
+				metadata: {
+					...result.project.metadata,
+					folder,
+					updatedAt: new Date(),
+				},
+			};
+
+			await storageService.saveProject({ project: updatedProject });
+
+			if (this.active?.metadata.id === id) {
+				this.active = updatedProject;
+				this.notify();
+			}
+
+			this.updateMetadata(updatedProject);
+		} catch (error) {
+			console.error("Failed to move project to folder:", error);
+			toast.error("移动项目失败", {
+				description:
+					error instanceof Error ? error.message : "Please try again",
+			});
+		}
+	}
+
 	async duplicateProjects({ ids }: { ids: string[] }): Promise<string[]> {
 		const uniqueIds = Array.from(new Set(ids));
 		if (uniqueIds.length === 0) return [];

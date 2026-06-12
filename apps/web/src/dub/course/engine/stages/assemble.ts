@@ -56,12 +56,15 @@ export async function assembleLesson({
 	segments,
 	clips,
 	settings,
+	folder,
 }: {
 	title: string;
 	meta: LessonMeta;
 	segments: Segment[];
 	clips: SynthesizedClip[];
 	settings: DubSettings;
+	/** 项目文件夹（课程名）— 批量产物在全部项目页自动归类 */
+	folder?: string;
 }): Promise<{ projectId: string; videoMediaId: string }> {
 	const projectId = generateUUID();
 	const videoMediaId = generateUUID();
@@ -174,6 +177,7 @@ export async function assembleLesson({
 		metadata: {
 			id: projectId,
 			name: `${title} · ${langLabel}配音`,
+			folder,
 			duration: getProjectDurationFromScenes({ scenes: [scene] }),
 			createdAt: new Date(),
 			updatedAt: new Date(),

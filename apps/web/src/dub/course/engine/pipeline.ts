@@ -68,6 +68,7 @@ export async function runLesson({
 	settings,
 	creds,
 	autoExport,
+	folder,
 	hooks,
 }: {
 	lesson: CourseLesson;
@@ -77,6 +78,8 @@ export async function runLesson({
 	settings: DubSettings;
 	creds: DubCredentials;
 	autoExport: boolean;
+	/** 项目文件夹（课程名）— 透传给 assemble 写入项目元数据 */
+	folder?: string;
 	hooks: PipelineHooks;
 }): Promise<LessonOutcome> {
 	return sems.inflight.withPermit(async () => {
@@ -172,6 +175,7 @@ export async function runLesson({
 					segments,
 					clips,
 					settings,
+					folder,
 				}),
 			hooks.signal,
 		);
