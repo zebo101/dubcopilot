@@ -156,23 +156,32 @@ export function splitCaptionText({
 export function splitCaption({
 	text,
 	start,
-	duration,
+	slot,
+	speech = 0,
 	maxWidth = DEFAULT_CAPTION_MAX_WIDTH,
 }: {
 	text: string;
 	start: number;
-	duration: number;
+	/** extended slot until the next line, seconds */
+	slot: number;
+	/** actual talk time (TTS audio after speed-fit / original cue span) —
+	 * chunks tile THIS span, matching the dub audio's reading progress;
+	 * tiling the whole slot pushed later chunks into trailing silence */
+	speech?: number;
 	maxWidth?: number;
 }): { text: string; start: number; duration: number }[] {
 	const trimmed = text.trim();
 	const totalWidth = captionWidth({ text: trimmed });
+	const window = captionWindow({ slot, speech });
+	// the span someone is actually talking — chunk boundaries live in here
+	const talk = speech > 0 ? Math.min(speech, window) : window;
 
-	// duration-aware chunk count: a short slot prefers FEWER, longer captions
-	// (each still under the hard wall) over sub-2s flashes
+	// duration-aware chunk count: a short talk span prefers FEWER, longer
+	// captions (each still under the hard wall) over sub-2s flashes
 	let effectiveMax = maxWidth;
-	if (duration > 0 && totalWidth > maxWidth) {
+	if (talk > 0 && totalWidth > maxWidth) {
 		const softChunks = Math.ceil(totalWidth / maxWidth);
-		const byTime = Math.max(1, Math.floor(duration / MIN_CAPTION_SECONDS));
+		const byTime = Math.max(1, Math.floor(talk / MIN_CAPTION_SECONDS));
 		const hardChunks = Math.ceil(totalWidth / CAPTION_HARD_MAX_WIDTH);
 		const chunkCount = Math.max(hardChunks, Math.min(softChunks, byTime));
 		if (chunkCount < softChunks) {
@@ -185,9 +194,9 @@ export function splitCaption({
 
 	const chunks = splitCaptionText({ text: trimmed, maxWidth: effectiveMax });
 	if (chunks.length <= 1) {
-		return [{ text: chunks[0] ?? trimmed, start, duration }];
+		return [{ text: chunks[0] ?? trimmed, start, duration: window }];
 	}
-	if (duration <= 0) {
+	if (window <= 0) {
 		return chunks.map((c) => ({ text: c, start, duration: 0 }));
 	}
 	const widths = chunks.map((c) => captionWidth({ text: c }));
@@ -196,10 +205,11 @@ export function splitCaption({
 	let cursor = start;
 	for (let i = 0; i < chunks.length; i++) {
 		const isLast = i === chunks.length - 1;
-		// last chunk absorbs float drift so the series ends exactly on time
+		// boundaries are proportional over the TALK span (uniform TTS reading
+		// rate); the last chunk runs to the window end — the ≤1s linger
 		const d = isLast
-			? start + duration - cursor
-			: (duration * widths[i]) / total;
+			? start + window - cursor
+			: (talk * widths[i]) / total;
 		out.push({ text: chunks[i], start: cursor, duration: d });
 		cursor += d;
 	}

@@ -94,14 +94,17 @@ describe("splitCaptionText", () => {
 });
 
 describe("splitCaption", () => {
-	test("single chunk keeps original timing", () => {
-		const out = splitCaption({ text: "短句。", start: 3, duration: 2 });
+	test("single chunk keeps the full window", () => {
+		const out = splitCaption({ text: "短句。", start: 3, slot: 2, speech: 2 });
 		expect(out).toEqual([{ text: "短句。", start: 3, duration: 2 }]);
 	});
 
-	test("durations are proportional, monotonic, and sum exactly", () => {
+	test("chunks tile the SPEECH span, not the whole slot", () => {
+		// 9s of talk inside an 18s slot — boundaries must all land within the
+		// talk span; previously they spread over the slot, drifting captions
+		// deep into the trailing silence
 		const text = `${"前".repeat(20)}，${"后后".repeat(20)}。`;
-		const out = splitCaption({ text, start: 10, duration: 9 });
+		const out = splitCaption({ text, start: 10, speech: 9, slot: 18 });
 		expect(out.length).toBeGreaterThan(1);
 		// starts monotonic, tiles without gaps
 		for (let i = 1; i < out.length; i++) {
@@ -109,36 +112,44 @@ describe("splitCaption", () => {
 				out[i - 1].start + out[i - 1].duration,
 				10,
 			);
+			// every boundary inside the talk span
+			expect(out[i].start).toBeLessThanOrEqual(10 + 9 + 1e-9);
 		}
+		// final chunk ends ≤1s after speech (linger), NOT at slot end (28)
 		const last = out[out.length - 1];
-		expect(last.start + last.duration).toBeCloseTo(19, 10);
-		// proportional: longer chunk gets more time
-		const sorted = [...out].sort((a, b) => width(b.text) - width(a.text));
-		expect(sorted[0].duration).toBeGreaterThanOrEqual(
-			sorted[sorted.length - 1].duration,
-		);
+		expect(last.start + last.duration).toBeCloseTo(20, 10);
 		for (const cue of out) {
 			expect(cue.duration).toBeGreaterThan(0);
 		}
 	});
 
-	test("short slot prefers fewer captions over sub-2s flashes", () => {
-		// 35 CJK (width 70) in a 1s slot: soft split would be 2 × 0.5s flashes;
+	test("small gap to the next line keeps the full slot", () => {
+		const text = `${"前".repeat(20)}，${"后后".repeat(20)}。`;
+		// gap 0.8s ≤ 1s → window = slot; chunks tile speech, last fills gap
+		const out = splitCaption({ text, start: 0, speech: 9, slot: 9.8 });
+		const last = out[out.length - 1];
+		expect(last.start + last.duration).toBeCloseTo(9.8, 10);
+	});
+
+	test("short talk span prefers fewer captions over sub-2s flashes", () => {
+		// 35 CJK (width 70) talked in 1s: soft split would be 2 × 0.5s flashes;
 		// width 70 fits under the hard wall (80) → keep ONE caption
 		const out = splitCaption({
 			text: "字".repeat(35),
 			start: 0,
-			duration: 1,
+			slot: 1,
+			speech: 1,
 		});
 		expect(out.length).toBe(1);
 	});
 
-	test("hard wall still splits even in a short slot", () => {
-		// 50 CJK (width 100) exceeds the hard wall — must split despite 1s slot
+	test("hard wall still splits even in a short talk span", () => {
+		// 50 CJK (width 100) exceeds the hard wall — must split despite 1s talk
 		const out = splitCaption({
 			text: "字".repeat(50),
 			start: 0,
-			duration: 1,
+			slot: 1,
+			speech: 1,
 		});
 		expect(out.length).toBeGreaterThan(1);
 		for (const cue of out) {
@@ -146,12 +157,13 @@ describe("splitCaption", () => {
 		}
 	});
 
-	test("long slot keeps the fine-grained split", () => {
-		// 100 CJK (width 200) over 18s: time allows ≥4 chunks → soft split wins
+	test("long talk span keeps the fine-grained split", () => {
+		// 100 CJK (width 200) talked over 18s: time allows ≥4 chunks
 		const out = splitCaption({
 			text: "字".repeat(100),
 			start: 0,
-			duration: 18,
+			slot: 18,
+			speech: 18,
 		});
 		expect(out.length).toBe(4);
 		for (const cue of out) {
@@ -159,11 +171,11 @@ describe("splitCaption", () => {
 		}
 	});
 
-	test("zero duration never produces negative durations", () => {
+	test("zero slot never produces negative durations", () => {
 		const out = splitCaption({
 			text: "字".repeat(70),
 			start: 5,
-			duration: 0,
+			slot: 0,
 		});
 		expect(out.length).toBeGreaterThan(1);
 		for (const cue of out) {

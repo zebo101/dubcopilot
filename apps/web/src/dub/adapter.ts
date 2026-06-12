@@ -17,7 +17,7 @@ import { hasTtsKey } from "@/dub/credentials";
 import { synthesizeLesson } from "@/dub/course/engine/stages/synthesize";
 import { applyOriginalAudio } from "@/dub/original-audio";
 import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
-import { captionWindow, splitCaption } from "@/dub/subtitle-split";
+import { splitCaption } from "@/dub/subtitle-split";
 import type { DubSettings, Segment } from "@/dub/types";
 
 // Tracks we own — matched by PREFIX so re-apply REPLACES instead of stacking,
@@ -162,13 +162,10 @@ export async function applyDubToTimeline({
 			splitCaption({
 				text: seg.translated,
 				start: seg.start,
-				// small gaps to the next line are filled for continuous reading;
-				// a long silence ends the caption ~1s after the speech does
-				// (dub audio after speed-fit, or the original cue span)
-				duration: captionWindow({
-					slot: seg.timing.targetDuration,
-					speech: Math.max(seg.timing.fittedDuration, seg.end - seg.start),
-				}),
+				// chunks tile the actual talk time (matching the TTS reading
+				// progress); only the final chunk lingers ≤1s into silence
+				slot: seg.timing.targetDuration,
+				speech: Math.max(seg.timing.fittedDuration, seg.end - seg.start),
 			}),
 		);
 		const subtitleElements: TextElement[] = cues.map((cue, i) => ({

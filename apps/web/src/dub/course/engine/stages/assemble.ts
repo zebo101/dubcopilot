@@ -21,7 +21,7 @@ import { mediaTimeFromSeconds } from "@/wasm";
 import { applyOriginalAudio } from "@/dub/original-audio";
 import { saveDubSession } from "@/dub/session";
 import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
-import { captionWindow, splitCaption } from "@/dub/subtitle-split";
+import { splitCaption } from "@/dub/subtitle-split";
 import { languageByCode } from "@/dub/languages";
 import type {
 	AudioTrack,
@@ -144,16 +144,13 @@ export async function assembleLesson({
 				splitCaption({
 					text: seg.translated,
 					start: seg.start,
-					// small gaps to the next line are filled for continuous
-					// reading; a long silence ends the caption ~1s after the
-					// speech does (dub audio after speed-fit, or the cue span)
-					duration: captionWindow({
-						slot: seg.timing.targetDuration,
-						speech: Math.max(
-							seg.timing.fittedDuration,
-							seg.end - seg.start,
-						),
-					}),
+					// chunks tile the actual talk time (matching the TTS
+					// reading progress); only the final chunk lingers ≤1s
+					slot: seg.timing.targetDuration,
+					speech: Math.max(
+						seg.timing.fittedDuration,
+						seg.end - seg.start,
+					),
 				}),
 			);
 		const subtitleElements: TextElement[] = cues.map((cue, i) => ({
