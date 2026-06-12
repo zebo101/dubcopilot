@@ -43,6 +43,74 @@ export function captionWindow({
 	return Math.min(slot, speech + CAPTION_LINGER_SECONDS);
 }
 
+export interface CaptionSpan {
+	/** where this segment's text is actually being READ in the TTS audio */
+	start: number;
+	end: number;
+	/** display may extend to here (≤1s linger into true silence) */
+	lingerEnd: number;
+}
+
+/** Derive each segment's REAL reading window from the synthesized clips.
+ * A clip voices one dub unit ([start, start+fitted] on the timeline) and may
+ * cover several segments read back-to-back — estimates (fittedDuration) and
+ * the original cue spans both drift from this truth, which is what left
+ * captions floating in silence. Members split the clip proportionally by
+ * translated width; only the unit's LAST member lingers, capped by its slot
+ * and the next clip's start. Segments not voiced by any clip are absent —
+ * callers fall back to cue-based timing (subtitle-only / failed unit). */
+export function captionSpansFromClips({
+	segments,
+	clips,
+}: {
+	segments: {
+		id: string;
+		translated: string;
+		start: number;
+		timing: { targetDuration: number };
+	}[];
+	clips: { segIds: string[]; start: number; fitted: number }[];
+}): Map<string, CaptionSpan> {
+	const segById = new Map(segments.map((s) => [s.id, s]));
+	const sorted = [...clips]
+		.filter((c) => c.fitted > 0)
+		.sort((a, b) => a.start - b.start);
+	const spans = new Map<string, CaptionSpan>();
+	for (let ci = 0; ci < sorted.length; ci++) {
+		const clip = sorted[ci];
+		const members = clip.segIds.flatMap((id) => {
+			const seg = segById.get(id);
+			return seg && seg.translated.trim() ? [seg] : [];
+		});
+		const widths = members.map((s) =>
+			captionWidth({ text: s.translated.trim() }),
+		);
+		const total = widths.reduce((a, b) => a + b, 0);
+		if (members.length === 0 || total <= 0) continue;
+		const nextClipStart = sorted[ci + 1]?.start ?? Number.POSITIVE_INFINITY;
+		let cursor = clip.start;
+		let acc = 0;
+		for (let i = 0; i < members.length; i++) {
+			const seg = members[i];
+			acc += widths[i];
+			const isLast = i === members.length - 1;
+			const end = isLast
+				? clip.start + clip.fitted
+				: clip.start + (clip.fitted * acc) / total;
+			const slotEnd = seg.start + seg.timing.targetDuration;
+			const lingerEnd = isLast
+				? Math.max(
+						end,
+						Math.min(end + CAPTION_LINGER_SECONDS, slotEnd, nextClipStart),
+					)
+				: end;
+			spans.set(seg.id, { start: cursor, end, lingerEnd });
+			cursor = end;
+		}
+	}
+	return spans;
+}
+
 // lookbehind keeps the punctuation attached to the preceding clause
 const CLAUSE_BOUNDARY = /(?<=[。！？；，、…．!?;:,.])/u;
 const SPACE_BOUNDARY = /(?<=\s)/u;

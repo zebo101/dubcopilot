@@ -17,7 +17,7 @@ import { hasTtsKey } from "@/dub/credentials";
 import { synthesizeLesson } from "@/dub/course/engine/stages/synthesize";
 import { applyOriginalAudio } from "@/dub/original-audio";
 import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
-import { splitCaption } from "@/dub/subtitle-split";
+import { captionSpansFromClips, splitCaption } from "@/dub/subtitle-split";
 import type { DubSettings, Segment } from "@/dub/types";
 
 // Tracks we own — matched by PREFIX so re-apply REPLACES instead of stacking,
@@ -158,16 +158,26 @@ export async function applyDubToTimeline({
 	if (settings.subtitles) {
 		// long merged segments become several short sequential captions tiling
 		// the same slot — one 100-char caption was a wall of text on screen
-		const cues = dubbable.flatMap((seg) =>
-			splitCaption({
-				text: seg.translated,
-				start: seg.start,
-				// chunks tile the actual talk time (matching the TTS reading
-				// progress); only the final chunk lingers ≤1s into silence
-				slot: seg.timing.targetDuration,
-				speech: Math.max(seg.timing.fittedDuration, seg.end - seg.start),
-			}),
-		);
+		// real reading windows from the synthesized clips — captions sit
+		// exactly on the TTS audio; segments without a clip (failed unit)
+		// fall back to the original cue pacing
+		const spans = captionSpansFromClips({ segments: dubbable, clips });
+		const cues = dubbable.flatMap((seg) => {
+			const span = spans.get(seg.id);
+			return span
+				? splitCaption({
+						text: seg.translated,
+						start: span.start,
+						slot: span.lingerEnd - span.start,
+						speech: span.end - span.start,
+					})
+				: splitCaption({
+						text: seg.translated,
+						start: seg.start,
+						slot: seg.timing.targetDuration,
+						speech: seg.end - seg.start,
+					});
+		});
 		const subtitleElements: TextElement[] = cues.map((cue, i) => ({
 			...buildSubtitleTextElement({
 				index: i,

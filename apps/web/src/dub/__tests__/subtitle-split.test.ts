@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	captionSpansFromClips,
 	captionWidth,
 	captionWindow,
 	splitCaption,
@@ -15,6 +16,67 @@ describe("captionWidth", () => {
 		expect(width("汉a字b")).toBe(6);
 		expect(width("，")).toBe(2); // full-width punctuation is wide
 		expect(width(",")).toBe(1);
+	});
+});
+
+describe("captionSpansFromClips", () => {
+	const seg = (id: string, translated: string, start: number, slot: number) => ({
+		id,
+		translated,
+		start,
+		timing: { targetDuration: slot },
+	});
+
+	test("single-member clip: span equals the real audio, linger ≤1s capped by slot", () => {
+		// audio [10, 16] inside a 10s slot — caption must end at 17, not 20
+		const spans = captionSpansFromClips({
+			segments: [seg("a", "这是一句话。", 10, 10)],
+			clips: [{ segIds: ["a"], start: 10, fitted: 6 }],
+		});
+		expect(spans.get("a")).toEqual({ start: 10, end: 16, lingerEnd: 17 });
+	});
+
+	test("multi-member clip splits proportionally with seamless joints", () => {
+		// unit reads 6 CJK then 12 CJK continuously over 9s → boundary at 3s
+		const spans = captionSpansFromClips({
+			segments: [
+				seg("a", "前前前前前前", 0, 4),
+				seg("b", "后后后后后后后后后后后后", 4, 8),
+			],
+			clips: [{ segIds: ["a", "b"], start: 0, fitted: 9 }],
+		});
+		const a = spans.get("a");
+		const b = spans.get("b");
+		expect(a?.start).toBe(0);
+		expect(a?.end).toBeCloseTo(3, 10);
+		// intermediate member never lingers — the next one starts right there
+		expect(a?.lingerEnd).toBeCloseTo(3, 10);
+		expect(b?.start).toBeCloseTo(3, 10);
+		expect(b?.end).toBeCloseTo(9, 10);
+		expect(b?.lingerEnd).toBeCloseTo(10, 10); // ≤1s into silence (slot end 12)
+	});
+
+	test("linger never crosses the next clip's start", () => {
+		const spans = captionSpansFromClips({
+			segments: [seg("a", "一句。", 0, 10), seg("b", "下句。", 5.3, 5)],
+			clips: [
+				{ segIds: ["a"], start: 0, fitted: 5 },
+				{ segIds: ["b"], start: 5.3, fitted: 3 },
+			],
+		});
+		expect(spans.get("a")?.lingerEnd).toBeCloseTo(5.3, 10);
+	});
+
+	test("segments without a clip are absent; zero-fitted clips ignored", () => {
+		const spans = captionSpansFromClips({
+			segments: [seg("a", "有声。", 0, 5), seg("b", "没声。", 5, 5)],
+			clips: [
+				{ segIds: ["a"], start: 0, fitted: 4 },
+				{ segIds: ["b"], start: 5, fitted: 0 },
+			],
+		});
+		expect(spans.has("a")).toBe(true);
+		expect(spans.has("b")).toBe(false);
 	});
 });
 
