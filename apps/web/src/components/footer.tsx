@@ -3,8 +3,8 @@ import Image from "next/image";
 import { DEFAULT_LOGO_URL, SITE_INFO } from "@/site/brand";
 
 const links = [
-	{ label: "Privacy", href: "/privacy" },
-	{ label: "Terms of use", href: "/terms" },
+	{ label: "隐私政策", href: "/privacy" },
+	{ label: "使用条款", href: "/terms" },
 ];
 
 export function Footer() {

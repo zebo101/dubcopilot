@@ -26,11 +26,11 @@ export function Onboarding() {
 	const getStepTitle = () => {
 		switch (step) {
 			case 0:
-				return "Welcome to dubcopilot! 🎉";
+				return "欢迎使用 dubcopilot！🎉";
 			case 1:
-				return "🎙️ How it works";
+				return "🎙️ 工作原理";
 			default:
-				return "dubcopilot Onboarding";
+				return "dubcopilot 引导";
 		}
 	};
 
@@ -41,9 +41,9 @@ export function Onboarding() {
 					<div className="space-y-5">
 						<div className="space-y-3">
 							<Title title={getStepTitle()} />
-							<Description description="dubcopilot turns your videos into localized versions with AI-generated dubbing and subtitles." />
+							<Description description="dubcopilot 利用 AI 配音和字幕，将您的视频转为本地位版本。" />
 						</div>
-						<NextButton onClick={handleNext}>Next</NextButton>
+						<NextButton onClick={handleNext}>下一步</NextButton>
 					</div>
 				);
 			case 1:
@@ -51,10 +51,10 @@ export function Onboarding() {
 					<div className="space-y-5">
 						<div className="space-y-3">
 							<Title title={getStepTitle()} />
-							<Description description="Upload a video, let it transcribe and translate automatically, then export the dubbed result with subtitles." />
-							<Description description="For a whole course, use the batch center to process all videos in one go." />
+							<Description description="上传视频，自动转写翻译，然后导出带字幕的配音成品。" />
+							<Description description="如需处理整门课程，可使用批量中心一次性处理全部视频。" />
 						</div>
-						<NextButton onClick={handleClose}>Finish</NextButton>
+						<NextButton onClick={handleClose}>完成</NextButton>
 					</div>
 				);
 			default:
