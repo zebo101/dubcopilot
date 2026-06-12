@@ -4,6 +4,7 @@
 // The live editor is never touched (old projects are deleted via storage).
 
 import { Semaphore, AbortError } from "@/dub/course/engine/semaphore";
+import { resolveExportDir } from "@/dub/course/export-dir";
 import { runLesson, type StageSemaphores } from "@/dub/course/engine/pipeline";
 import { useCourseStore } from "@/dub/course/store";
 import { useDubStore } from "@/dub/store";
@@ -80,13 +81,13 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 		export: new Semaphore(1),
 	};
 
-	// auto-export writes land in <courseDir>/_localized/
+	// auto-export destination honors the 导出位置 setting; mid-batch we can't
+	// prompt for a directory, so 另存新目录 without a usable saved handle falls
+	// back to <courseDir>/_localized (resolveExportDir, interactive: false)
 	let outDir: FileSystemDirectoryHandle | null = null;
-	if (autoExport && store.dirHandle) {
+	if (autoExport) {
 		try {
-			outDir = await store.dirHandle.getDirectoryHandle("_localized", {
-				create: true,
-			});
+			outDir = await resolveExportDir({ interactive: false });
 		} catch {
 			outDir = null;
 		}

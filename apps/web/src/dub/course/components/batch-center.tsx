@@ -240,6 +240,8 @@ export function BatchCenter() {
 	const batchRunning = useCourseStore((s) => s.batchRunning);
 	const paused = useCourseStore((s) => s.paused);
 	const autoExport = useCourseStore((s) => s.autoExport);
+	const output = useCourseStore((s) => s.output);
+	const outDirHandle = useCourseStore((s) => s.outDirHandle);
 	const needsPermission = useCourseStore((s) => s.needsPermission);
 	const exporting = useCourseStore((s) => s.exporting);
 	const exportDone = useCourseStore((s) => s.exportDone);
@@ -468,7 +470,9 @@ export function BatchCenter() {
 									) : (
 										<>
 											<HugeiconsIcon icon={FolderUploadIcon} className="z-50 size-3.5" />
-											<span className="z-50 text-sm">存到原目录</span>
+											<span className="z-50 text-sm">
+											{output === "sibling" ? "存到原目录" : "导出到指定目录"}
+										</span>
 										</>
 									)}
 									<div className="absolute inset-0 rounded-[0.4rem] bg-linear-to-t from-white/0 to-white/20" />
@@ -632,6 +636,62 @@ export function BatchCenter() {
 				>
 					生成后自动导出 · {autoExport ? "开" : "关"}
 				</button>
+				<button
+					type="button"
+					className="hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1"
+					title={
+						output === "new" && outDirHandle
+							? `当前目录：${outDirHandle.name}`
+							: undefined
+					}
+					onClick={async () => {
+						const s = useCourseStore.getState();
+						if (output === "new") {
+							s.setOutput({ output: "sibling" });
+							return;
+						}
+						// 切到指定目录前必须先真的选一个（用户手势内弹 picker）
+						if (!s.outDirHandle) {
+							try {
+								const picked = await window.showDirectoryPicker?.({
+									id: "dubcopilot-out",
+									mode: "readwrite",
+								});
+								if (!picked) return;
+								s.setOutDirHandle({ handle: picked });
+							} catch {
+								return; // 取消选择 — 维持原目录模式
+							}
+						}
+						s.setOutput({ output: "new" });
+					}}
+				>
+					导出位置 ·{" "}
+					{output === "sibling"
+						? "原目录/_localized"
+						: (outDirHandle?.name ?? "指定目录")}
+				</button>
+				{output === "new" ? (
+					<button
+						type="button"
+						className="text-muted-foreground hover:text-foreground text-[11px] underline underline-offset-2"
+						onClick={async () => {
+							try {
+								const picked = await window.showDirectoryPicker?.({
+									id: "dubcopilot-out",
+									mode: "readwrite",
+								});
+								if (picked) {
+									useCourseStore.getState().setOutDirHandle({ handle: picked });
+								}
+							} catch {
+								// 取消选择 — 保留原有目录
+							}
+						}}
+					>
+						更换…
+					</button>
+				) : null}
 				<span className="text-muted-foreground ml-auto flex items-center gap-1 text-[11px]">
 					<HugeiconsIcon icon={InformationCircleIcon} className="size-3" />
 					逐课可在编辑台单独覆盖

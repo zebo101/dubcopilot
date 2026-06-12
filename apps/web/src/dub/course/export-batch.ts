@@ -1,11 +1,12 @@
 // Batch export — fully headless. Each finished lesson's project is rendered
 // via renderLessonHeadless (never loaded into the live editor) and streamed to
-// `<courseDir>/_localized/<stem>_zh.mp4` or into a STORE ZIP. One render at a
-// time (WebCodecs encoder limit); each buffer is written and dropped before
-// the next render starts.
+// the resolved export directory (resolveExportDir) or into a STORE ZIP. One
+// render at a time (WebCodecs encoder limit); each buffer is written and
+// dropped before the next render starts.
 
 import { readVideoFile } from "@/media/mediabunny";
 import { useCourseStore } from "@/dub/course/store";
+import { resolveExportDir } from "@/dub/course/export-dir";
 import { useDubStore } from "@/dub/store";
 import { languageByCode } from "@/dub/languages";
 import { renderLessonHeadless } from "@/dub/course/engine/stages/export";
@@ -93,7 +94,8 @@ function markExported({ lesson }: { lesson: CourseLesson }): void {
 }
 
 /**
- * Export each finished lesson to `<courseDir>/_localized/<stem>_zh.mp4`.
+ * Export each finished lesson to the resolved export directory
+ * (`<courseDir>/_localized/` or the user-picked 另存新目录).
  * Streams each render straight to disk — no archive size ceiling.
  */
 export async function exportCourseToFolder({
@@ -103,14 +105,10 @@ export async function exportCourseToFolder({
 	onlyIds?: string[];
 	onProgress?: (p: ExportProgress) => void;
 }): Promise<{ written: number }> {
-	const dirHandle = useCourseStore.getState().dirHandle;
-	if (!dirHandle) throw new Error("找不到课程目录，请重新导入");
 	const targets = exportableLessons({ onlyIds });
 	if (targets.length === 0) throw new Error("没有可导出的课时（先生成）");
 
-	const outDir = await dirHandle.getDirectoryHandle("_localized", {
-		create: true,
-	});
+	const outDir = await resolveExportDir({ interactive: true });
 
 	for (let i = 0; i < targets.length; i++) {
 		const lesson = targets[i];

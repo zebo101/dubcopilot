@@ -16,6 +16,8 @@ import { useDubStore } from "@/dub/store";
 
 const COURSE_KEY = "course";
 const DIR_KEY = "dir";
+const OUT_DIR_KEY = "outDir";
+const OUTPUT_KEY = "output";
 
 // Debounced persistence: progress ticks fire dozens of times per lesson —
 // writing the whole course to IDB each tick was a write storm (IMP-1).
@@ -38,6 +40,8 @@ interface CourseStore {
 	scanning: boolean;
 	missingPolicy: MissingSubtitlePolicy;
 	output: "sibling" | "new";
+	/** 「另存新目录」的目标目录（output === "new" 时使用），持久化到 IDB */
+	outDirHandle: FileSystemDirectoryHandle | null;
 	selection: string[];
 	batchRunning: boolean;
 	/** cooperative pause — the scheduler gates new stage entries on this */
@@ -67,6 +71,7 @@ interface CourseStore {
 	closeCourse: () => void;
 	setMissingPolicy: (args: { policy: MissingSubtitlePolicy }) => void;
 	setOutput: (args: { output: "sibling" | "new" }) => void;
+	setOutDirHandle: (args: { handle: FileSystemDirectoryHandle | null }) => void;
 	pickFolder: () => Promise<void>;
 	confirmImport: () => Promise<void>;
 	toggleSelect: (args: { id: string }) => void;
@@ -185,6 +190,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	scanning: false,
 	missingPolicy: "asr",
 	output: "sibling",
+	outDirHandle: null,
 	selection: [],
 	batchRunning: false,
 	paused: false,
@@ -206,7 +212,14 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	openCenter: () => set({ view: "center" }),
 	closeCourse: () => set({ view: "none" }),
 	setMissingPolicy: ({ policy }) => set({ missingPolicy: policy }),
-	setOutput: ({ output }) => set({ output }),
+	setOutput: ({ output }) => {
+		set({ output });
+		void idbSet(OUTPUT_KEY, output);
+	},
+	setOutDirHandle: ({ handle }) => {
+		set({ outDirHandle: handle });
+		void (handle ? idbSet(OUT_DIR_KEY, handle) : idbDel(OUT_DIR_KEY));
+	},
 
 	pickFolder: async () => {
 		const dirHandle = await pickCourseDirectory();
@@ -326,6 +339,11 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 		if (get().hydrated) return;
 		const course = await idbGet<Course>(COURSE_KEY);
 		const dirHandle = await idbGet<FileSystemDirectoryHandle>(DIR_KEY);
+		// export-destination prefs — permission is checked lazily at export time
+		const output = await idbGet<"sibling" | "new">(OUTPUT_KEY);
+		const outDirHandle = await idbGet<FileSystemDirectoryHandle>(OUT_DIR_KEY);
+		if (output) set({ output });
+		if (outDirHandle) set({ outDirHandle });
 		if (!course || !dirHandle) {
 			set({ hydrated: true });
 			return;
@@ -371,6 +389,8 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	reset: async () => {
 		await idbDel(COURSE_KEY);
 		await idbDel(DIR_KEY);
+		await idbDel(OUT_DIR_KEY);
+		await idbDel(OUTPUT_KEY);
 		set({
 			course: null,
 			dirHandle: null,
@@ -381,6 +401,8 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 			scanResult: null,
 			selection: [],
 			batchRunning: false,
+			output: "sibling",
+			outDirHandle: null,
 		});
 	},
 }));
