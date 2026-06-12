@@ -9,8 +9,6 @@ import {
 	ArrowRight01Icon,
 	Cancel01Icon,
 	Delete02Icon,
-	Download04Icon,
-	FolderUploadIcon,
 	InformationCircleIcon,
 	Loading03Icon,
 	PlayIcon,
@@ -34,10 +32,7 @@ import {
 	stopCourseRun,
 	stopLesson,
 } from "@/dub/course/runner";
-import {
-	exportCourseToFolder,
-	exportCourseToZip,
-} from "@/dub/course/export-batch";
+import { ExportSplitButton } from "@/dub/course/components/export-button";
 import type { CourseLesson, LessonStatus } from "@/dub/course/types";
 
 const STATUS_META: Record<
@@ -239,50 +234,14 @@ export function BatchCenter() {
 	const selection = useCourseStore((s) => s.selection);
 	const batchRunning = useCourseStore((s) => s.batchRunning);
 	const paused = useCourseStore((s) => s.paused);
-	const autoExport = useCourseStore((s) => s.autoExport);
-	const output = useCourseStore((s) => s.output);
-	const outDirHandle = useCourseStore((s) => s.outDirHandle);
 	const needsPermission = useCourseStore((s) => s.needsPermission);
 	const exporting = useCourseStore((s) => s.exporting);
 	const exportDone = useCourseStore((s) => s.exportDone);
 	const exportTotal = useCourseStore((s) => s.exportTotal);
 	const exportCurrent = useCourseStore((s) => s.exportCurrent);
 	const exportPct = useCourseStore((s) => s.exportPct);
-	// which export button was clicked — its own spinner, the other just disables
-	const [exportKind, setExportKind] = useState<"folder" | "zip" | null>(null);
 	const settings = useDubStore((s) => s.settings);
 	const setSetting = useDubStore((s) => s.setSetting);
-
-	const runExport = async (kind: "folder" | "zip", onlyIds?: string[]) => {
-		const setExport = useCourseStore.getState().setExport;
-		setExportKind(kind);
-		setExport({ exporting: true, done: 0, total: 0, current: "", pct: 0 });
-		try {
-			const fn = kind === "zip" ? exportCourseToZip : exportCourseToFolder;
-			const res = await fn({
-				onlyIds,
-				onProgress: (p) =>
-					setExport({ done: p.done, total: p.total, current: p.current, pct: p.pct }),
-			});
-			toast.success(`已导出 ${res.written} 节`);
-		} catch (error) {
-			// user closed the save-file dialog — not an error
-			if (error instanceof DOMException && error.name === "AbortError") return;
-			// worker/wasm rejections can be cross-realm (instanceof Error fails) —
-			// surface whatever we got instead of a blind fallback
-			console.error("[course-export] 导出失败:", error);
-			const msg =
-				error instanceof Error
-					? error.message
-					: typeof error === "object" && error !== null && "message" in error
-						? String((error as { message: unknown }).message)
-						: String(error);
-			toast.error(msg && msg !== "undefined" ? msg : "导出失败（详情见控制台）");
-		} finally {
-			setExportKind(null);
-			setExport({ exporting: false });
-		}
-	};
 
 	const [filter, setFilter] = useState<LessonStatus | "all">("review");
 	const [query, setQuery] = useState("");
@@ -450,55 +409,8 @@ export function BatchCenter() {
 							</Button>
 						</>
 					)}
-					{counts.done + counts.review > 0 && (
-						<>
-							{/* Primary export — saves each lesson to <courseDir>/_localized/ */}
-							<button
-								type="button"
-								disabled={exporting || batchRunning}
-								onClick={() => void runExport("folder")}
-								className={cn(
-									"flex items-center gap-1.5 rounded-md bg-[#38BDF8] px-[0.12rem] py-[0.12rem] text-white disabled:opacity-50 disabled:pointer-events-none",
-								)}
-							>
-								<div className="relative flex items-center gap-1.5 rounded-[0.4rem] bg-linear-270 from-[#2567EC] to-[#37B6F7] px-3 py-1 shadow-[0_1px_3px_0px_rgba(0,0,0,0.55)]">
-									{exportKind === "folder" ? (
-										<>
-											<HugeiconsIcon icon={Loading03Icon} className="z-50 size-3.5 animate-spin" />
-											<span className="z-50 text-sm">导出中…</span>
-										</>
-									) : (
-										<>
-											<HugeiconsIcon icon={FolderUploadIcon} className="z-50 size-3.5" />
-											<span className="z-50 text-sm">
-											{output === "sibling" ? "存到原目录" : "导出到指定目录"}
-										</span>
-										</>
-									)}
-									<div className="absolute inset-0 rounded-[0.4rem] bg-linear-to-t from-white/0 to-white/20" />
-								</div>
-							</button>
-							{/* Secondary export — ZIP download */}
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={exporting || batchRunning}
-								onClick={() => void runExport("zip")}
-							>
-								{exportKind === "zip" ? (
-									<>
-										<HugeiconsIcon icon={Loading03Icon} className="size-3.5 animate-spin" />
-										导出中…
-									</>
-								) : (
-									<>
-										<HugeiconsIcon icon={Download04Icon} className="size-3.5" />
-										打包 ZIP
-									</>
-								)}
-							</Button>
-						</>
-					)}
+					{/* 导出入口：位置/ZIP/自动导出全部收在下拉里，始终可见以便开跑前预设 */}
+					<ExportSplitButton />
 				</div>
 			</header>
 
@@ -624,74 +536,6 @@ export function BatchCenter() {
 				>
 					画质 · {{ low: "低", medium: "中", high: "高", very_high: "超高" }[settings.exportQuality]}
 				</button>
-				<button
-					type="button"
-					className={cn(
-						"hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1",
-						autoExport && "border-primary/40 bg-primary/10 text-primary",
-					)}
-					onClick={() =>
-						useCourseStore.getState().setAutoExport({ autoExport: !autoExport })
-					}
-				>
-					生成后自动导出 · {autoExport ? "开" : "关"}
-				</button>
-				<button
-					type="button"
-					className="hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1"
-					title={
-						output === "new" && outDirHandle
-							? `当前目录：${outDirHandle.name}`
-							: undefined
-					}
-					onClick={async () => {
-						const s = useCourseStore.getState();
-						if (output === "new") {
-							s.setOutput({ output: "sibling" });
-							return;
-						}
-						// 切到指定目录前必须先真的选一个（用户手势内弹 picker）
-						if (!s.outDirHandle) {
-							try {
-								const picked = await window.showDirectoryPicker?.({
-									id: "dubcopilot-out",
-									mode: "readwrite",
-								});
-								if (!picked) return;
-								s.setOutDirHandle({ handle: picked });
-							} catch {
-								return; // 取消选择 — 维持原目录模式
-							}
-						}
-						s.setOutput({ output: "new" });
-					}}
-				>
-					导出位置 ·{" "}
-					{output === "sibling"
-						? "原目录/_localized"
-						: (outDirHandle?.name ?? "指定目录")}
-				</button>
-				{output === "new" ? (
-					<button
-						type="button"
-						className="text-muted-foreground hover:text-foreground text-[11px] underline underline-offset-2"
-						onClick={async () => {
-							try {
-								const picked = await window.showDirectoryPicker?.({
-									id: "dubcopilot-out",
-									mode: "readwrite",
-								});
-								if (picked) {
-									useCourseStore.getState().setOutDirHandle({ handle: picked });
-								}
-							} catch {
-								// 取消选择 — 保留原有目录
-							}
-						}}
-					>
-						更换…
-					</button>
-				) : null}
 				<span className="text-muted-foreground ml-auto flex items-center gap-1 text-[11px]">
 					<HugeiconsIcon icon={InformationCircleIcon} className="size-3" />
 					逐课可在编辑台单独覆盖
@@ -792,24 +636,7 @@ export function BatchCenter() {
 					>
 						<HugeiconsIcon icon={RefreshIcon} className="size-3" /> 重新生成所选
 					</Button>
-					<Button
-						size="sm"
-						variant="outline"
-						className="h-7 text-xs"
-						disabled={exporting || batchRunning}
-						onClick={() => void runExport("zip", selection)}
-					>
-						{exportKind === "zip" ? (
-							<>
-								<HugeiconsIcon icon={Loading03Icon} className="size-3 animate-spin" />
-								导出中…
-							</>
-						) : (
-							<>
-								<HugeiconsIcon icon={UploadIcon} className="size-3" /> 导出所选 ZIP
-							</>
-						)}
-					</Button>
+					<ExportSplitButton onlyIds={selection} compact />
 					<Button
 						size="sm"
 						variant="outline"
