@@ -26,11 +26,11 @@ export function Onboarding() {
 	const getStepTitle = () => {
 		switch (step) {
 			case 0:
-				return "欢迎使用 dubcopilot！🎉";
+				return "欢迎使用 Dub Copilot！🎉";
 			case 1:
 				return "🎙️ 工作原理";
 			default:
-				return "dubcopilot 引导";
+				return "Dub Copilot 引导";
 		}
 	};
 
@@ -41,7 +41,7 @@ export function Onboarding() {
 					<div className="space-y-5">
 						<div className="space-y-3">
 							<Title title={getStepTitle()} />
-							<Description description="dubcopilot 是一款 AI 视频配音工具，帮你将视频翻译并配音为任意语言。" />
+							<Description description="Dub Copilot 是一款 AI 视频配音工具，帮你将视频翻译并配音为任意语言。" />
 						</div>
 						<NextButton onClick={handleNext}>下一步</NextButton>
 					</div>
