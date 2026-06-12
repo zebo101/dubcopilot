@@ -96,7 +96,17 @@ export function CredentialsSection() {
 			{open ? (
 				<div className="space-y-3 border-t p-3">
 					<div className="space-y-2">
-						<div className="text-[11px] font-medium">豆包语音 TTS</div>
+						<div className="flex items-baseline justify-between">
+							<div className="text-[11px] font-medium">豆包语音 TTS</div>
+							<a
+								href="https://console.volcengine.com/speech/new/experience/tts?projectName=default"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-muted-foreground hover:text-primary text-[10px] underline-offset-2 hover:underline"
+							>
+								获取密钥 ↗
+							</a>
+						</div>
 						<CredField
 							label="API Key（必填）"
 							type="password"
@@ -121,7 +131,17 @@ export function CredentialsSection() {
 						/>
 					</div>
 					<div className="space-y-2">
-						<div className="text-[11px] font-medium">DeepSeek 翻译</div>
+						<div className="flex items-baseline justify-between">
+							<div className="text-[11px] font-medium">DeepSeek 翻译</div>
+							<a
+								href="https://platform.deepseek.com/api_keys"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-muted-foreground hover:text-primary text-[10px] underline-offset-2 hover:underline"
+							>
+								获取密钥 ↗
+							</a>
+						</div>
 						<CredField
 							label="API Key（必填）"
 							type="password"

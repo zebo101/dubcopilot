@@ -10,8 +10,13 @@ import {
 	Loading03Icon,
 	Cancel01Icon,
 	DashboardSpeed02Icon,
+	Video01Icon,
 } from "@hugeicons/core-free-icons";
 import { useEditor } from "@/editor/use-editor";
+import { useFileUpload } from "@/media/use-file-upload";
+import { processMediaAssets } from "@/media/processing";
+import { buildElementFromMedia } from "@/timeline/element-utils";
+import { DEFAULT_NEW_ELEMENT_DURATION } from "@/timeline/creation";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/wasm";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
@@ -49,6 +54,96 @@ function fmtShort({ seconds }: { seconds: number }): string {
 
 
 
+// Importing for a dub used to require the 媒体 tab (import there, drag onto
+// the timeline, switch back). This card does the whole thing in place:
+// pick/drop a video → media library → timeline, ready for ①.
+function ImportVideoCard() {
+	const editor = useEditor();
+	const [importing, setImporting] = useState(false);
+
+	const importFiles = async ({ files }: { files: File[] }) => {
+		const file = files.find((f) => f.type.startsWith("video/"));
+		if (!file) {
+			toast.error("请选择视频文件");
+			return;
+		}
+		const project = editor.project.getActiveOrNull();
+		if (!project) {
+			toast.error("没有打开的项目");
+			return;
+		}
+		setImporting(true);
+		try {
+			// processMediaAssets / addMediaAsset 内部已对编解码、存储配额等失败弹过 toast
+			const [processed] = await processMediaAssets({ files: [file] });
+			if (!processed) return;
+			const asset = await editor.media.addMediaAsset({
+				projectId: project.metadata.id,
+				asset: processed,
+			});
+			if (!asset) return;
+			const duration =
+				asset.duration != null
+					? mediaTimeFromSeconds({ seconds: asset.duration })
+					: DEFAULT_NEW_ELEMENT_DURATION;
+			editor.timeline.insertElement({
+				element: buildElementFromMedia({
+					mediaId: asset.id,
+					mediaType: asset.type,
+					name: asset.name,
+					duration,
+					startTime: mediaTimeFromSeconds({ seconds: 0 }),
+				}),
+				placement: { mode: "auto" },
+			});
+			if (asset.hasAudio === false) {
+				toast.warning("该视频没有声音轨，无法识别原文");
+			} else {
+				toast.success(`已导入「${asset.name}」，可以点 ① 开始`);
+			}
+		} catch (error) {
+			console.error("import video failed", error);
+			toast.error(error instanceof Error ? error.message : "导入失败");
+		} finally {
+			setImporting(false);
+		}
+	};
+
+	const { isDragOver, openFilePicker, fileInputProps, dragProps } =
+		useFileUpload({
+			accept: "video/*",
+			multiple: false,
+			onFilesSelected: (files) => void importFiles({ files }),
+		});
+
+	return (
+		<div
+			{...dragProps}
+			className={cn(
+				"rounded-md border border-dashed p-4 text-center transition-colors",
+				isDragOver && "border-primary bg-primary/5",
+			)}
+		>
+			<input {...fileInputProps} />
+			<p className="text-muted-foreground mb-2 text-[11px] leading-relaxed">
+				时间轴还没有视频——先导入一段带声音的视频，会自动放到时间轴上。
+			</p>
+			<Button
+				className="w-full"
+				variant="outline"
+				disabled={importing}
+				onClick={() => openFilePicker()}
+			>
+				<HugeiconsIcon
+					icon={importing ? Loading03Icon : Video01Icon}
+					className={cn("size-4", importing && "animate-spin")}
+				/>
+				{importing ? "正在导入…" : "导入视频（或拖拽到此处）"}
+			</Button>
+		</div>
+	);
+}
+
 function SetupView() {
 	const editor = useEditor();
 	const settings = useDubStore((s) => s.settings);
@@ -61,6 +156,18 @@ function SetupView() {
 		(c) => c.deepseekApiKey.trim().length > 0,
 	);
 	const [advOpen, setAdvOpen] = useState(false);
+	// same track set applyOriginalAudioToOpenProject treats as "source"
+	const timelineHasSource = useEditor((e) => {
+		const scene = e.scenes.getActiveSceneOrNull();
+		if (!scene) return false;
+		return (
+			scene.tracks.main.elements.length > 0 ||
+			scene.tracks.overlay.some(
+				(t) => t.type === "video" && t.elements.length > 0,
+			) ||
+			scene.tracks.audio.some((t) => t.elements.length > 0)
+		);
+	});
 
 	const onGenerate = async () => {
 		const creds = useDubCredentials.getState();
@@ -113,6 +220,8 @@ function SetupView() {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex-1 space-y-5 overflow-y-auto p-4">
+				{!timelineHasSource ? <ImportVideoCard /> : null}
+
 				{/* source → target, both user-selectable */}
 				<div className="space-y-2">
 					<div className="text-muted-foreground text-xs font-medium">
@@ -195,7 +304,11 @@ function SetupView() {
 						未配置 DeepSeek Key —— 将只识别原文、不自动翻译（可在逐句台手动编辑）。请在右侧「配音设置 → 语音 / 翻译 凭据」填写。
 					</div>
 				) : null}
-				<Button className="w-full" onClick={() => onGenerate()}>
+				<Button
+					className="w-full"
+					disabled={!timelineHasSource}
+					onClick={() => onGenerate()}
+				>
 					<HugeiconsIcon icon={AiVoiceIcon} className="size-4" />
 					① 识别原文并翻译 →
 				</Button>
