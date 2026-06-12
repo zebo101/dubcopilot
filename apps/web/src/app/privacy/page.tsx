@@ -108,9 +108,23 @@ export default function PrivacyPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Analytics</h2>
 				<p>
-					We do not run any analytics or tracking scripts. No personal
-					information is collected, no individual users are tracked, and no
-					data that could identify you is stored.
+					We use Google Analytics 4 (GA4) to understand which features are
+					being used and to monitor performance. GA4 collects anonymous
+					usage statistics such as page views, feature interactions, and
+					processing durations. No IP addresses, video content, subtitles,
+					API keys, file names, or any other user-generated content is
+					ever sent to Google Analytics.
+				</p>
+				<p>
+					The events we track include: page navigation, course import
+					(lesson count only), batch processing duration, export format
+					selection, and settings changes. We do not use Google Signal,
+					remarketing, or advertising features.
+				</p>
+				<p>
+					You can opt out of Google Analytics tracking at any time by
+					enabling Do Not Track in your browser settings or by using a
+					browser extension that blocks Google Analytics.
 				</p>
 			</section>
 
@@ -139,6 +153,11 @@ export default function PrivacyPage() {
 					<li>
 						<strong>Hosting:</strong> Static assets and the app itself are
 						served from our hosting provider
+					</li>
+					<li>
+						<strong>Google Analytics:</strong> Anonymous usage statistics
+						are sent to Google Analytics 4. See the Analytics section for
+						details.
 					</li>
 					<li>
 						<strong>AI providers you configure:</strong> Transcription,
@@ -176,7 +195,7 @@ export default function PrivacyPage() {
 			<Separator />
 
 			<p className="text-muted-foreground text-sm">
-				Last updated: June 11, 2026
+				Last updated: June 12, 2026
 			</p>
 		</BasePage>
 	);

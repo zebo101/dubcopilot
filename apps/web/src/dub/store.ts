@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { autoFitSpeed, estimateDuration } from "@/dub/timing";
 import { AUTO_LANG, languageByCode } from "@/dub/languages";
 import type { DubPhase, DubSettings, Segment } from "@/dub/types";
+import { trackSettingChanged } from "@/lib/analytics";
 
 const DEFAULT_SETTINGS: DubSettings = {
 	targetLang: "zh",
@@ -73,8 +74,10 @@ export const useDubStore = create<DubStore>()(
 	procStep: "",
 	procPct: 0,
 
-	setSetting: ({ key, value }) =>
-		set((s) => ({ settings: { ...s.settings, [key]: value } })),
+	setSetting: ({ key, value }) => {
+		set((s) => ({ settings: { ...s.settings, [key]: value } }));
+		trackSettingChanged(key, value);
+	},
 
 	setPhase: (phase) => set({ phase }),
 	setProc: ({ step, pct }) => set({ procStep: step, procPct: pct }),

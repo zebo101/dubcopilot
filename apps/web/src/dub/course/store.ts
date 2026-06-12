@@ -13,6 +13,11 @@ import {
 import { idbDel, idbGet, idbSet } from "@/dub/course/idb";
 import { buildCourseFromScan, mergeCourseScan } from "@/dub/course/merge";
 import { useDubStore } from "@/dub/store";
+import {
+	trackCourseImportComplete,
+	trackCourseImportError,
+	trackCourseImportStart,
+} from "@/lib/analytics";
 
 const COURSE_KEY = "course";
 const DIR_KEY = "dir";
@@ -189,6 +194,9 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	},
 
 	scanFolder: async ({ dirHandle }) => {
+		const { importStep } = get();
+		const source = importStep === "link" ? ("link" as const) : ("folder" as const);
+		trackCourseImportStart(source);
 		set({ scanning: true });
 		try {
 			const scanResult = await scanCourseDirectory({
@@ -209,30 +217,58 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	},
 
 	confirmImport: async ({ force = false } = {}) => {
-		const { scanResult, missingPolicy, course, dirHandle, pendingDirHandle } =
+		const { scanResult, missingPolicy, course, dirHandle, pendingDirHandle, importStep } =
 			get();
 		if (!scanResult || !pendingDirHandle) return "ok";
+		const source = importStep === "link" ? ("link" as const) : ("folder" as const);
 
-		let sameRoot = false;
-		if (course && dirHandle) {
-			try {
-				sameRoot = await dirHandle.isSameEntry(pendingDirHandle);
-			} catch {
-				sameRoot = course.rootName === scanResult.rootName;
+		try {
+			let sameRoot = false;
+			if (course && dirHandle) {
+				try {
+					sameRoot = await dirHandle.isSameEntry(pendingDirHandle);
+				} catch {
+					sameRoot = course.rootName === scanResult.rootName;
+				}
 			}
-		}
 
-		if (course && sameRoot) {
-			// 同根再导入 = 增量合并：已生成课时全保留，只追加/刷新
-			const merged = mergeCourseScan({
-				current: course,
-				scan: scanResult,
-				missingPolicy,
-			});
+			if (course && sameRoot) {
+				// 同根再导入 = 增量合并：已生成课时全保留，只追加/刷新
+				const merged = mergeCourseScan({
+					current: course,
+					scan: scanResult,
+					missingPolicy,
+				});
+				set({
+					course: merged.course,
+					videoHandles: merged.videoHandles,
+					subtitleHandles: merged.subtitleHandles,
+					dirHandle: pendingDirHandle,
+					pendingDirHandle: null,
+					view: "center",
+					selection: [],
+					needsPermission: false,
+				});
+				await get().persistNow();
+				trackCourseImportComplete(
+					merged.course.lessons.length,
+					scanResult.withSubtitle,
+					scanResult.missing,
+					source,
+				);
+				return "ok";
+			}
+
+			const processed = course?.lessons.filter((l) => !!l.projectId).length ?? 0;
+			if (course && !sameRoot && processed > 0 && !force) {
+				return "needs-confirm"; // UI 弹覆盖确认
+			}
+
+			const built = buildCourseFromScan({ scan: scanResult, missingPolicy });
 			set({
-				course: merged.course,
-				videoHandles: merged.videoHandles,
-				subtitleHandles: merged.subtitleHandles,
+				course: built.course,
+				videoHandles: built.videoHandles,
+				subtitleHandles: built.subtitleHandles,
 				dirHandle: pendingDirHandle,
 				pendingDirHandle: null,
 				view: "center",
@@ -240,27 +276,20 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 				needsPermission: false,
 			});
 			await get().persistNow();
+			trackCourseImportComplete(
+				built.course.lessons.length,
+				scanResult.withSubtitle,
+				scanResult.missing,
+				source,
+			);
 			return "ok";
+		} catch (error) {
+			trackCourseImportError(
+				error instanceof Error ? error.message : String(error),
+				source,
+			);
+			throw error;
 		}
-
-		const processed = course?.lessons.filter((l) => !!l.projectId).length ?? 0;
-		if (course && !sameRoot && processed > 0 && !force) {
-			return "needs-confirm"; // UI 弹覆盖确认
-		}
-
-		const built = buildCourseFromScan({ scan: scanResult, missingPolicy });
-		set({
-			course: built.course,
-			videoHandles: built.videoHandles,
-			subtitleHandles: built.subtitleHandles,
-			dirHandle: pendingDirHandle,
-			pendingDirHandle: null,
-			view: "center",
-			selection: [],
-			needsPermission: false,
-		});
-		await get().persistNow();
-		return "ok";
 	},
 
 	toggleSelect: ({ id }) =>

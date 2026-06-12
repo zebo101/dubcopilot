@@ -30,6 +30,7 @@ import {
 	exportCourseToFolder,
 	exportCourseToZip,
 } from "@/dub/course/export-batch";
+import { trackCourseExport } from "@/lib/analytics";
 
 async function pickOutDir(): Promise<boolean> {
 	try {
@@ -75,6 +76,8 @@ export function ExportSplitButton({
 					setExport({ done: p.done, total: p.total, current: p.current, pct: p.pct }),
 			});
 			toast.success(`已导出 ${res.written} 节`);
+				const autoExportEnabled = useCourseStore.getState().autoExport;
+				trackCourseExport(kind, res.written, autoExportEnabled);
 		} catch (error) {
 			// user closed the save-file dialog — not an error
 			if (error instanceof DOMException && error.name === "AbortError") return;

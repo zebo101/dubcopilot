@@ -12,6 +12,12 @@ import { useDubCredentials } from "@/dub/credentials";
 import { storageService } from "@/services/storage/service";
 import { deleteDubSession } from "@/dub/session";
 import type { StepReport } from "@/dub/course/engine/types";
+import {
+	trackCourseRunComplete,
+	trackCourseRunStart,
+	trackLessonStageBatch,
+	type StageTiming,
+} from "@/lib/analytics";
 
 const STAGE_RANGES: Record<string, [number, number]> = {
 	准备: [0, 8],
@@ -96,9 +102,31 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 	const processOne = async (lessonId: string): Promise<void> => {
 		const s = useCourseStore.getState();
 		const lesson = s.course?.lessons.find((l) => l.id === lessonId);
+		const lessonIndex =
+			s.course?.lessons.findIndex((l) => l.id === lessonId) ?? 0;
 		if (!lesson) return; // removed while queued (IMP-6)
 
-		// global stop OR this lesson's own 停止 button
+		// per-stage timing: track last-seen stage + its start time
+		let seenStage = "";
+		let stageStart = Date.now();
+		const timings: StageTiming[] = [];
+
+		const recordStage = (stage: string) => {
+			if (seenStage && seenStage !== stage) {
+				timings.push({
+					lessonIndex,
+					stage: seenStage as StageTiming["stage"],
+					durationMs: Date.now() - stageStart,
+					status: "ok",
+				});
+			}
+			if (seenStage !== stage) {
+				seenStage = stage;
+				stageStart = Date.now();
+			}
+		};
+
+		// global stop OR this lesson's own 停止按钮
 		const lessonCtrl = new AbortController();
 		lessonAborts.set(lessonId, lessonCtrl);
 		const lessonSignal = AbortSignal.any([signal, lessonCtrl.signal]);
@@ -153,13 +181,27 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 					stillWanted: () =>
 						!lessonSignal.aborted &&
 						!!useCourseStore.getState().course?.lessons.some((l) => l.id === lessonId),
-					onProgress: ({ stage, report }) =>
+					onProgress: ({ stage, report }) => {
+						recordStage(stage);
 						useCourseStore.getState().updateLesson({
 							id: lessonId,
 							patch: { progress: overallPct({ stage, report }) },
-						}),
+						});
+					},
 				},
 			});
+
+			// flush the final stage timing
+			if (seenStage) {
+				timings.push({
+					lessonIndex,
+					stage: seenStage as StageTiming["stage"],
+					durationMs: Date.now() - stageStart,
+					status: "ok",
+				});
+			}
+			// send this lesson's stage timings (batch per lesson, not all at end)
+			if (timings.length > 0) trackLessonStageBatch(timings);
 
 			// write the auto-export product (serialized by the export semaphore
 			// upstream; the write itself is cheap)
@@ -191,6 +233,16 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 			});
 		} catch (error) {
 			const stopped = error instanceof AbortError || lessonSignal.aborted;
+			// mark the active stage as errored
+			if (seenStage && !stopped) {
+				timings.push({
+					lessonIndex,
+					stage: seenStage as StageTiming["stage"],
+					durationMs: Date.now() - stageStart,
+					status: "error",
+				});
+				trackLessonStageBatch(timings);
+			}
 			useCourseStore.getState().updateLesson({
 				id: lessonId,
 				patch: {
@@ -208,9 +260,28 @@ export async function runCourse({ onlyIds }: { onlyIds?: string[] } = {}): Promi
 		}
 	};
 
+	trackCourseRunStart(
+		targets.length,
+		onlyIds ? "selection" : "full",
+	);
+	const runStart = Date.now();
+
 	try {
 		await Promise.allSettled(targets.map((l) => processOne(l.id)));
 	} finally {
+		const elapsed = Math.round((Date.now() - runStart) / 1000);
+		const finalCourse = useCourseStore.getState().course;
+		let success = 0;
+		let failed = 0;
+		if (finalCourse) {
+			for (const t of targets) {
+				const l = finalCourse.lessons.find((x) => x.id === t.id);
+				if (l?.status === "done" || l?.status === "review") success++;
+				else if (l?.status === "failed") failed++;
+			}
+		}
+		trackCourseRunComplete(targets.length, success, failed, elapsed);
+
 		useCourseStore.getState().setBatchRunning({ running: false });
 		useCourseStore.getState().setPaused({ paused: false });
 		void useCourseStore.getState().persistNow();
