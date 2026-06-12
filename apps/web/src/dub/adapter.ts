@@ -17,6 +17,7 @@ import { hasTtsKey } from "@/dub/credentials";
 import { synthesizeLesson } from "@/dub/course/engine/stages/synthesize";
 import { applyOriginalAudio } from "@/dub/original-audio";
 import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
+import { splitCaption } from "@/dub/subtitle-split";
 import type { DubSettings, Segment } from "@/dub/types";
 
 // Tracks we own — matched by PREFIX so re-apply REPLACES instead of stacking,
@@ -155,15 +156,24 @@ export async function applyDubToTimeline({
 	);
 	const dubbable = segments.filter((s) => s.translated.trim().length > 0);
 	if (settings.subtitles) {
-		const subtitleElements: TextElement[] = dubbable.map((seg, i) => ({
+		// long merged segments become several short sequential captions tiling
+		// the same slot — one 100-char caption was a wall of text on screen
+		const cues = dubbable.flatMap((seg) =>
+			splitCaption({
+				text: seg.translated,
+				start: seg.start,
+				// extended slot: subtitle stays up until just before the next
+				// line — continuous reading instead of flashing off in gaps
+				duration: seg.timing.targetDuration,
+			}),
+		);
+		const subtitleElements: TextElement[] = cues.map((cue, i) => ({
 			...buildSubtitleTextElement({
 				index: i,
 				caption: {
-					text: seg.translated,
-					startTime: seg.start,
-					// extended slot: subtitle stays up until just before the next
-					// line — continuous reading instead of flashing off in gaps
-					duration: seg.timing.targetDuration,
+					text: cue.text,
+					startTime: cue.start,
+					duration: cue.duration,
 					// legibility on any background (white-on-white was unreadable)
 					style: DUB_SUBTITLE_STYLE,
 				},

@@ -21,6 +21,7 @@ import { mediaTimeFromSeconds } from "@/wasm";
 import { applyOriginalAudio } from "@/dub/original-audio";
 import { saveDubSession } from "@/dub/session";
 import { DUB_SUBTITLE_STYLE } from "@/dub/subtitle-style";
+import { splitCaption } from "@/dub/subtitle-split";
 import { languageByCode } from "@/dub/languages";
 import type {
 	AudioTrack,
@@ -132,23 +133,32 @@ export async function assembleLesson({
 	// --- subtitle track: per-SENTENCE granularity, independent of audio units ---
 	if (settings.subtitles) {
 		const canvasSize = { width: meta.width, height: meta.height };
-		const subtitleElements: TextElement[] = segments
+		// long merged segments become several short sequential captions tiling
+		// the same slot — one 100-char caption was a wall of text on screen
+		const cues = segments
 			.filter((seg) => seg.translated.trim().length > 0)
-			.map((seg, i) => ({
-				...buildSubtitleTextElement({
-					index: i,
-					caption: {
-						text: seg.translated,
-						startTime: seg.start,
-						// extended slot — subtitle stays up until the next line
-						duration: seg.timing.targetDuration,
-						// legibility on any background (white-on-white was unreadable)
-						style: DUB_SUBTITLE_STYLE,
-					},
-					canvasSize,
+			.flatMap((seg) =>
+				splitCaption({
+					text: seg.translated,
+					start: seg.start,
+					// extended slot — the captions span until the next line
+					duration: seg.timing.targetDuration,
 				}),
-				id: generateUUID(),
-			}));
+			);
+		const subtitleElements: TextElement[] = cues.map((cue, i) => ({
+			...buildSubtitleTextElement({
+				index: i,
+				caption: {
+					text: cue.text,
+					startTime: cue.start,
+					duration: cue.duration,
+					// legibility on any background (white-on-white was unreadable)
+					style: DUB_SUBTITLE_STYLE,
+				},
+				canvasSize,
+			}),
+			id: generateUUID(),
+		}));
 		const subtitleTrack: TextTrack = {
 			id: generateUUID(),
 			name: dubSubtitleTrackName({ label: langLabel }),
