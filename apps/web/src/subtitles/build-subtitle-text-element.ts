@@ -1,3 +1,4 @@
+import { breakLongWord } from "@/subtitles/break-long-word";
 import { FONT_SIZE_SCALE_REFERENCE } from "@/text/typography";
 import {
 	getTextVisualRect,
@@ -63,21 +64,32 @@ function wrapSubtitleText({
 		}
 
 		const words = trimmedParagraph.split(/\s+/);
-		let currentLine = words[0] ?? "";
 		const lines: string[] = [];
+		let currentLine = "";
+		const measure = (t: string) => measureLineWidth({ ctx, text: t });
 
-		for (let i = 1; i < words.length; i++) {
-			const nextLine = `${currentLine} ${words[i]}`;
-			if (measureLineWidth({ ctx, text: nextLine }) <= maxWidth) {
+		for (const word of words) {
+			if (measure(word) > maxWidth) {
+				// CJK / unbroken run wider than the box — flush, then split it
+				if (currentLine) {
+					lines.push(currentLine);
+					currentLine = "";
+				}
+				const pieces = breakLongWord({ word, maxWidth, measure });
+				lines.push(...pieces.slice(0, -1));
+				currentLine = pieces[pieces.length - 1] ?? "";
+				continue;
+			}
+			const nextLine = currentLine ? `${currentLine} ${word}` : word;
+			if (measure(nextLine) <= maxWidth) {
 				currentLine = nextLine;
 				continue;
 			}
-
 			lines.push(currentLine);
-			currentLine = words[i];
+			currentLine = word;
 		}
 
-		lines.push(currentLine);
+		if (currentLine) lines.push(currentLine);
 		wrappedParagraphs.push(lines.join("\n"));
 	}
 
