@@ -17,12 +17,12 @@ export function Footer() {
 						<div className="mb-4 flex items-center justify-start gap-2">
 							<Image
 								src={DEFAULT_LOGO_URL}
-								alt="dubcopilot"
+								alt="Dub Copilot"
 								width={24}
 								height={24}
 								className="rounded-sm"
 							/>
-							<span className="text-lg font-bold">dubcopilot</span>
+							<span className="text-lg font-bold">Dub Copilot</span>
 						</div>
 						<p className="text-muted-foreground mb-5 text-sm md:text-left">
 							{SITE_INFO.description}
@@ -52,7 +52,7 @@ export function Footer() {
 				<div className="flex flex-col items-start justify-between gap-4 pt-2 md:flex-row">
 					<div className="text-muted-foreground flex flex-col gap-1 text-sm">
 						<span>
-							© {new Date().getFullYear()} dubcopilot, All Rights Reserved
+							© {new Date().getFullYear()} Dub Copilot, All Rights Reserved
 						</span>
 						<span>
 							Built on the open-source{" "}

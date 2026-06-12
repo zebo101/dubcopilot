@@ -51,7 +51,7 @@ export function MobileGate({ children }: MobileGateProps) {
 						请在电脑上使用
 					</h1>
 					<p className="text-muted-foreground text-sm leading-relaxed">
-						dubcopilot 还没有针对手机和 iPad
+						Dub Copilot 还没有针对手机和 iPad
 						做适配，页面会错位、功能也可能异常。请在电脑浏览器中打开，获得完整体验。
 					</p>
 				</div>

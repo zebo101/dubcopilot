@@ -1,7 +1,7 @@
 export const SITE_URL = "https://dubcopilot.com";
 
 export const SITE_INFO = {
-	title: "dubcopilot",
+	title: "Dub Copilot",
 	description:
 		"AI 视频配音工具——上传视频，自动转写翻译，一键合成中文配音并导出带字幕的成片。",
 	url: SITE_URL,

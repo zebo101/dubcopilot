@@ -78,7 +78,7 @@ const STEPS = [
     icon: <Upload className="size-5" />,
     title: "上传视频，自动语音转写",
     description:
-      "把外语视频拖进 dubcopilot，AI 语音识别自动生成逐句字幕和时间轴，无需手动听写。",
+      "把外语视频拖进 Dub Copilot，AI 语音识别自动生成逐句字幕和时间轴，无需手动听写。",
   },
   {
     icon: <Languages className="size-5" />,
@@ -172,7 +172,7 @@ export function Features() {
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
           title="开箱即用的 AI 视频配音能力"
-          description="dubcopilot 把语音转写、字幕翻译、TTS 配音和视频导出整合在一个浏览器工具里。"
+          description="Dub Copilot 把语音转写、字幕翻译、TTS 配音和视频导出整合在一个浏览器工具里。"
         />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
@@ -191,7 +191,7 @@ const COURSE_POINTS = [
     icon: <FolderSearch className="size-5" />,
     title: "课程目录一键扫描",
     description:
-      "选择课程文件夹，dubcopilot 自动识别所有课时视频并建立课程清单，目录结构原样保留。",
+      "选择课程文件夹，Dub Copilot 自动识别所有课时视频并建立课程清单，目录结构原样保留。",
   },
   {
     icon: <Workflow className="size-5" />,
@@ -213,7 +213,7 @@ export function CourseBatch() {
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
           title="整门课程，批量本地化"
-          description="一门在线课程动辄上百个视频，逐个手动配音不现实。dubcopilot 的课程批量中心专为整课视频翻译配音设计。"
+          description="一门在线课程动辄上百个视频，逐个手动配音不现实。Dub Copilot 的课程批量中心专为整课视频翻译配音设计。"
         />
         <div className="grid gap-6 md:grid-cols-3">
           {COURSE_POINTS.map((p) => (
@@ -244,7 +244,7 @@ const WHY = [
     icon: <BadgeCheck className="size-5" />,
     title: "免费使用，无水印",
     description:
-      "dubcopilot 本身完全免费，导出的配音视频没有水印，个人和商业项目都可以使用。",
+      "Dub Copilot 本身完全免费，导出的配音视频没有水印，个人和商业项目都可以使用。",
   },
   {
     icon: <Layers className="size-5" />,
@@ -259,8 +259,8 @@ export function WhyDubcopilot() {
     <section className="bg-muted/30 py-16 lg:py-24">
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
-          title="为什么选择 dubcopilot"
-          description="和订阅制的在线配音服务不同，dubcopilot 把控制权交回给你。"
+          title="为什么选择 Dub Copilot"
+          description="和订阅制的在线配音服务不同，Dub Copilot 把控制权交回给你。"
         />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {WHY.map((w) => (
@@ -306,8 +306,8 @@ export function UseCases() {
     <section id="use-cases" className="scroll-mt-16 py-16 lg:py-24">
       <div className="mx-auto w-full max-w-6xl px-4">
         <SectionHeading
-          title="dubcopilot 适用场景"
-          description="只要是「外语视频 + 想要中文配音」，不管是单个视频还是整个内容库，dubcopilot 都能帮你省下大量时间。"
+          title="Dub Copilot 适用场景"
+          description="只要是「外语视频 + 想要中文配音」，不管是单个视频还是整个内容库，Dub Copilot 都能帮你省下大量时间。"
         />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {USE_CASES.map((u) => (
@@ -357,7 +357,7 @@ export function Compare() {
             <thead>
               <tr className="border-b bg-muted/50 text-left">
                 <th className="px-4 py-3 font-semibold">对比维度</th>
-                <th className="px-4 py-3 font-semibold">dubcopilot AI 配音</th>
+                <th className="px-4 py-3 font-semibold">Dub Copilot AI 配音</th>
                 <th className="px-4 py-3 font-semibold">人工配音</th>
               </tr>
             </thead>
@@ -383,7 +383,7 @@ export function Compare() {
 
 export const FAQ_ITEMS = [
   {
-    question: "dubcopilot 收费吗？",
+    question: "Dub Copilot 收费吗？",
     answer:
       "工具本身免费、导出无水印。配音过程会调用你自己配置的 AI 服务（语音识别、翻译模型、豆包 TTS 等），费用由服务商按量计费，成本透明可控。",
   },
@@ -395,12 +395,12 @@ export const FAQ_ITEMS = [
   {
     question: "AI 配音的声音自然吗？",
     answer:
-      "dubcopilot 使用豆包 TTS 等新一代神经网络语音合成，提供多种中文音色。每句配音会自动适配原视频时长，语速异常的句子会被标记出来供人工复核。",
+      "Dub Copilot 使用豆包 TTS 等新一代神经网络语音合成，提供多种中文音色。每句配音会自动适配原视频时长，语速异常的句子会被标记出来供人工复核。",
   },
   {
     question: "我的视频会被上传到你们的服务器吗？",
     answer:
-      "不会。视频文件和工程数据全部保存在浏览器本地（IndexedDB），AI 请求由你的浏览器直接发给所配置的服务商，dubcopilot 没有服务器存储你的内容。",
+      "不会。视频文件和工程数据全部保存在浏览器本地（IndexedDB），AI 请求由你的浏览器直接发给所配置的服务商，Dub Copilot 没有服务器存储你的内容。",
   },
   {
     question: "翻译有错误可以修改吗？",
@@ -418,9 +418,9 @@ export const FAQ_ITEMS = [
       "导出带中文配音和字幕的完整视频成片，可以直接上传到课程平台、内网或视频网站使用。",
   },
   {
-    question: "dubcopilot 和 OpenCut 是什么关系？",
+    question: "Dub Copilot 和 OpenCut 是什么关系？",
     answer:
-      "dubcopilot 基于开源视频编辑器 OpenCut（MIT 协议）二次开发，复用其成熟的时间轴与渲染能力，并专注于 AI 视频配音与课程本地化场景。",
+      "Dub Copilot 基于开源视频编辑器 OpenCut（MIT 协议）二次开发，复用其成熟的时间轴与渲染能力，并专注于 AI 视频配音与课程本地化场景。",
   },
 ];
 
@@ -429,7 +429,7 @@ export function Faq() {
     <section id="faq" className="scroll-mt-16 py-16 lg:py-24">
       <div className="mx-auto w-full max-w-3xl px-4">
         <SectionHeading
-          title="关于 dubcopilot 的常见问题"
+          title="关于 Dub Copilot 的常见问题"
           description="还有其他问题？发邮件到 support@dubcopilot.com 告诉我们。"
         />
         <Accordion type="single" collapsible className="w-full">
@@ -461,7 +461,7 @@ export function FinalCta() {
           现在开始你的第一个 AI 配音视频
         </h2>
         <p className="text-muted-foreground lg:text-lg">
-          打开 dubcopilot，上传一个视频试试——转写、翻译、配音、导出，几分钟内看到成片效果。
+          打开 Dub Copilot，上传一个视频试试——转写、翻译、配音、导出，几分钟内看到成片效果。
         </p>
         <Link href="/projects">
           <button className="mt-2 flex items-center gap-1.5 rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-80">

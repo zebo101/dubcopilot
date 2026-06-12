@@ -9,13 +9,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
-	title: "Terms of Service - dubcopilot",
+	title: "Terms of Service - Dub Copilot",
 	description:
-		"dubcopilot's Terms of Service. Fair, transparent terms for our AI video dubbing tool.",
+		"Dub Copilot's Terms of Service. Fair, transparent terms for our AI video dubbing tool.",
 	openGraph: {
-		title: "Terms of Service - dubcopilot",
+		title: "Terms of Service - Dub Copilot",
 		description:
-			"dubcopilot's Terms of Service. Fair, transparent terms for our AI video dubbing tool.",
+			"Dub Copilot's Terms of Service. Fair, transparent terms for our AI video dubbing tool.",
 		type: "website",
 	},
 };
@@ -84,29 +84,29 @@ export default function TermsPage() {
 					processing happens locally on your device. We never see, store, or
 					have access to your files. We make no claims to ownership, licensing,
 					or rights over your videos, projects, or any content you create using
-					dubcopilot.
+					Dub Copilot.
 				</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>Your content is never stored on our servers</li>
 					<li>You retain all intellectual property rights to your content</li>
 					<li>You can export and use your content however you choose</li>
-					<li>No watermarks, no licensing restrictions from dubcopilot</li>
+					<li>No watermarks, no licensing restrictions from Dub Copilot</li>
 				</ul>
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-2xl font-semibold">How You Can Use dubcopilot</h2>
-				<p>dubcopilot is free for personal and commercial use. You can:</p>
+				<h2 className="text-2xl font-semibold">How You Can Use Dub Copilot</h2>
+				<p>Dub Copilot is free for personal and commercial use. You can:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>
 						Create dubbed videos for personal, educational, or commercial
 						purposes
 					</li>
-					<li>Use dubcopilot for client work and paid projects</li>
-					<li>Share and distribute videos created with dubcopilot</li>
+					<li>Use Dub Copilot for client work and paid projects</li>
+					<li>Share and distribute videos created with Dub Copilot</li>
 				</ul>
 				<p>
-					You&apos;re responsible for how you use dubcopilot and the content
+					You&apos;re responsible for how you use Dub Copilot and the content
 					you create. Make sure you have the rights to the videos you dub, and
 					don&apos;t use it for anything illegal in your jurisdiction.
 				</p>
@@ -127,7 +127,7 @@ export default function TermsPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Service</h2>
 				<p>
-					dubcopilot does not currently require an account. The service is
+					Dub Copilot does not currently require an account. The service is
 					provided &quot;as is&quot; without warranties. While we strive for
 					reliability, we can&apos;t guarantee uninterrupted service.
 				</p>
@@ -136,7 +136,7 @@ export default function TermsPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Attribution</h2>
 				<p>
-					dubcopilot is built on the open-source{" "}
+					Dub Copilot is built on the open-source{" "}
 					<a
 						href="https://github.com/OpenCut-app/OpenCut"
 						target="_blank"
@@ -153,7 +153,7 @@ export default function TermsPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Limitations and Liability</h2>
 				<p>
-					dubcopilot is provided free of charge. To the extent permitted by
+					Dub Copilot is provided free of charge. To the extent permitted by
 					law:
 				</p>
 				<ul className="list-disc space-y-2 pl-6">
@@ -174,7 +174,7 @@ export default function TermsPage() {
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Service Changes</h2>
-				<p>We may update dubcopilot and these terms:</p>
+				<p>We may update Dub Copilot and these terms:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>We&apos;ll notify you of significant changes to these terms</li>
 					<li>Continued use means you accept any updates</li>
@@ -183,7 +183,7 @@ export default function TermsPage() {
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Stopping Use</h2>
-				<p>You can stop using dubcopilot at any time:</p>
+				<p>You can stop using Dub Copilot at any time:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>Clear your browser data to remove local projects</li>
 				</ul>

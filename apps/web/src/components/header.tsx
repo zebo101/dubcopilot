@@ -44,12 +44,12 @@ export function Header() {
 							<Link href="/" className="flex items-center gap-2.5">
 								<Image
 									src={DEFAULT_LOGO_URL}
-									alt="dubcopilot"
+									alt="Dub Copilot"
 									className="rounded-md"
 									width={32}
 									height={32}
 								/>
-								<span className="text-base font-bold">dubcopilot</span>
+								<span className="text-base font-bold">Dub Copilot</span>
 							</Link>
 						</ContextMenuTrigger>
 						<ContextMenuContent>
@@ -135,12 +135,12 @@ export function Header() {
 							<div className="flex items-center gap-2">
 								<Image
 									src={DEFAULT_LOGO_URL}
-									alt="dubcopilot"
+									alt="Dub Copilot"
 									className="rounded-md"
 									width={24}
 									height={24}
 								/>
-								<span className="text-sm font-bold">dubcopilot</span>
+								<span className="text-sm font-bold">Dub Copilot</span>
 							</div>
 							<div className="flex items-center gap-1">
 								<ThemeToggle

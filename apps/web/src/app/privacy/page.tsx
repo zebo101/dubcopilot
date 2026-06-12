@@ -9,13 +9,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
-	title: "Privacy Policy - dubcopilot",
+	title: "Privacy Policy - Dub Copilot",
 	description:
-		"Learn how dubcopilot handles your data and privacy. Our commitment to protecting your information while you dub videos.",
+		"Learn how Dub Copilot handles your data and privacy. Our commitment to protecting your information while you dub videos.",
 	openGraph: {
-		title: "Privacy Policy - dubcopilot",
+		title: "Privacy Policy - Dub Copilot",
 		description:
-			"Learn how dubcopilot handles your data and privacy. Our commitment to protecting your information while you dub videos.",
+			"Learn how Dub Copilot handles your data and privacy. Our commitment to protecting your information while you dub videos.",
 		type: "website",
 	},
 };
@@ -48,7 +48,7 @@ export default function PrivacyPage() {
 								synthesis) call the AI provider you configure with your own API
 								key - we never receive or store that content
 							</li>
-							<li>dubcopilot does not currently require an account or login</li>
+							<li>Dub Copilot does not currently require an account or login</li>
 							<li>Project data stays on your device, not our servers</li>
 							<li>We do not run analytics or tracking scripts</li>
 							<li>You can clear local data from your browser at any time</li>
@@ -91,7 +91,7 @@ export default function PrivacyPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Accounts & Authentication</h2>
 				<p>
-					dubcopilot does not currently offer user accounts, login, or Google
+					Dub Copilot does not currently offer user accounts, login, or Google
 					sign-in.
 				</p>
 				<p>
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Third-Party Services</h2>
-				<p>dubcopilot interacts with these services:</p>
+				<p>Dub Copilot interacts with these services:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>
 						<strong>Hosting:</strong> Static assets and the app itself are
@@ -171,7 +171,7 @@ export default function PrivacyPage() {
 				<h2 className="text-2xl font-semibold">Your Rights</h2>
 				<p>You have complete control over your data:</p>
 				<ul className="list-disc space-y-2 pl-6">
-					<li>No account is required to use dubcopilot today</li>
+					<li>No account is required to use Dub Copilot today</li>
 					<li>Clear local storage to remove all saved projects and API keys</li>
 					<li>Contact us with any privacy concerns</li>
 				</ul>

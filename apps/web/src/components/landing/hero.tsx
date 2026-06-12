@@ -11,7 +11,7 @@ import { cn } from "@/utils/ui";
 
 // ---------------------------------------------------------------------------
 // Hero — Hero307-style isometric showcase with mouse parallax.
-// The tilted panel is a mock of the dubcopilot editor (AI 配音工作台).
+// The tilted panel is a mock of the Dub Copilot editor (AI 配音工作台).
 // Follows the site theme: light + dark variants throughout.
 // ---------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ const DEFAULTS = {
     },
     secondary: {
       text: "GitHub",
-      url: "https://github.com/zebo101/dubcopilot",
+      url: "https://github.com/zebo101/Dub Copilot",
     },
   },
 } satisfies HeroProps;
@@ -175,7 +175,7 @@ export function Hero(props: HeroProps) {
 }
 
 // ---------------------------------------------------------------------------
-// EditorMock — dubcopilot 编辑器界面（AI 配音工作台，明暗双主题）
+// EditorMock — Dub Copilot 编辑器界面（AI 配音工作台，明暗双主题）
 // ---------------------------------------------------------------------------
 
 // 双主题色组（浅色 → dark: 深色）
@@ -296,8 +296,8 @@ const EditorMock = () => {
       >
         <div className="flex items-center gap-3">
           <img
-            src="/logos/dubcopilot/svg/logo.svg"
-            alt="dubcopilot"
+            src="/logos/Dub Copilot/svg/logo.svg"
+            alt="Dub Copilot"
             className="size-5 rounded"
           />
           <span
