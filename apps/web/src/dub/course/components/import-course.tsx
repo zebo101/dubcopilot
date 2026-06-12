@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -12,6 +13,16 @@ import {
 	Video01Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/utils/ui";
 import { useCourseStore } from "@/dub/course/store";
 import { isFolderImportSupported } from "@/dub/course/scan";
@@ -126,11 +137,20 @@ function ScanStep() {
 	const missingPolicy = useCourseStore((s) => s.missingPolicy);
 	const output = useCourseStore((s) => s.output);
 	const confirmImport = useCourseStore((s) => s.confirmImport);
+	const course = useCourseStore((s) => s.course);
 	const targetLang = useDubStore((s) => s.settings.targetLang);
 	const targetLabel = languageByCode(targetLang).label;
+	const [overwriteOpen, setOverwriteOpen] = useState(false);
 
 	if (!scan) return null;
 	const sample = scan.lessons.slice(0, 8);
+	const processedCount =
+		course?.lessons.filter((l) => !!l.projectId).length ?? 0;
+
+	const onConfirm = async () => {
+		const res = await confirmImport();
+		if (res === "needs-confirm") setOverwriteOpen(true);
+	};
 
 	return (
 		<div className="space-y-4 p-5">
@@ -185,7 +205,7 @@ function ScanStep() {
 				)}
 			</div>
 			<div className="space-y-2">
-				<div className="text-muted-foreground text-xs">导出位置（Phase 4）</div>
+				<div className="text-muted-foreground text-xs">导出位置</div>
 				<Segmented
 					value={output}
 					options={[
@@ -233,10 +253,32 @@ function ScanStep() {
 				<Button variant="ghost" size="sm" onClick={() => useCourseStore.getState().closeImport()}>
 					取消
 				</Button>
-				<Button size="sm" onClick={() => void confirmImport()}>
+				<Button size="sm" onClick={() => void onConfirm()}>
 					<HugeiconsIcon icon={Tick02Icon} className="size-4" /> 导入 {scan.lessons.length} 节并进入批量中心
 				</Button>
 			</div>
+
+			<AlertDialog open={overwriteOpen} onOpenChange={setOverwriteOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>覆盖当前课程？</AlertDialogTitle>
+						<AlertDialogDescription>
+							当前课程「{course?.name}」中有 {processedCount}{" "}
+							节已生成。导入新目录会替换批量中心列表并丢弃这些进度
+							（已生成的项目文件不会被删除）。提示：往原课程文件夹里加新视频后
+							重新导入同一文件夹，会自动合并、不丢进度。
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>取消</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() => void confirmImport({ force: true })}
+						>
+							覆盖并导入
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { generateUUID } from "@/utils/id";
 import type {
 	Course,
 	CourseLesson,
@@ -12,6 +11,7 @@ import {
 	scanCourseDirectory,
 } from "@/dub/course/scan";
 import { idbDel, idbGet, idbSet } from "@/dub/course/idb";
+import { buildCourseFromScan, mergeCourseScan } from "@/dub/course/merge";
 import { useDubStore } from "@/dub/store";
 
 const COURSE_KEY = "course";
@@ -30,6 +30,9 @@ type ImportStep = "source" | "link" | "scan";
 interface CourseStore {
 	course: Course | null;
 	dirHandle: FileSystemDirectoryHandle | null;
+	/** 扫描出但尚未确认导入的目录 — confirm 时才接管 dirHandle，
+	 * 这样才能用 isSameEntry 判断「同根再导入」走合并而不是清空 */
+	pendingDirHandle: FileSystemDirectoryHandle | null;
 	/** in-memory handle maps (rebuilt from the dir on resume), keyed by lesson id */
 	videoHandles: Record<string, FileSystemFileHandle>;
 	subtitleHandles: Record<string, FileSystemFileHandle | null>;
@@ -73,7 +76,8 @@ interface CourseStore {
 	setOutput: (args: { output: "sibling" | "new" }) => void;
 	setOutDirHandle: (args: { handle: FileSystemDirectoryHandle | null }) => void;
 	pickFolder: () => Promise<void>;
-	confirmImport: () => Promise<void>;
+	/** "needs-confirm" = 换了根目录且有已生成课时——UI 弹覆盖确认后用 force 重调 */
+	confirmImport: (args?: { force?: boolean }) => Promise<"ok" | "needs-confirm">;
 	toggleSelect: (args: { id: string }) => void;
 	selectMany: (args: { ids: string[] }) => void;
 	clearSelection: () => void;
@@ -98,51 +102,6 @@ interface CourseStore {
 	/** must be called from a user gesture (click) — requests folder permission */
 	restorePermission: () => Promise<boolean>;
 	reset: () => Promise<void>;
-}
-
-function buildCourseFromScan({
-	scan,
-	missingPolicy,
-}: {
-	scan: ScanResult;
-	missingPolicy: MissingSubtitlePolicy;
-}): {
-	course: Course;
-	videoHandles: Record<string, FileSystemFileHandle>;
-	subtitleHandles: Record<string, FileSystemFileHandle | null>;
-} {
-	const videoHandles: Record<string, FileSystemFileHandle> = {};
-	const subtitleHandles: Record<string, FileSystemFileHandle | null> = {};
-
-	const lessons: CourseLesson[] = scan.lessons.map((l, i) => {
-		const id = `ls_${String(i).padStart(3, "0")}`;
-		videoHandles[id] = l.videoHandle;
-		subtitleHandles[id] = l.subtitleHandle;
-		const willSkip = !l.subtitleHandle && missingPolicy === "skip";
-		return {
-			id,
-			index: i + 1,
-			chapter: l.chapter,
-			title: l.title,
-			stem: l.stem,
-			videoPath: l.videoPath,
-			hasSubtitle: !!l.subtitleHandle,
-			subtitleLang: l.subtitleLang,
-			status: willSkip ? "failed" : "queued",
-			progress: 0,
-			failReason: willSkip ? "缺少字幕，已按策略跳过" : null,
-		};
-	});
-
-	const course: Course = {
-		id: generateUUID(),
-		name: scan.rootName,
-		rootName: scan.rootName,
-		total: lessons.length,
-		createdAt: Date.now(),
-		lessons,
-	};
-	return { course, videoHandles, subtitleHandles };
 }
 
 /** Re-scan the folder and match handles back to lessons by videoPath. */
@@ -182,6 +141,7 @@ const TERMINAL_STATUSES = new Set(["done", "review", "failed"]);
 export const useCourseStore = create<CourseStore>((set, get) => ({
 	course: null,
 	dirHandle: null,
+	pendingDirHandle: null,
 	videoHandles: {},
 	subtitleHandles: {},
 	view: "none",
@@ -207,7 +167,8 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 	openImport: () => set({ view: "import", importStep: "source" }),
 	closeImport: () =>
 		set((s) => ({ view: s.course ? "center" : "none" })),
-	backImportSource: () => set({ importStep: "source", scanResult: null }),
+	backImportSource: () =>
+		set({ importStep: "source", scanResult: null, pendingDirHandle: null }),
 	openLinkImport: () => set({ importStep: "link" }),
 	openCenter: () => set({ view: "center" }),
 	closeCourse: () => set({ view: "none" }),
@@ -234,22 +195,72 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 				dirHandle,
 				targetLang: useDubStore.getState().settings.targetLang,
 			});
-			set({ dirHandle, scanResult, importStep: "scan", scanning: false });
+			// dirHandle 留到 confirmImport 才接管 — 同根判断需要新旧并存
+			set({
+				pendingDirHandle: dirHandle,
+				scanResult,
+				importStep: "scan",
+				scanning: false,
+			});
 		} catch (error) {
 			set({ scanning: false });
 			throw error;
 		}
 	},
 
-	confirmImport: async () => {
-		const { scanResult, missingPolicy } = get();
-		if (!scanResult) return;
-		const { course, videoHandles, subtitleHandles } = buildCourseFromScan({
-			scan: scanResult,
-			missingPolicy,
+	confirmImport: async ({ force = false } = {}) => {
+		const { scanResult, missingPolicy, course, dirHandle, pendingDirHandle } =
+			get();
+		if (!scanResult || !pendingDirHandle) return "ok";
+
+		let sameRoot = false;
+		if (course && dirHandle) {
+			try {
+				sameRoot = await dirHandle.isSameEntry(pendingDirHandle);
+			} catch {
+				sameRoot = course.rootName === scanResult.rootName;
+			}
+		}
+
+		if (course && sameRoot) {
+			// 同根再导入 = 增量合并：已生成课时全保留，只追加/刷新
+			const merged = mergeCourseScan({
+				current: course,
+				scan: scanResult,
+				missingPolicy,
+			});
+			set({
+				course: merged.course,
+				videoHandles: merged.videoHandles,
+				subtitleHandles: merged.subtitleHandles,
+				dirHandle: pendingDirHandle,
+				pendingDirHandle: null,
+				view: "center",
+				selection: [],
+				needsPermission: false,
+			});
+			await get().persistNow();
+			return "ok";
+		}
+
+		const processed = course?.lessons.filter((l) => !!l.projectId).length ?? 0;
+		if (course && !sameRoot && processed > 0 && !force) {
+			return "needs-confirm"; // UI 弹覆盖确认
+		}
+
+		const built = buildCourseFromScan({ scan: scanResult, missingPolicy });
+		set({
+			course: built.course,
+			videoHandles: built.videoHandles,
+			subtitleHandles: built.subtitleHandles,
+			dirHandle: pendingDirHandle,
+			pendingDirHandle: null,
+			view: "center",
+			selection: [],
+			needsPermission: false,
 		});
-		set({ course, videoHandles, subtitleHandles, view: "center", selection: [] });
 		await get().persistNow();
+		return "ok";
 	},
 
 	toggleSelect: ({ id }) =>
@@ -394,6 +405,7 @@ export const useCourseStore = create<CourseStore>((set, get) => ({
 		set({
 			course: null,
 			dirHandle: null,
+			pendingDirHandle: null,
 			videoHandles: {},
 			subtitleHandles: {},
 			view: "none",
