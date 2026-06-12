@@ -41,7 +41,7 @@ export function Onboarding() {
 					<div className="space-y-5">
 						<div className="space-y-3">
 							<Title title={getStepTitle()} />
-							<Description description="dubcopilot 利用 AI 配音和字幕，将您的视频转为本地位版本。" />
+							<Description description="dubcopilot 是一款 AI 视频配音工具，帮你将视频翻译并配音为任意语言。" />
 						</div>
 						<NextButton onClick={handleNext}>下一步</NextButton>
 					</div>
@@ -51,8 +51,8 @@ export function Onboarding() {
 					<div className="space-y-5">
 						<div className="space-y-3">
 							<Title title={getStepTitle()} />
-							<Description description="上传视频，自动转写翻译，然后导出带字幕的配音成品。" />
-							<Description description="如需处理整门课程，可使用批量中心一次性处理全部视频。" />
+							<Description description="导入视频，自动完成语音识别与翻译，导出带字幕的配音成品。" />
+							<Description description="整门课程的视频？批量中心一键处理，省时省力。" />
 						</div>
 						<NextButton onClick={handleClose}>完成</NextButton>
 					</div>
