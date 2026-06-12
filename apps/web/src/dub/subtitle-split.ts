@@ -23,6 +23,26 @@ const CAPTION_HARD_MAX_WIDTH = 80;
  * FEWER, slightly longer captions instead). */
 const MIN_CAPTION_SECONDS = 2;
 
+/** How long a caption may linger after the speech ends (VideoLingo removes
+ * gaps under 1s; larger gaps end the subtitle with the speech). */
+export const CAPTION_LINGER_SECONDS = 1;
+
+/** Display window for a segment's captions. `slot` is the extended slot
+ * (until the next line); `speech` is how long someone is actually talking
+ * (dub audio after speed-fit, or the original cue span). Small gaps are
+ * filled for continuous reading; a long silence no longer keeps the
+ * caption on screen — it ends ≤1s after the speech does. */
+export function captionWindow({
+	slot,
+	speech,
+}: {
+	slot: number;
+	speech: number;
+}): number {
+	if (speech <= 0 || speech >= slot) return slot;
+	return Math.min(slot, speech + CAPTION_LINGER_SECONDS);
+}
+
 // lookbehind keeps the punctuation attached to the preceding clause
 const CLAUSE_BOUNDARY = /(?<=[。！？；，、…．!?;:,.])/u;
 const SPACE_BOUNDARY = /(?<=\s)/u;

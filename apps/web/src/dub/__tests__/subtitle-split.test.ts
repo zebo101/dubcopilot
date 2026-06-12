@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	captionWidth,
+	captionWindow,
 	splitCaption,
 	splitCaptionText,
 } from "@/dub/subtitle-split";
@@ -14,6 +15,26 @@ describe("captionWidth", () => {
 		expect(width("汉a字b")).toBe(6);
 		expect(width("，")).toBe(2); // full-width punctuation is wide
 		expect(width(",")).toBe(1);
+	});
+});
+
+describe("captionWindow", () => {
+	test("small gap to the next line is filled (continuous reading)", () => {
+		// speech 4s in a 4.8s slot — gap 0.8s ≤ 1s → keep the full slot
+		expect(captionWindow({ slot: 4.8, speech: 4 })).toBe(4.8);
+	});
+
+	test("long silence ends the caption ~1s after the speech", () => {
+		// speech 3s in a 9s slot — caption must NOT linger 6s into silence
+		expect(captionWindow({ slot: 9, speech: 3 })).toBe(4);
+	});
+
+	test("no speech info falls back to the full slot", () => {
+		expect(captionWindow({ slot: 5, speech: 0 })).toBe(5);
+	});
+
+	test("speech longer than the slot keeps the slot", () => {
+		expect(captionWindow({ slot: 4, speech: 5 })).toBe(4);
 	});
 });
 
