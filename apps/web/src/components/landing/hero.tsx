@@ -8,6 +8,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
+import { DEFAULT_LOGO_URL } from "@/site/brand";
 
 // ---------------------------------------------------------------------------
 // Hero — Hero307-style isometric showcase with mouse parallax.
@@ -296,7 +297,7 @@ const EditorMock = () => {
       >
         <div className="flex items-center gap-3">
           <img
-            src="/logos/Dub Copilot/svg/logo.svg"
+            src={DEFAULT_LOGO_URL}
             alt="Dub Copilot"
             className="size-5 rounded"
           />
